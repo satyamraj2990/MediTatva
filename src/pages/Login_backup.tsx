@@ -13,7 +13,8 @@ import {
   Mail, 
   Lock, 
   Sparkles, 
-  ChevronDown,
+  ChevronDown, 
+  ChevronUp,
   Heart
 } from "lucide-react";
 
@@ -32,6 +33,7 @@ const Login = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Demo credentials validation
     const validCredentials = {
       patient: { email: "patient@meditatva.com", password: "patient123" },
       pharmacy: { email: "pharmacy@meditatva.com", password: "pharmacy123" },
@@ -55,7 +57,10 @@ const Login = () => {
 
   const containerVariants = {
     hidden: { opacity: 0, y: 50 },
-    visible: { opacity: 1, y: 0 }
+    visible: { 
+      opacity: 1, 
+      y: 0
+    }
   };
 
   const itemVariants = {
@@ -69,18 +74,42 @@ const Login = () => {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           className="absolute top-20 left-10 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl"
-          animate={{ x: [0, 100, 0], y: [0, 50, 0], scale: [1, 1.2, 1] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+          animate={{
+            x: [0, 100, 0],
+            y: [0, 50, 0],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
         />
         <motion.div
           className="absolute bottom-20 right-10 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl"
-          animate={{ x: [0, -100, 0], y: [0, -50, 0], scale: [1, 1.3, 1] }}
-          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+          animate={{
+            x: [0, -100, 0],
+            y: [0, -50, 0],
+            scale: [1, 1.3, 1],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
         />
         <motion.div
           className="absolute top-1/2 left-1/2 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl"
-          animate={{ x: [-50, 50, -50], y: [-50, 50, -50], scale: [1, 1.1, 1] }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+          animate={{
+            x: [-50, 50, -50],
+            y: [-50, 50, -50],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
         />
       </div>
 
@@ -111,7 +140,10 @@ const Login = () => {
             >
               <div className="space-y-6">
                 {/* Logo and Title */}
-                <motion.div whileHover={{ scale: 1.02 }} className="space-y-4">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className="space-y-4"
+                >
                   <div className="flex items-center gap-3">
                     <motion.div
                       animate={{ rotate: [0, 14, -8, 14, -4, 10, 0] }}
@@ -205,7 +237,10 @@ const Login = () => {
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form 
+                  onSubmit={handleSubmit} 
+                  className="space-y-5"
+                >
                   {/* Email Field */}
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-sm font-medium text-foreground">
@@ -253,7 +288,10 @@ const Login = () => {
                   </div>
 
                   {/* Login Button */}
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
                     <Button 
                       type="submit" 
                       className="w-full h-12 premium-button text-base font-semibold relative overflow-hidden group"

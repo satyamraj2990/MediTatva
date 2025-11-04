@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Chatbot } from "@/components/Chatbot";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -48,10 +49,13 @@ const PharmacyDashboard = () => {
               <h1 className="text-2xl font-heading font-bold gradient-text">MediTatva Pharmacy</h1>
             </div>
 
-            <Button onClick={handleLogout} variant="ghost" size="sm">
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button onClick={handleLogout} variant="ghost" size="sm">
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </nav>
