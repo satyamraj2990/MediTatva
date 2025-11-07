@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Chatbot } from "@/components/Chatbot";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LocationDisplay } from "@/components/LocationDisplay";
+import { NearbyPharmacyFinder } from "@/components/NearbyPharmacyFinder";
 import { 
   Search, MapPin, MessageCircle, Star, Phone, Navigation,
   Clock, Package, Heart, Bell, User, LogOut, Pill, Camera, 
@@ -21,6 +23,7 @@ const PatientDashboard = () => {
   const [selectedPharmacy, setSelectedPharmacy] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [showNearbyFinder, setShowNearbyFinder] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
 
   const { scrollYProgress } = useScroll();
@@ -118,6 +121,21 @@ const PatientDashboard = () => {
             </motion.div>
 
             <div className="flex items-center gap-2 sm:gap-4">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  onClick={() => setShowNearbyFinder(true)}
+                  className="gap-2"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(20, 184, 166, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)',
+                    border: '1px solid rgba(20, 184, 166, 0.3)',
+                    boxShadow: '0 0 20px rgba(20, 184, 166, 0.15)',
+                  }}
+                >
+                  <MapPin className="h-4 w-4" />
+                  <span className="hidden md:inline">Find Nearby Stores</span>
+                </Button>
+              </motion.div>
+              <LocationDisplay variant="patient" showFullAddress={false} />
               <ThemeToggle />
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button 
@@ -824,6 +842,16 @@ const PatientDashboard = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Nearby Pharmacy Finder Modal */}
+      <AnimatePresence>
+        {showNearbyFinder && (
+          <NearbyPharmacyFinder 
+            variant="patient" 
+            onClose={() => setShowNearbyFinder(false)} 
+          />
+        )}
+      </AnimatePresence>
 
       {/* Chatbot */}
       <Chatbot />

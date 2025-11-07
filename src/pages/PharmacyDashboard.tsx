@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, memo } from "react";
+import { useNavigate, useLocation, NavLink, Routes, Route, Outlet } from "react-router-dom";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Chatbot } from "@/components/Chatbot";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LocationDisplay } from "@/components/LocationDisplay";
+import { NearbyPharmacyFinder } from "@/components/NearbyPharmacyFinder";
+import { NearbyMedicalStoresPage } from "./NearbyMedicalStoresPage";
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell
@@ -17,8 +20,9 @@ import {
   Plus, Edit, Trash2, AlertCircle, Pill, Sparkles, ArrowUp,
   Home, BarChart3, Settings, Receipt, Brain, Bell, Download,
   Calendar, Mail, Phone, User, CreditCard, X, FileText, CheckCircle,
-  ShoppingCart, Activity, Zap, TrendingDown, Clock
+  ShoppingCart, Activity, Zap, TrendingDown, Clock, MapPin
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 
@@ -297,12 +301,15 @@ interface CartItem {
   stock: number;
 }
 
+type Tab = "analytics" | "inventory" | "chat" | "ai" | "billing" | "nearby-stores";
+
 const PharmacyDashboard = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("analytics");
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showBillingModal, setShowBillingModal] = useState(false);
+  const [showNearbyFinder, setShowNearbyFinder] = useState(false);
   
   // Billing form state
   const [patientName, setPatientName] = useState("");
@@ -312,12 +319,24 @@ const PharmacyDashboard = () => {
 
   // Patient Chat State
   const [chatFilter, setChatFilter] = useState<"active" | "pending" | "resolved">("active");
-  const [selectedChat, setSelectedChat] = useState<number | null>(null);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
 
   // AI Insights State
   const [autoReorderMode, setAutoReorderMode] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (location.pathname === "/pharmacy/dashboard" || location.pathname === "/pharmacy/dashboard/") {
+      navigate("/pharmacy/dashboard/analytics", { replace: true });
+    }
+  }, [location.pathname, navigate]);
+
+  const currentTab: Tab = (() => {
+    const segment = location.pathname.replace(/\/$/, "").split("/").pop() as Tab | undefined;
+    return segment && ["analytics", "inventory", "chat", "ai", "billing", "nearby-stores"].includes(segment)
+      ? segment
+      : "analytics";
+  })();
 
   useEffect(() => {
     const isAuth = localStorage.getItem("isAuthenticated");
@@ -529,12 +548,13 @@ const PharmacyDashboard = () => {
     med.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const menuItems = [
+  const menuItems: Array<{ id: Tab; icon: LucideIcon; label: string }> = [
     { id: "analytics", icon: BarChart3, label: "Analytics & Reports" },
     { id: "inventory", icon: Package, label: "Inventory Management" },
     { id: "chat", icon: MessageCircle, label: "Patient Chat" },
     { id: "ai", icon: Brain, label: "AI Insights" },
     { id: "billing", icon: Receipt, label: "Billing & Invoices" },
+    { id: "nearby-stores", icon: MapPin, label: "Nearby Medical Stores" },
   ];
 
   return (
@@ -585,40 +605,55 @@ const PharmacyDashboard = () => {
           </motion.div>
 
           {/* Menu Items */}
-          <nav className="space-y-2 mb-auto">
-            {menuItems.map((item) => (
-              <motion.button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                  activeTab === item.id
-                    ? "bg-gradient-to-r from-[#4FC3F7]/10 to-[#1B6CA8]/10 border border-[#1B6CA8]/30 shadow-md shadow-[#4FC3F7]/10"
-                    : "hover:bg-[#F7F9FC]"
-                }`}
-                whileHover={{ scale: 1.02, x: 5 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <item.icon
-                  className={`h-5 w-5 ${
-                    activeTab === item.id ? "text-[#1B6CA8]" : "text-[#5A6A85]"
-                  }`}
-                />
-                <span
-                  className={`text-sm ${
-                    activeTab === item.id ? "text-[#0A2342] font-semibold" : "text-[#5A6A85]"
-                  }`}
+          <LayoutGroup>
+            <nav className="space-y-2 mb-auto">
+              {menuItems.map((item) => (
+                <NavLink
+                  key={item.id}
+                  to={`/pharmacy/dashboard/${item.id}`}
+                  className="block"
                 >
-                  {item.label}
-                </span>
-                {activeTab === item.id && (
-                  <motion.div
-                    className="ml-auto w-1.5 h-1.5 rounded-full bg-[#4FC3F7]"
-                    layoutId="activeIndicator"
-                  />
-                )}
-              </motion.button>
-            ))}
-          </nav>
+                  {({ isActive }) => (
+                    <motion.div
+                      whileHover={{ x: 6 }}
+                      whileTap={{ scale: 0.98 }}
+                      className={`relative flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-200 ${
+                        isActive
+                          ? "bg-white/80 border-[#4FC3F7]/40 shadow-lg shadow-[#4FC3F7]/20"
+                          : "border-transparent hover:bg-white/60"
+                      }`}
+                    >
+                      {isActive && (
+                        <motion.span
+                          layoutId="sidebar-glow"
+                          className="absolute left-0 top-1/2 h-10 w-1 rounded-r-full bg-gradient-to-b from-[#4FC3F7] to-[#1B6CA8] shadow-[0_0_12px_rgba(79,195,247,0.7)]"
+                          style={{ translateY: "-50%" }}
+                        />
+                      )}
+                      <item.icon
+                        className={`h-5 w-5 transition-colors ${
+                          isActive ? "text-[#1B6CA8]" : "text-[#5A6A85]"
+                        }`}
+                      />
+                      <span
+                        className={`text-sm font-medium transition-colors ${
+                          isActive ? "text-[#0A2342]" : "text-[#5A6A85]"
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                      {isActive && (
+                        <motion.div
+                          layoutId="sidebar-active-dot"
+                          className="ml-auto h-2 w-2 rounded-full bg-[#4FC3F7] shadow-[0_0_10px_rgba(79,195,247,0.8)]"
+                        />
+                      )}
+                    </motion.div>
+                  )}
+                </NavLink>
+              ))}
+            </nav>
+          </LayoutGroup>
 
           {/* Logout Button */}
           <motion.div
@@ -639,7 +674,7 @@ const PharmacyDashboard = () => {
       </motion.aside>
 
       {/* Main Content */}
-      <main className="flex-1 relative z-10 overflow-y-auto">
+      <main className="flex-1 relative z-10 overflow-y-auto bg-gradient-to-br from-[#E8F4F8]/50 via-[#F7F9FC]/30 to-[#FFFFFF]/10">
         {/* Top Bar */}
         <div
           className="sticky top-0 z-20 border-b"
@@ -653,11 +688,26 @@ const PharmacyDashboard = () => {
           <div className="px-8 py-4 flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-white">
-                {menuItems.find(m => m.id === activeTab)?.label}
+                {menuItems.find(m => m.id === currentTab)?.label}
               </h2>
               <p className="text-sm text-white/80">Welcome back, HealthPlus Pharmacy</p>
             </div>
             <div className="flex items-center gap-4">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  onClick={() => setShowNearbyFinder(true)}
+                  className="gap-2"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    color: 'white',
+                  }}
+                >
+                  <MapPin className="h-4 w-4" />
+                  <span className="hidden md:inline">Find Nearby Stores</span>
+                </Button>
+              </motion.div>
+              <LocationDisplay variant="pharmacy" showFullAddress={false} />
               <ThemeToggle />
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
@@ -678,9 +728,9 @@ const PharmacyDashboard = () => {
         </div>
 
         {/* Content Area */}
-        <div className="p-3 md:p-4 lg:p-5 max-w-[1800px] mx-auto">
+        <div className="p-3 md:p-4 lg:p-5 max-w-[1800px] mx-auto min-h-screen">
           <AnimatePresence mode="wait">
-            {activeTab === "analytics" && (
+            {currentTab === "analytics" && (
               <motion.div
                 key="analytics"
                 initial={{ opacity: 0, y: 20 }}
@@ -970,7 +1020,7 @@ const PharmacyDashboard = () => {
             )}
 
             {/* Inventory Management Tab */}
-            {activeTab === "inventory" && (
+            {currentTab === "inventory" && (
               <motion.div
                 key="inventory"
                 initial={{ opacity: 0, y: 20 }}
@@ -1118,7 +1168,7 @@ const PharmacyDashboard = () => {
             )}
 
             {/* Patient Chat Tab */}
-            {activeTab === "chat" && (
+            {currentTab === "chat" && (
               <motion.div
                 key="chat"
                 initial={{ opacity: 0, y: 20 }}
@@ -1468,7 +1518,7 @@ const PharmacyDashboard = () => {
             )}
 
             {/* AI Insights Tab */}
-            {activeTab === "ai" && (
+            {currentTab === "ai" && (
               <motion.div
                 key="ai"
                 initial={{ opacity: 0, y: 20 }}
@@ -1945,7 +1995,7 @@ const PharmacyDashboard = () => {
               </motion.div>
             )}
 
-            {activeTab === "billing" && (
+            {currentTab === "billing" && (
               <motion.div
                 key="billing"
                 initial={{ opacity: 0, y: 20 }}
@@ -2170,10 +2220,23 @@ const PharmacyDashboard = () => {
               </motion.div>
             )}
 
-            {/* Other tabs placeholder */}
-            {!["analytics", "billing"].includes(activeTab) && (
+            {/* Nearby Medical Stores Tab */}
+            {currentTab === "nearby-stores" && (
               <motion.div
-                key={activeTab}
+                key="nearby-stores"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <NearbyMedicalStoresPage />
+              </motion.div>
+            )}
+
+            {/* Other tabs placeholder */}
+            {!["analytics", "billing", "nearby-stores"].includes(currentTab) && (
+              <motion.div
+                key={currentTab}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -2190,7 +2253,7 @@ const PharmacyDashboard = () => {
                 >
                   <Activity className="h-16 w-16 text-[#4FC3F7] mx-auto mb-4" />
                   <h3 className="text-2xl font-bold text-[#0A2342] mb-2">
-                    {menuItems.find(m => m.id === activeTab)?.label}
+                    {menuItems.find(m => m.id === currentTab)?.label}
                   </h3>
                   <p className="text-[#5A6A85]">This section is coming soon...</p>
                 </Card>
@@ -2387,6 +2450,16 @@ const PharmacyDashboard = () => {
               </Card>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Nearby Pharmacy Finder Modal */}
+      <AnimatePresence>
+        {showNearbyFinder && (
+          <NearbyPharmacyFinder 
+            variant="pharmacy" 
+            onClose={() => setShowNearbyFinder(false)} 
+          />
         )}
       </AnimatePresence>
 

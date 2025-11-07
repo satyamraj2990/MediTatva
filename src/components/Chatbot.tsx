@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { X, Send, Sparkles, AlertCircle } from "lucide-react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -13,8 +14,16 @@ interface Message {
   timestamp: Date;
 }
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
+// Initialize Gemini AI - with safe fallback
+let genAI: GoogleGenerativeAI | null = null;
+try {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (apiKey) {
+    genAI = new GoogleGenerativeAI(apiKey);
+  }
+} catch (error) {
+  console.warn("Gemini API not configured:", error);
+}
 
 // System prompt for MediTatva AI Health Assistant
 const SYSTEM_PROMPT = `You are MediTatva — an advanced, multilingual AI Health Assistant that talks like a friendly digital doctor and pharmacist.
@@ -99,6 +108,16 @@ export const Chatbot = () => {
 
   const initializeChatSession = async () => {
     try {
+      if (!genAI) {
+        // API key not configured - show informational message
+        setMessages([{
+          text: "👋 **Hello! I'm MediTatva, your AI Health Assistant.**\n\nHow are you feeling today? Please describe your symptoms or health concerns, and I'll provide helpful medical guidance. 😊\n\n⚠️ *Note: AI features require API configuration. Please contact support for assistance.*",
+          isBot: true,
+          timestamp: new Date(),
+        }]);
+        return;
+      }
+
       const model = genAI.getGenerativeModel({ 
         model: "gemini-1.5-flash",
         systemInstruction: SYSTEM_PROMPT
@@ -125,21 +144,16 @@ export const Chatbot = () => {
       console.error("Error initializing chat:", error);
       // Fallback greeting
       setMessages([{
-        text: "👋 **Hello! I'm MediTatva, your AI Health Assistant.**\n\nHow are you feeling today? Please describe your symptoms or health concerns, and I'll provide helpful medical guidance. 😊",
+        text: "👋 **Hello! I'm MediTatva, your AI Health Assistant.**\n\nHow are you feeling today? Please describe your symptoms or health concerns, and I'll provide helpful medical guidance. 😊\n\n⚠️ *Connection issue detected. Some features may be limited.*",
         isBot: true,
         timestamp: new Date(),
       }]);
-      toast.error("AI connection issue. Retrying...");
     }
   };
 
   const handleSend = async () => {
     if (!inputValue.trim()) return;
-    if (!chatSession) {
-      toast.error("AI not ready. Please wait...");
-      return;
-    }
-
+    
     const userMessage: Message = {
       text: inputValue,
       isBot: false,
@@ -152,6 +166,18 @@ export const Chatbot = () => {
     setIsTyping(true);
 
     try {
+      if (!chatSession || !genAI) {
+        // Fallback response when AI is not available
+        const fallbackResponse: Message = {
+          text: "⚠️ **AI Service Unavailable**\n\nI apologize, but I'm unable to process your request right now. This could be due to:\n\n• Missing API configuration\n• Network connectivity issues\n• Service maintenance\n\n**What you can do:**\n\n• For urgent health concerns, please contact emergency services (108/102)\n• Visit a nearby pharmacy or healthcare provider\n• Try again later when the service is restored\n\n*Thank you for using MediTatva!*",
+          isBot: true,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, fallbackResponse]);
+        setIsTyping(false);
+        return;
+      }
+
       // Send message to Gemini AI
       const result = await chatSession.sendMessage(currentInput);
       const response = result.response.text();
@@ -165,12 +191,11 @@ export const Chatbot = () => {
     } catch (error) {
       console.error("Error getting AI response:", error);
       const errorMessage: Message = {
-        text: "⚠️ **Connection Error**\n\nI'm having trouble connecting to the AI service right now. Please:\n\n• Check your internet connection\n• Try again in a moment\n• If symptoms are urgent, consult a doctor immediately\n\n*Tip: Make sure the Gemini API key is configured correctly.*",
+        text: "⚠️ **Connection Error**\n\nI'm having trouble connecting to the AI service right now. Please:\n\n• Check your internet connection\n• Try again in a moment\n• If symptoms are urgent, consult a doctor immediately\n\n*For persistent issues, please contact MediTatva support.*",
         isBot: true,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
-      toast.error("AI connection error. Check API key configuration.");
     } finally {
       setIsTyping(false);
     }
@@ -185,19 +210,33 @@ export const Chatbot = () => {
   return (
     <>
       {/* Floating Button - Enhanced with gradient */}
-      <Button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-2xl z-50 hover:scale-110 transition-all duration-300"
-        size="icon"
-        style={{
-          background: isOpen 
-            ? 'linear-gradient(135deg, #1B6CA8 0%, #4FC3F7 100%)'
-            : 'linear-gradient(135deg, #1B6CA8 0%, #4FC3F7 100%)',
-          boxShadow: '0 8px 32px rgba(27, 108, 168, 0.4)',
-        }}
+      <motion.div
+        className="fixed bottom-6 right-6 z-50"
+        whileHover={{ translateY: -6, scale: 1.06, rotate: -3 }}
+        whileTap={{ scale: 0.94, rotate: 0, translateY: -2 }}
+        transition={{ type: "spring", stiffness: 300, damping: 18 }}
       >
-        {isOpen ? <X className="h-6 w-6 text-white" /> : <Sparkles className="h-6 w-6 text-white animate-pulse" />}
-      </Button>
+        <Button
+          onClick={() => setIsOpen(!isOpen)}
+          className="h-16 w-16 rounded-full shadow-[0_18px_40px_rgba(27,108,168,0.35)] transition-all duration-300 focus-visible:ring-4 focus-visible:ring-[#4FC3F7]/40"
+          size="icon"
+          aria-label={isOpen ? "Close MediTatva assistant" : "Open MediTatva assistant"}
+          style={{
+            background: isOpen
+              ? 'linear-gradient(145deg, #0F4C75 0%, #3282B8 50%, #4FC3F7 100%)'
+              : 'linear-gradient(145deg, #1B6CA8 0%, #2A9DF4 45%, #4FC3F7 100%)',
+            boxShadow: isOpen
+              ? '0 20px 40px rgba(15, 76, 117, 0.35), inset 0 1px 0 rgba(255,255,255,0.3)'
+              : '0 22px 40px rgba(27, 108, 168, 0.35), inset 0 1px 0 rgba(255,255,255,0.25)'
+          }}
+        >
+          {isOpen ? (
+            <X className="h-6 w-6 text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.5)]" />
+          ) : (
+            <Sparkles className="h-6 w-6 text-white animate-pulse drop-shadow-[0_0_8px_rgba(79,195,247,0.8)]" />
+          )}
+        </Button>
+      </motion.div>
 
       {/* Chat Window */}
       {isOpen && (
