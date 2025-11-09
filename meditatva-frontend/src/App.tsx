@@ -18,7 +18,7 @@ const InventoryTab = lazy(() => import("./pages/pharmacy-tabs/InventoryTab").the
 const ChatTab = lazy(() => import("./pages/pharmacy-tabs/ChatTab").then(m => ({ default: m.ChatTab })));
 const AIInsightsTab = lazy(() => import("./pages/pharmacy-tabs/AIInsightsTab").then(m => ({ default: m.AIInsightsTab })));
 const BillingTab = lazy(() => import("./pages/pharmacy-tabs/BillingTab").then(m => ({ default: m.BillingTab })));
-const NearbyMedicalStoresPage = lazy(() => import("./pages/NearbyMedicalStoresPage").then(m => ({ default: m.NearbyMedicalStoresPage })));
+const OrderRequestsTab = lazy(() => import("./pages/pharmacy-tabs/OrderRequestsTab").then(m => ({ default: m.OrderRequestsTab })));
 
 const queryClient = new QueryClient();
 
@@ -48,7 +48,7 @@ const App = () => (
               
               {/* Pharmacy Dashboard with Nested Routes */}
               <Route path="/pharmacy/dashboard" element={<DashboardLayout />}>
-                <Route path="nearby-stores" element={<NearbyMedicalStoresPage />} />
+                <Route path="order-requests" element={<OrderRequestsTab />} />
                 <Route path="billing" element={<BillingTab />} />
                 <Route path="inventory" element={<InventoryTab />} />
                 <Route path="analytics" element={<AnalyticsTab />} />

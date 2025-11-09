@@ -56,6 +56,11 @@ const ModernPatientDashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("userRole");
+    // Clear patient-specific location data
+    try { 
+      sessionStorage.removeItem("patientLocationData");
+      sessionStorage.removeItem("patientLocation"); // Clear old key too
+    } catch (e) { }
     toast.success("Logged out successfully");
     navigate("/login");
   };

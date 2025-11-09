@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useGeolocation } from "@/hooks/useGeolocation";
 
 interface Pharmacy {
   id: string;
@@ -28,6 +29,9 @@ export const NearbyPharmacyFinder = ({ variant = "patient", onClose }: NearbyPha
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Use the geolocation hook with the appropriate user type
+  const { location: geoLocation, loading: geoLoading, error: geoError, refreshLocation } = useGeolocation(variant);
 
   const isPharmacy = variant === "pharmacy";
 
@@ -47,21 +51,22 @@ export const NearbyPharmacyFinder = ({ variant = "patient", onClose }: NearbyPha
     setLoading(true);
     setError(null);
     setPharmacies([]);
-
-    if (!("geolocation" in navigator)) {
-      setError("Geolocation is not supported by your browser");
+    // Prefer session-scoped geoLocation from the hook
+    if (!geoLocation) {
+      // try triggering a refresh
+      toast.info("Fetching your current location...");
+      refreshLocation();
       setLoading(false);
-      toast.error("Geolocation not supported");
+      setError("Please allow location access or refresh your location to search nearby stores.");
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        setUserLocation({ lat: latitude, lng: longitude });
+    const latitude = geoLocation.latitude;
+    const longitude = geoLocation.longitude;
+    setUserLocation({ lat: latitude, lng: longitude });
 
-        console.log("🔍 Searching for pharmacies near:", latitude, longitude);
-        toast.info("Searching all nearby pharmacies...");
+    console.log("🔍 Searching for pharmacies near:", latitude, longitude);
+    toast.info("Searching all nearby pharmacies...");
 
         let allPharmacies: Pharmacy[] = [];
 
@@ -225,30 +230,6 @@ export const NearbyPharmacyFinder = ({ variant = "patient", onClose }: NearbyPha
         } finally {
           setLoading(false);
         }
-      },
-      (error) => {
-        setLoading(false);
-        let errorMessage = "Unable to get your location";
-        
-        if (error.code === error.PERMISSION_DENIED) {
-          errorMessage = "Please enable location access to find nearby pharmacies";
-          toast.error("Location access denied");
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
-          errorMessage = "Location information is unavailable";
-          toast.error("Location unavailable");
-        } else if (error.code === error.TIMEOUT) {
-          errorMessage = "Location request timed out";
-          toast.error("Location timeout");
-        }
-        
-        setError(errorMessage);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 300000
-      }
-    );
   };
 
   const openInGoogleMaps = (lat: number, lon: number, name: string) => {

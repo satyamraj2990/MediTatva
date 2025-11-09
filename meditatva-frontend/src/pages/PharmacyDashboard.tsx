@@ -10,7 +10,6 @@ import { Chatbot } from "@/components/Chatbot";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LocationDisplay } from "@/components/LocationDisplay";
 import { NearbyPharmacyFinder } from "@/components/NearbyPharmacyFinder";
-import { NearbyMedicalStoresPage } from "./NearbyMedicalStoresPage";
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell
@@ -301,7 +300,7 @@ interface CartItem {
   stock: number;
 }
 
-type Tab = "analytics" | "inventory" | "chat" | "ai" | "billing" | "nearby-stores";
+type Tab = "analytics" | "inventory" | "chat" | "ai" | "billing";
 
 const PharmacyDashboard = () => {
   const navigate = useNavigate();
@@ -333,7 +332,7 @@ const PharmacyDashboard = () => {
 
   const currentTab: Tab = (() => {
     const segment = location.pathname.replace(/\/$/, "").split("/").pop() as Tab | undefined;
-    return segment && ["analytics", "inventory", "chat", "ai", "billing", "nearby-stores"].includes(segment)
+    return segment && ["analytics", "inventory", "chat", "ai", "billing"].includes(segment)
       ? segment
       : "analytics";
   })();
@@ -349,6 +348,11 @@ const PharmacyDashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("userRole");
+    // Clear pharmacy-specific location data
+    try { 
+      sessionStorage.removeItem("pharmacyLocationData");
+      sessionStorage.removeItem("pharmacyLocation"); // Clear old key too
+    } catch (e) { }
     toast.success("Logged out successfully");
     navigate("/login");
   };
@@ -554,7 +558,6 @@ const PharmacyDashboard = () => {
     { id: "chat", icon: MessageCircle, label: "Patient Chat" },
     { id: "ai", icon: Brain, label: "AI Insights" },
     { id: "billing", icon: Receipt, label: "Billing & Invoices" },
-    { id: "nearby-stores", icon: MapPin, label: "Nearby Medical Stores" },
   ];
 
   return (
@@ -2220,21 +2223,8 @@ const PharmacyDashboard = () => {
               </motion.div>
             )}
 
-            {/* Nearby Medical Stores Tab */}
-            {currentTab === "nearby-stores" && (
-              <motion.div
-                key="nearby-stores"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <NearbyMedicalStoresPage />
-              </motion.div>
-            )}
-
             {/* Other tabs placeholder */}
-            {!["analytics", "billing", "nearby-stores"].includes(currentTab) && (
+            {!["analytics", "billing"].includes(currentTab) && (
               <motion.div
                 key={currentTab}
                 initial={{ opacity: 0, y: 20 }}

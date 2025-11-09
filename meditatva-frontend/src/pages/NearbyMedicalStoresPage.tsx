@@ -42,7 +42,7 @@ export const NearbyMedicalStoresPage = memo(() => {
   const [manualLocationSearch, setManualLocationSearch] = useState("");
   const [searchingManualLocation, setSearchingManualLocation] = useState(false);
 
-  const GOOGLE_MAPS_API_KEY = "AIzaSyD68awf-0haNIrM9Ewj6LIXtpbHFVfC_MU";
+  const GOOGLE_MAPS_API_KEY = "AIzaSyBNNB_456wwnLo57BSO89POATwS1FjsMjw";
 
   const getCurrentLocation = async () => {
     setLocationLoading(true);

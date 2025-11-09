@@ -19,6 +19,8 @@ export interface Order {
   };
   medicines: OrderMedicine[];
   totalAmount: number;
+  subtotal?: number;
+  platformCharge?: number;
   status: 'pending' | 'confirmed' | 'processing' | 'dispatched' | 'delivered' | 'cancelled';
   orderDate: string;
   estimatedDelivery: string;

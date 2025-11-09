@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { 
   ShoppingCart, Package, Truck, CheckCircle, 
   MapPin, Clock, CreditCard,
-  Eye, X, RotateCcw, Phone, Store, Calendar
+  Eye, X, RotateCcw, Phone, Store, Calendar, FileText, Download
 } from "lucide-react";
 import { toast } from "sonner";
 import { useOrders, Order } from "@/contexts/OrderContext";
@@ -312,11 +312,54 @@ export const MedicineOrders = () => {
                     <p className="text-sm text-slate-600 dark:text-slate-400">Payment</p>
                     <p className="font-medium">{selectedOrder.paymentMethod}</p>
                   </div>
-                  <div className="col-span-2">
-                    <p className="text-sm text-slate-600 dark:text-slate-400">Total Amount</p>
-                    <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">₹{selectedOrder.totalAmount}</p>
+                </div>
+
+                {/* Pricing Breakdown */}
+                <div className="space-y-2 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-600 dark:text-slate-400">Subtotal:</span>
+                    <span className="font-medium">₹{selectedOrder.subtotal || selectedOrder.totalAmount}</span>
+                  </div>
+                  {selectedOrder.platformCharge && selectedOrder.platformCharge > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600 dark:text-slate-400">Platform Charge (2%):</span>
+                      <span className="font-medium">₹{selectedOrder.platformCharge.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {selectedOrder.deliveryCharge && selectedOrder.deliveryCharge > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600 dark:text-slate-400">Delivery Charge:</span>
+                      <span className="font-medium">₹{selectedOrder.deliveryCharge.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-lg font-bold pt-2 border-t border-slate-200 dark:border-slate-600">
+                    <span>Total Amount:</span>
+                    <span className="text-teal-600 dark:text-teal-400">₹{selectedOrder.totalAmount.toFixed(2)}</span>
                   </div>
                 </div>
+
+                {/* View Prescription Button */}
+                {selectedOrder.prescriptionUrl && (
+                  <div className="space-y-2">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      Prescription
+                    </h3>
+                    <Button
+                      onClick={() => {
+                        if (selectedOrder.prescriptionUrl) {
+                          // Open prescription in new tab
+                          window.open(selectedOrder.prescriptionUrl, '_blank');
+                          toast.success('Opening prescription...');
+                        }
+                      }}
+                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      View / Download Prescription
+                    </Button>
+                  </div>
+                )}
               </div>
             </DialogContent>
           </Dialog>

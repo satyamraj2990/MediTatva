@@ -4,17 +4,17 @@ import { motion, LayoutGroup } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
-  BarChart3, PackageSearch, MessageCircle, Sparkles, Receipt, MapPin,
+  BarChart3, PackageSearch, MessageCircle, Sparkles, Receipt, ShoppingCart,
   LogOut, Pill, Bell, User, Menu
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
-type Tab = "analytics" | "inventory" | "chat" | "ai" | "billing" | "nearby-stores";
+type Tab = "analytics" | "inventory" | "chat" | "ai" | "billing" | "order-requests";
 
 // Reordered menu items as per requirements
 const menuItems: Array<{ id: Tab; icon: LucideIcon; label: string; section?: 'main' | 'secondary' }> = [
-  { id: "nearby-stores", icon: MapPin, label: "Nearby Medical Stores", section: 'main' },
+  { id: "order-requests", icon: ShoppingCart, label: "Order Requests", section: 'main' },
   { id: "billing", icon: Receipt, label: "Billing & Invoices", section: 'main' },
   { id: "inventory", icon: PackageSearch, label: "Inventory Management", section: 'main' },
   { id: "analytics", icon: BarChart3, label: "Analytics & Reports", section: 'secondary' },
@@ -26,10 +26,10 @@ export const DashboardLayout = memo(() => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirect to nearby-stores if on base dashboard route (changed from analytics)
+  // Redirect to order-requests if on base dashboard route
   useEffect(() => {
     if (location.pathname === "/pharmacy/dashboard" || location.pathname === "/pharmacy/dashboard/") {
-      navigate("/pharmacy/dashboard/nearby-stores", { replace: true });
+      navigate("/pharmacy/dashboard/order-requests", { replace: true });
     }
   }, [location.pathname, navigate]);
 
@@ -51,9 +51,9 @@ export const DashboardLayout = memo(() => {
 
   const currentTab: Tab = (() => {
     const segment = location.pathname.replace(/\/$/, "").split("/").pop() as Tab | undefined;
-    return segment && ["analytics", "inventory", "chat", "ai", "billing", "nearby-stores"].includes(segment)
-      ? segment
-      : "nearby-stores"; // Changed default from analytics
+    return segment && ["analytics", "inventory", "chat", "ai", "billing", "order-requests"].includes(segment)
+      ? (segment as Tab)
+      : "order-requests"; // Changed default
   })();
 
   return (

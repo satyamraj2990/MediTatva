@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  MapPin, Receipt, PackageSearch, BarChart3, MessageCircle,
+  ShoppingCart, Receipt, PackageSearch, BarChart3, MessageCircle,
   Sparkles, LogOut, Pill, Bell, User, ChevronRight, Activity,
   Zap, TrendingUp, Menu, X
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
-type Tab = "nearby-stores" | "billing" | "inventory" | "analytics" | "chat" | "ai";
+type Tab = "order-requests" | "billing" | "inventory" | "analytics" | "chat" | "ai";
 
 const sidebarVariants = {
   hidden: { x: -100, opacity: 0 },
@@ -51,7 +51,7 @@ const glowVariants = {
 export const DashboardLayout = memo(() => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<Tab>("nearby-stores");
+  const [activeTab, setActiveTab] = useState<Tab>("order-requests");
   const [scrolled, setScrolled] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -63,9 +63,9 @@ export const DashboardLayout = memo(() => {
     gradient: string;
   }> = [
     {
-      id: "nearby-stores",
-      icon: MapPin,
-      label: "Nearby Medical Stores",
+      id: "order-requests",
+      icon: ShoppingCart,
+      label: "Order Requests",
       section: 'main',
       gradient: "from-blue-500 to-cyan-400"
     },
@@ -108,10 +108,10 @@ export const DashboardLayout = memo(() => {
 
   useEffect(() => {
     const path = location.pathname.split('/').pop() as Tab;
-    if (path && ['nearby-stores', 'billing', 'inventory', 'analytics', 'chat', 'ai'].includes(path)) {
+    if (path && ['order-requests', 'billing', 'inventory', 'analytics', 'chat', 'ai'].includes(path)) {
       setActiveTab(path);
     } else if (location.pathname === "/pharmacy/dashboard" || location.pathname === "/pharmacy/dashboard/") {
-      navigate("/pharmacy/dashboard/nearby-stores", { replace: true });
+      navigate("/pharmacy/dashboard/order-requests", { replace: true });
     }
   }, [location.pathname, navigate]);
 
@@ -135,6 +135,11 @@ export const DashboardLayout = memo(() => {
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("userRole");
+    // Clear pharmacy-specific location data
+    try { 
+      sessionStorage.removeItem("pharmacyLocationData");
+      sessionStorage.removeItem("pharmacyLocation"); // Clear old key too
+    } catch (e) { }
     toast.success("Logged out successfully");
     navigate("/login");
   };

@@ -176,6 +176,20 @@ export const FindMedicineAdvanced = memo(() => {
       return;
     }
 
+    // MANDATORY: Prescription validation - ALL orders require prescription
+    if (!prescription) {
+      toast.error("❌ Prescription Upload Required! Cannot place order without a valid prescription.", {
+        duration: 5000,
+        style: {
+          background: '#FEE2E2',
+          color: '#991B1B',
+          border: '2px solid #DC2626',
+          fontWeight: 'bold'
+        }
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {

@@ -403,6 +403,20 @@ export const FindMedicineAdvanced = () => {
   const handlePlaceOrder = async () => {
     if (!selectedStore) return;
 
+    // MANDATORY: Prescription validation - ALL orders require prescription
+    if (!prescription) {
+      toast.error("❌ Prescription Upload Required! Cannot place order without a valid prescription.", {
+        duration: 5000,
+        style: {
+          background: '#FEE2E2',
+          color: '#991B1B',
+          border: '2px solid #DC2626',
+          fontWeight: 'bold'
+        }
+      });
+      return;
+    }
+
     // Calculate final totals
     let totalAmount = 0;
     const orderItems = selectedStore.availableMedicines.map(item => {

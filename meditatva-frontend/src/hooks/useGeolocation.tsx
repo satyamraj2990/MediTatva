@@ -1,6 +1,19 @@
 import { useState, useEffect } from "react";
 
-const GOOGLE_GEOCODING_API_KEY = "AIzaSyD68awf-0haNIrM9Ewj6LIXtpbHFVfC_MU";
+const GOOGLE_GEOCODING_API_KEY = "AIzaSyBNNB_456wwnLo57BSO89POATwS1FjsMjw";
+
+// Debug utility - expose to window for console testing
+if (typeof window !== 'undefined') {
+  (window as any).clearLocationCache = () => {
+    sessionStorage.removeItem('patientLocation');
+    sessionStorage.removeItem('pharmacyLocation');
+    console.log('✅ Location cache cleared');
+  };
+  (window as any).getLocationCache = () => {
+    console.log('Patient:', sessionStorage.getItem('patientLocation'));
+    console.log('Pharmacy:', sessionStorage.getItem('pharmacyLocation'));
+  };
+}
 
 export interface LocationData {
   latitude: number;
@@ -11,6 +24,8 @@ export interface LocationData {
   country: string;
   postalCode: string;
   formattedAddress: string;
+  accuracy?: number;
+  timestamp?: number;
 }
 
 export interface GeolocationState {
@@ -20,13 +35,24 @@ export interface GeolocationState {
   permissionDenied: boolean;
 }
 
-export const useGeolocation = () => {
+export const useGeolocation = (userType: "patient" | "pharmacy" = "patient") => {
   const [state, setState] = useState<GeolocationState>({
     location: null,
     loading: true,
     error: null,
     permissionDenied: false,
   });
+
+  const [watchId, setWatchId] = useState<number | null>(null);
+  const sessionKey = userType === "patient" ? "patientLocation" : "pharmacyLocation";
+
+  // Check if running on HTTPS (required for geolocation)
+  const isSecure = typeof window !== 'undefined' && 
+    (window.location.protocol === 'https:' || window.location.hostname === 'localhost');
+
+  if (typeof window !== 'undefined' && !isSecure && window.location.protocol !== 'http:') {
+    console.warn('⚠️ Geolocation requires HTTPS! Current protocol:', window.location.protocol);
+  }
 
   const getAddressFromCoords = async (lat: number, lng: number, retries = 3): Promise<LocationData> => {
     // Try Nominatim (OpenStreetMap) as free alternative first
@@ -225,7 +251,7 @@ export const useGeolocation = () => {
     };
   };
 
-  const requestLocation = () => {
+  const requestLocation = async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     if (!("geolocation" in navigator)) {
@@ -238,115 +264,249 @@ export const useGeolocation = () => {
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        
-        console.log("=== GPS Coordinates Obtained ===");
-        console.log(`Latitude: ${latitude}, Longitude: ${longitude}`);
+    // Define success handler
+    const handleSuccess = async (position: GeolocationPosition) => {
+      const { latitude, longitude, accuracy } = position.coords;
 
-        try {
-          console.log("Calling Geocoding API...");
-          const locationData = await getAddressFromCoords(latitude, longitude);
-          
-          console.log("=== Location Data Received ===");
-          console.log("Location:", locationData);
-          
-          setState({
-            location: locationData,
-            loading: false,
-            error: null,
-            permissionDenied: false,
-          });
+      console.log("=== GPS Coordinates Obtained ===");
+      console.log(`Latitude: ${latitude}, Longitude: ${longitude}`);
+      console.log(`Accuracy: ${accuracy} meters`);
+      console.log(`Timestamp: ${new Date(position.timestamp).toISOString()}`);
+      console.log(`Altitude: ${position.coords.altitude || 'N/A'}`);
+      console.log(`Speed: ${position.coords.speed || 'N/A'}`);
 
-          // Store in localStorage for persistence
-          localStorage.setItem("userLocation", JSON.stringify(locationData));
-          console.log("Location saved to localStorage");
-        } catch (error) {
-          console.error("Error getting address:", error);
-          
-          // Even if geocoding fails, we still have location
-          const fallbackLocation: LocationData = {
-            latitude,
-            longitude,
-            address: "Location detected",
-            city: "Your Location",
-            state: "",
-            country: "",
-            postalCode: "",
-            formattedAddress: "Your Current Location",
-          };
-          
-          setState({
-            location: fallbackLocation,
-            loading: false,
-            error: null,
-            permissionDenied: false,
-          });
-
-          // Store fallback location
-          localStorage.setItem("userLocation", JSON.stringify(fallbackLocation));
-        }
-      },
-      (error) => {
-        let errorMessage = "Unable to retrieve your location";
-        let permissionDenied = false;
-
-        if (error.code === error.PERMISSION_DENIED) {
-          errorMessage = "Please enable location access to use nearby services";
-          permissionDenied = true;
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
-          errorMessage = "Location information is unavailable";
-        } else if (error.code === error.TIMEOUT) {
-          errorMessage = "Location request timed out";
-        }
-
-        setState({
-          location: null,
-          loading: false,
-          error: errorMessage,
-          permissionDenied,
-        });
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000, // Increased timeout to 15 seconds
-        maximumAge: 300000, // Cache for 5 minutes
-      }
-    );
-  };
-
-  useEffect(() => {
-    // Check if location is already stored
-    const storedLocation = localStorage.getItem("userLocation");
-    
-    if (storedLocation) {
       try {
-        const parsedLocation = JSON.parse(storedLocation);
+        // Always force fresh geocoding on manual refresh or first load
+        console.log("Calling Geocoding API with fresh coordinates...");
+        const locationData = await getAddressFromCoords(latitude, longitude);
+
+        console.log("=== Location Data Received ===");
+        console.log("Location:", locationData);
+
+        // Add accuracy and timestamp
+        locationData.accuracy = accuracy;
+        locationData.timestamp = position.timestamp;
+
         setState({
-          location: parsedLocation,
+          location: locationData,
           loading: false,
           error: null,
           permissionDenied: false,
         });
+
+        // Store in sessionStorage for session-scoped per-role context
+        sessionStorage.setItem(sessionKey, JSON.stringify({ ...locationData, lastFetchedAt: Date.now() }));
+        console.log(`✅ Location saved to sessionStorage key=${sessionKey}`);
+        console.log(`📍 ${userType.toUpperCase()}: ${locationData.city}, ${locationData.state} (${locationData.postalCode})`);
       } catch (error) {
-        console.error("Error parsing stored location:", error);
+        console.error("Error getting address:", error);
+
+        // Even if geocoding fails, we still have location
+        const fallbackLocation: LocationData = {
+          latitude,
+          longitude,
+          address: "Location detected",
+          city: "Your Location",
+          state: "",
+          country: "",
+          postalCode: "",
+          formattedAddress: "Your Current Location",
+          accuracy,
+          timestamp: position.timestamp,
+        };
+
+        setState({
+          location: fallbackLocation,
+          loading: false,
+          error: null,
+          permissionDenied: false,
+        });
+
+        // Store fallback location in session
+        sessionStorage.setItem(sessionKey, JSON.stringify({ ...fallbackLocation, lastFetchedAt: Date.now() }));
+      }
+    };
+
+    // Define error handler
+    const handleError = (error: GeolocationPositionError) => {
+      let errorMessage = "Unable to retrieve your location";
+      let permissionDenied = false;
+
+      console.error("=== Geolocation Error ===");
+      console.error("Error Code:", error.code);
+      console.error("Error Message:", error.message);
+
+      if (error.code === error.PERMISSION_DENIED) {
+        errorMessage = "Please enable location access to use nearby services";
+        permissionDenied = true;
+        console.error("❌ PERMISSION_DENIED: User blocked location access");
+      } else if (error.code === error.POSITION_UNAVAILABLE) {
+        errorMessage = "Location information is unavailable. Check your GPS/network.";
+        console.error("❌ POSITION_UNAVAILABLE: GPS/Network unavailable");
+      } else if (error.code === error.TIMEOUT) {
+        errorMessage = "Location request timed out. Try again.";
+        console.error("❌ TIMEOUT: Request took too long");
+      }
+
+      setState({
+        location: null,
+        loading: false,
+        error: errorMessage,
+        permissionDenied,
+      });
+    };
+
+    const geoOptions: PositionOptions = {
+      enableHighAccuracy: true, // ✅ Use GPS for high accuracy
+      timeout: 30000, // 30 seconds - enough time for GPS to warm up
+      maximumAge: 0, // ✅ Always get fresh location, don't use cached GPS data
+    };
+
+    console.log("🌍 Requesting geolocation with options:", geoOptions);
+    console.log(`📱 UserType: ${userType}, SessionKey: ${sessionKey}`);
+
+    // IMPROVED: Use watchPosition() for better accuracy
+    // watchPosition() continues to monitor and provides more accurate results
+    // as the GPS "warms up"
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      setWatchId(null);
+    }
+
+    // Start with getCurrentPosition for immediate result
+    navigator.geolocation.getCurrentPosition(
+      handleSuccess,
+      (error) => {
+        console.warn("⚠️ getCurrentPosition failed, starting watchPosition...");
+        handleError(error);
+        
+        // Even if initial position fails, start watching for updates
+        const id = navigator.geolocation.watchPosition(
+          handleSuccess,
+          handleError,
+          geoOptions
+        );
+        setWatchId(id);
+        console.log(`🔄 Started watchPosition (ID: ${id}) for continuous tracking`);
+      },
+      geoOptions
+    );
+
+    // Also start watchPosition for continuous accurate updates
+    const id = navigator.geolocation.watchPosition(
+      handleSuccess,
+      handleError,
+      geoOptions
+    );
+    setWatchId(id);
+    console.log(`🔄 Started watchPosition (ID: ${id}) for continuous tracking`);
+  };
+
+  useEffect(() => {
+    // On mount: check sessionStorage for session-scoped location
+    const stored = sessionStorage.getItem(sessionKey);
+
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as any;
+        // If it was fetched within last 60s, reuse it, otherwise refresh
+        const age = Date.now() - (parsed.lastFetchedAt || 0);
+        if (age <= 60000) {
+          setState({ location: parsed, loading: false, error: null, permissionDenied: false });
+        } else {
+          // use previous while requesting a fresh one
+          setState({ location: parsed, loading: false, error: null, permissionDenied: false });
+          requestLocation();
+        }
+      } catch (e) {
         requestLocation();
       }
     } else {
       requestLocation();
     }
-  }, []);
+
+    // Auto refresh every 60s
+    const interval = setInterval(() => {
+      try {
+        const prevRaw = sessionStorage.getItem(sessionKey);
+        if (prevRaw) {
+          const prev = JSON.parse(prevRaw) as any;
+          const age = Date.now() - (prev.lastFetchedAt || 0);
+          // Only refresh if older than 60s
+          if (age >= 60000) {
+            requestLocation();
+          }
+        } else {
+          requestLocation();
+        }
+      } catch (e) {
+        requestLocation();
+      }
+    }, 60000);
+
+    // Refresh when user revisits (tab becomes visible)
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        requestLocation();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      
+      // Clean up watchPosition when component unmounts
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        console.log(`🛑 Stopped watchPosition (ID: ${watchId})`);
+      }
+    };
+  }, [userType]);
 
   const refreshLocation = () => {
-    // Clear cache to force fresh location fetch
-    localStorage.removeItem("userLocation");
-    console.log("🔄 Refreshing location (cache cleared)");
+    // Force a fresh location fetch and update session cache
+    console.log("🔄 Refreshing location (session cache will be updated)");
+    console.log("🔄 Forcing fresh GPS fetch with maximumAge=0");
+    
+    // Stop current watch if any
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      setWatchId(null);
+    }
+    
+    sessionStorage.removeItem(sessionKey); // Clear cached location to force fresh fetch
     requestLocation();
   };
+
+  const clearLocation = () => {
+    // Stop watching
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      setWatchId(null);
+    }
+    
+    sessionStorage.removeItem(sessionKey);
+    setState({ location: null, loading: false, error: null, permissionDenied: false });
+  };
+
+  // helper: haversine distance in km
+  function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const toRad = (v: number) => (v * Math.PI) / 180;
+    const R = 6371; // km
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
 
   return {
     ...state,
     refreshLocation,
+    clearLocation,
   };
 };

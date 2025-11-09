@@ -1,0 +1,293 @@
+const mongoose = require('mongoose');
+const Invoice = require('../models/Invoice');
+const Inventory = require('../models/Inventory');
+const Medicine = require('../models/Medicine');
+
+/**
+ * Finalize invoice and update inventory (with transaction)
+ * POST /api/invoices/finalize
+ * Body: {
+ *   customerName, customerPhone, pharmacistId, paymentMethod,
+ *   items: [{ medicineId, quantity, unitPrice }]
+ * }
+ */
+exports.finalizeInvoice = async (req, res) => {
+  const session = await mongoose.startSession();
+  
+  try {
+    const { 
+      customerName, 
+      customerPhone, 
+      pharmacistId, 
+      paymentMethod = 'cash',
+      items = [],
+      notes,
+      prescriptionUrl
+    } = req.body;
+
+    // Validation
+    if (!items || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invoice must contain at least one item'
+      });
+    }
+
+    // Validate all items have required fields
+    for (const item of items) {
+      if (!item.medicineId || !item.quantity || item.quantity <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'All items must have medicineId and positive quantity'
+        });
+      }
+    }
+
+    let invoice;
+
+    // Use transaction for atomic inventory update
+    await session.withTransaction(async () => {
+      // Process each item and update inventory
+      const processedItems = [];
+      let subtotal = 0;
+
+      for (const item of items) {
+        const quantity = parseInt(item.quantity, 10);
+        
+        // Get medicine details
+        const medicine = await Medicine.findById(item.medicineId).session(session);
+        if (!medicine) {
+          throw new Error(`Medicine not found: ${item.medicineId}`);
+        }
+
+        // Atomic stock deduction with validation
+        // This ensures stock is checked and decremented in a single atomic operation
+        const updatedInventory = await Inventory.findOneAndUpdate(
+          { 
+            medicine: item.medicineId,
+            current_stock: { $gte: quantity } // Only update if enough stock exists
+          },
+          { 
+            $inc: { current_stock: -quantity } // Atomically decrement stock
+          },
+          { 
+            session,
+            new: true // Return updated document
+          }
+        );
+
+        // If update failed, stock was insufficient
+        if (!updatedInventory) {
+          // Get current stock for error message
+          const currentInventory = await Inventory.findOne({ 
+            medicine: item.medicineId 
+          }).session(session);
+          
+          const available = currentInventory ? currentInventory.current_stock : 0;
+          throw new Error(
+            `Insufficient stock for ${medicine.name}. ` +
+            `Available: ${available}, Requested: ${quantity}`
+          );
+        }
+
+        // Calculate line total
+        const unitPrice = item.unitPrice || medicine.price;
+        const lineTotal = unitPrice * quantity;
+        subtotal += lineTotal;
+
+        processedItems.push({
+          medicine: medicine._id,
+          medicineName: medicine.name,
+          quantity,
+          unitPrice,
+          lineTotal
+        });
+      }
+
+      // Calculate totals
+      const tax = subtotal * 0; // Configure tax rate as needed
+      const discount = 0; // Apply discount logic if needed
+      const total = subtotal + tax - discount;
+
+      // Generate invoice number
+      const invoiceCount = await Invoice.countDocuments().session(session);
+      const date = new Date();
+      const invoiceNumber = `INV-${date.getFullYear()}-${String(invoiceCount + 1).padStart(5, '0')}`;
+
+      // Create invoice
+      invoice = new Invoice({
+        invoiceNumber,
+        pharmacist: pharmacistId,
+        customerName,
+        customerPhone,
+        items: processedItems,
+        subtotal,
+        tax,
+        discount,
+        total,
+        paymentMethod,
+        paymentStatus: 'paid',
+        notes,
+        prescriptionUrl
+      });
+
+      await invoice.save({ session });
+    });
+
+    // Transaction successful
+    session.endSession();
+
+    // Populate invoice with medicine details
+    const populatedInvoice = await Invoice.findById(invoice._id)
+      .populate('items.medicine', 'name genericName brand')
+      .populate('pharmacist', 'name email');
+
+    res.status(201).json({
+      success: true,
+      message: 'Invoice created and inventory updated successfully',
+      data: populatedInvoice
+    });
+
+  } catch (error) {
+    session.endSession();
+    console.error('Finalize invoice error:', error);
+
+    // Check for specific error types
+    if (error.message.includes('Insufficient stock')) {
+      return res.status(409).json({
+        success: false,
+        error: 'Out of stock',
+        message: error.message
+      });
+    }
+
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        error: 'Resource not found',
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to finalize invoice',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Get all invoices (with pagination)
+ * GET /api/invoices
+ */
+exports.getAllInvoices = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, startDate, endDate } = req.query;
+    
+    const query = {};
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+
+    const invoices = await Invoice.find(query)
+      .populate('pharmacist', 'name email')
+      .populate('items.medicine', 'name genericName')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .lean();
+
+    const total = await Invoice.countDocuments(query);
+
+    res.json({
+      success: true,
+      count: invoices.length,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
+      data: invoices
+    });
+  } catch (error) {
+    console.error('Get invoices error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get invoices',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Get single invoice
+ * GET /api/invoices/:id
+ */
+exports.getInvoice = async (req, res) => {
+  try {
+    const invoice = await Invoice.findById(req.params.id)
+      .populate('pharmacist', 'name email')
+      .populate('items.medicine', 'name genericName brand dosage');
+
+    if (!invoice) {
+      return res.status(404).json({
+        success: false,
+        error: 'Invoice not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: invoice
+    });
+  } catch (error) {
+    console.error('Get invoice error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get invoice',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Get invoice statistics
+ * GET /api/invoices/stats
+ */
+exports.getInvoiceStats = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const matchQuery = {};
+    if (startDate || endDate) {
+      matchQuery.createdAt = {};
+      if (startDate) matchQuery.createdAt.$gte = new Date(startDate);
+      if (endDate) matchQuery.createdAt.$lte = new Date(endDate);
+    }
+
+    const stats = await Invoice.aggregate([
+      { $match: matchQuery },
+      {
+        $group: {
+          _id: null,
+          totalInvoices: { $sum: 1 },
+          totalRevenue: { $sum: '$total' },
+          avgInvoiceValue: { $avg: '$total' }
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: stats[0] || { totalInvoices: 0, totalRevenue: 0, avgInvoiceValue: 0 }
+    });
+  } catch (error) {
+    console.error('Get invoice stats error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get invoice statistics',
+      message: error.message
+    });
+  }
+};

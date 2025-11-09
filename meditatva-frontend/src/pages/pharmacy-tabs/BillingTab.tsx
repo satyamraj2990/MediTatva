@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Search, Plus, ShoppingCart, Trash2, FileText, Clock,
-  Download, X, User, Phone, Mail, CreditCard
+  Download, X, User, Phone, Mail, CreditCard, AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
@@ -18,83 +20,158 @@ const pageVariants = {
   exit: { opacity: 0, y: -20, transition: { duration: 0.2 } }
 };
 
-const medicineDatabase = [
-  { id: 1, name: "Paracetamol 500mg", price: 5, stock: 450 },
-  { id: 2, name: "Ibuprofen 400mg", price: 8, stock: 250 },
-  { id: 3, name: "Amoxicillin 250mg", price: 12, stock: 180 },
-  { id: 4, name: "Cetirizine 10mg", price: 6, stock: 320 },
-  { id: 5, name: "Omeprazole 20mg", price: 10, stock: 190 },
-  { id: 6, name: "Azithromycin 500mg", price: 15, stock: 120 },
-  { id: 7, name: "Metformin 500mg", price: 8, stock: 280 },
-  { id: 8, name: "Atorvastatin 10mg", price: 12, stock: 150 },
-];
-
-const billingHistory = [
-  { id: "INV-001", patient: "Rajesh Kumar", date: "2025-11-01", total: 245, status: "Paid" },
-  { id: "INV-002", patient: "Priya Sharma", date: "2025-11-02", total: 180, status: "Paid" },
-  { id: "INV-003", patient: "Amit Patel", date: "2025-11-03", total: 420, status: "Pending" },
-  { id: "INV-004", patient: "Sneha Gupta", date: "2025-11-04", total: 320, status: "Paid" },
-  { id: "INV-005", patient: "Vikram Singh", date: "2025-11-05", total: 150, status: "Pending" },
-];
+interface Medicine {
+  _id: string;
+  name: string;
+  genericName?: string;
+  brand?: string;
+  price: number;
+  current_stock: number;
+  inStock: boolean;
+  requiresPrescription: boolean;
+}
 
 interface CartItem {
-  id: number;
+  _id: string;
   name: string;
   price: number;
   quantity: number;
-  stock: number;
+  current_stock: number;
+}
+
+interface InvoiceHistory {
+  _id: string;
+  invoiceNumber: string;
+  patientName: string;
+  createdAt: string;
+  total: number;
+  paymentMethod: string;
 }
 
 export const BillingTab = memo(() => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showBillingModal, setShowBillingModal] = useState(false);
   const [patientName, setPatientName] = useState("");
   const [contactNumber, setContactNumber] = useState("");
   const [email, setEmail] = useState("");
-  const [paymentType, setPaymentType] = useState("Cash");
+  const [paymentType, setPaymentType] = useState("cash");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [invoiceHistory, setInvoiceHistory] = useState<InvoiceHistory[]>([]);
 
-  const filteredMedicines = medicineDatabase.filter(med =>
-    med.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const addToCart = (medicine: typeof medicineDatabase[0]) => {
-    const existingItem = cart.find(item => item.id === medicine.id);
-    if (existingItem) {
-      if (existingItem.quantity < medicine.stock) {
-        setCart(cart.map(item =>
-          item.id === medicine.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        ));
-        toast.success(`${medicine.name} quantity increased`);
-      } else {
-        toast.error("Not enough stock available");
+  // Search medicines from API
+  useEffect(() => {
+    const searchMedicines = async () => {
+      if (searchQuery.length < 2) {
+        setMedicines([]);
+        return;
       }
+
+      setIsSearching(true);
+      try {
+        setSearchError(null);
+        const response = await fetch(`${API_URL}/medicines/search?q=${encodeURIComponent(searchQuery)}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          setMedicines(data.data || []);
+        } else {
+          setMedicines([]);
+          setSearchError(data.message || 'Failed to search medicines');
+          toast.error(data.message || 'Failed to search medicines');
+        }
+      } catch (error: any) {
+        console.error('Search error:', error);
+        setMedicines([]);
+        setSearchError('Failed to connect to server');
+        toast.error('Failed to connect to server');
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(searchMedicines, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery]);
+
+  // Fetch invoice history
+  const fetchInvoiceHistory = async () => {
+    try {
+      const response = await fetch(`${API_URL}/invoices`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setInvoiceHistory(data.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch invoice history:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchInvoiceHistory();
+  }, []);
+
+  const addToCart = (medicine: Medicine) => {
+    // Check stock availability
+    if (medicine.current_stock === 0) {
+      toast.error(`${medicine.name} is out of stock`);
+      return;
+    }
+
+    const existingItem = cart.find(item => item._id === medicine._id);
+    
+    if (existingItem) {
+      const newQuantity = existingItem.quantity + 1;
+      
+      // Validate against current stock
+      if (newQuantity > medicine.current_stock) {
+        toast.error(`Only ${medicine.current_stock} units available in stock`);
+        return;
+      }
+
+      setCart(cart.map(item =>
+        item._id === medicine._id
+          ? { ...item, quantity: newQuantity }
+          : item
+      ));
+      toast.success(`${medicine.name} quantity increased`);
     } else {
-      setCart([...cart, { ...medicine, quantity: 1 }]);
+      setCart([...cart, { 
+        _id: medicine._id,
+        name: medicine.name, 
+        price: medicine.price,
+        quantity: 1,
+        current_stock: medicine.current_stock
+      }]);
       toast.success(`${medicine.name} added to cart`);
     }
   };
 
-  const removeFromCart = (id: number) => {
-    const item = cart.find(i => i.id === id);
-    setCart(cart.filter(item => item.id !== id));
+  const removeFromCart = (id: string) => {
+    const item = cart.find(i => i._id === id);
+    setCart(cart.filter(item => item._id !== id));
     toast.success(`${item?.name} removed from cart`);
   };
 
-  const updateQuantity = (id: number, newQuantity: number) => {
-    const item = cart.find(i => i.id === id);
+  const updateQuantity = (id: string, newQuantity: number) => {
+    const item = cart.find(i => i._id === id);
+    
     if (newQuantity <= 0) {
       removeFromCart(id);
       return;
     }
-    if (item && newQuantity > item.stock) {
-      toast.error("Not enough stock available");
+    
+    if (item && newQuantity > item.current_stock) {
+      toast.error(`Only ${item.current_stock} units available`);
       return;
     }
+    
     setCart(cart.map(item =>
-      item.id === id ? { ...item, quantity: newQuantity } : item
+      item._id === id ? { ...item, quantity: newQuantity } : item
     ));
   };
 
@@ -122,13 +199,83 @@ export const BillingTab = memo(() => {
     setShowBillingModal(true);
   };
 
-  const handleConfirmInvoice = () => {
+  const handleConfirmInvoice = async () => {
     if (!patientName || !contactNumber) {
       toast.error("Please fill in patient details");
       return;
     }
 
+    if (cart.length === 0) {
+      toast.error("Cart is empty!");
+      return;
+    }
+
+    setIsProcessing(true);
+
     try {
+      // Pre-validate stock levels before finalizing (real-time check)
+      const stockValidationPromises = cart.map(async (item) => {
+        const response = await fetch(`${API_URL}/medicines/search?q=${encodeURIComponent(item.name)}`);
+        const data = await response.json();
+        if (data.success && data.data.length > 0) {
+          const currentStock = data.data[0].current_stock;
+          if (currentStock < item.quantity) {
+            return {
+              valid: false,
+              item: item.name,
+              available: currentStock,
+              requested: item.quantity
+            };
+          }
+        }
+        return { valid: true };
+      });
+
+      const validationResults = await Promise.all(stockValidationPromises);
+      const invalidItems = validationResults.filter(r => !r.valid);
+      
+      if (invalidItems.length > 0) {
+        const errorMsg = invalidItems.map(i => 
+          `${i.item}: Only ${i.available} available (requested ${i.requested})`
+        ).join(', ');
+        toast.error(`Stock updated: ${errorMsg}`);
+        setIsProcessing(false);
+        return;
+      }
+
+      // Prepare invoice data for backend
+      const invoiceData = {
+        customerName: patientName,
+        customerPhone: contactNumber,
+        paymentMethod: paymentType,
+        items: cart.map(item => ({
+          medicineId: item._id,
+          quantity: item.quantity,
+          unitPrice: item.price
+        })),
+        notes: email ? `Customer email: ${email}` : undefined
+      };
+
+      // Call backend API to finalize invoice
+      const response = await fetch(`${API_URL}/invoices/finalize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(invoiceData)
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        // Handle errors (out of stock, etc.)
+        toast.error(result.message || 'Failed to create invoice');
+        setIsProcessing(false);
+        return;
+      }
+
+      const invoice = result.data;
+
       // Generate PDF Invoice
       const pdf = new jsPDF();
       const pageWidth = pdf.internal.pageSize.width;
@@ -145,8 +292,8 @@ export const BillingTab = memo(() => {
       // Invoice details
       pdf.setTextColor(0, 0, 0);
       pdf.setFontSize(10);
-      pdf.text(`Invoice #: INV-${Date.now()}`, 20, 50);
-      pdf.text(`Date: ${new Date().toLocaleDateString()}`, 20, 57);
+      pdf.text(`Invoice #: ${invoice.invoiceNumber}`, 20, 50);
+      pdf.text(`Date: ${new Date(invoice.createdAt).toLocaleDateString()}`, 20, 57);
       pdf.text(`Payment: ${paymentType}`, 20, 64);
 
       // Patient details
@@ -169,11 +316,11 @@ export const BillingTab = memo(() => {
 
       // Table rows
       yPos += 10;
-      cart.forEach((item) => {
-        pdf.text(item.name, 25, yPos);
+      invoice.items.forEach((item: any) => {
+        pdf.text(item.medicineName, 25, yPos);
         pdf.text(item.quantity.toString(), 120, yPos);
-        pdf.text(`₹${item.price}`, 145, yPos);
-        pdf.text(`₹${(item.price * item.quantity).toFixed(2)}`, 170, yPos);
+        pdf.text(`₹${item.unitPrice}`, 145, yPos);
+        pdf.text(`₹${item.lineTotal.toFixed(2)}`, 170, yPos);
         yPos += 7;
       });
 
@@ -182,41 +329,62 @@ export const BillingTab = memo(() => {
       pdf.line(20, yPos, pageWidth - 20, yPos);
       yPos += 10;
       pdf.text("Subtotal:", 120, yPos);
-      pdf.text(`₹${calculateSubtotal().toFixed(2)}`, 170, yPos);
+      pdf.text(`₹${invoice.subtotal.toFixed(2)}`, 170, yPos);
       yPos += 7;
-      pdf.text("GST (5%):", 120, yPos);
-      pdf.text(`₹${calculateTax().toFixed(2)}`, 170, yPos);
-      yPos += 7;
+      if (invoice.tax > 0) {
+        pdf.text("GST (5%):", 120, yPos);
+        pdf.text(`₹${invoice.tax.toFixed(2)}`, 170, yPos);
+        yPos += 7;
+      }
       pdf.text("Platform Fee (2%):", 120, yPos);
       pdf.text(`₹${calculatePlatformFee().toFixed(2)}`, 170, yPos);
       yPos += 10;
       pdf.setFontSize(12);
       pdf.setFont(undefined, 'bold');
       pdf.text("TOTAL:", 120, yPos);
-      pdf.text(`₹${calculateTotal().toFixed(2)}`, 170, yPos);
+      pdf.text(`₹${invoice.total.toFixed(2)}`, 170, yPos);
 
       // Footer
       pdf.setFontSize(8);
       pdf.setFont(undefined, 'normal');
       pdf.text("Thank you for your business!", pageWidth / 2, 280, { align: 'center' });
+      pdf.text("⚠️ Inventory has been automatically updated", pageWidth / 2, 285, { align: 'center' });
 
       // Save PDF
-      pdf.save(`invoice-${Date.now()}.pdf`);
+      pdf.save(`invoice-${invoice.invoiceNumber}.pdf`);
       
-      toast.success("Invoice generated successfully!");
+      toast.success("✅ Invoice created! Inventory updated successfully!");
+      
+      // Reset form
+      setShowBillingModal(false);
+      setCart([]);
+      setPatientName("");
+      setContactNumber("");
+      setEmail("");
+      setPaymentType("cash");
+      
+      // Refresh medicine search to show updated stock in real-time
+      if (searchQuery.length >= 2) {
+        try {
+          const refreshResponse = await fetch(`${API_URL}/medicines/search?q=${encodeURIComponent(searchQuery)}`);
+          const refreshData = await refreshResponse.json();
+          if (refreshData.success) {
+            setMedicines(refreshData.data || []);
+            toast.info("📊 Stock levels refreshed");
+          }
+        } catch (error) {
+          console.error('Failed to refresh stock:', error);
+        }
+      }
+      
+      // Refresh invoice history to show new invoice
+      await fetchInvoiceHistory();
     } catch (error) {
-      console.error("PDF Generation Error:", error);
-      toast.error("Failed to generate PDF. Please try again.");
-      return;
+      console.error("Invoice creation error:", error);
+      toast.error("Failed to create invoice. Please try again.");
+    } finally {
+      setIsProcessing(false);
     }
-    
-    // Reset form
-    setShowBillingModal(false);
-    setCart([]);
-    setPatientName("");
-    setContactNumber("");
-    setEmail("");
-    setPaymentType("Cash");
   };
 
   return (
@@ -252,22 +420,55 @@ export const BillingTab = memo(() => {
           </div>
 
           <div className="space-y-2 max-h-60 overflow-y-auto">
-            {filteredMedicines.map((med) => (
+            {isSearching && (
+              <div className="text-center py-4">
+                <p className="text-[#5A6A85]">Searching...</p>
+              </div>
+            )}
+            
+            {!isSearching && searchQuery.length >= 2 && medicines.length === 0 && (
+              <div className="text-center py-4">
+                {searchError ? (
+                  <p className="text-red-600">{searchError}</p>
+                ) : (
+                  <p className="text-[#5A6A85]">No medicines found</p>
+                )}
+              </div>
+            )}
+            
+            {!isSearching && medicines.map((med) => (
               <motion.div
-                key={med.id}
+                key={med._id}
                 className="flex items-center justify-between p-3 rounded-lg bg-[#F7F9FC] border border-[#4FC3F7]/20"
                 whileHover={{ scale: 1.01, backgroundColor: '#E8F4F8' }}
               >
-                <div>
-                  <p className="font-semibold text-[#0A2342]">{med.name}</p>
-                  <p className="text-sm text-[#5A6A85]">₹{med.price} • Stock: {med.stock}</p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-[#0A2342]">{med.name}</p>
+                    {med.requiresPrescription && (
+                      <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">Rx</Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-[#5A6A85]">
+                    ₹{med.price} • 
+                    {med.current_stock > 0 ? (
+                      <span className={med.current_stock <= 10 ? "text-orange-600 font-medium" : "text-green-600"}>
+                        {" "}In Stock: {med.current_stock}
+                      </span>
+                    ) : (
+                      <span className="text-red-600 font-medium"> Out of Stock</span>
+                    )}
+                  </p>
+                  {med.genericName && (
+                    <p className="text-xs text-[#5A6A85]">{med.genericName}</p>
+                  )}
                 </div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button
                     size="sm"
                     onClick={() => addToCart(med)}
-                    disabled={med.stock === 0}
-                    className="bg-gradient-to-r from-[#1B6CA8] to-[#4FC3F7] hover:from-[#4FC3F7] hover:to-[#1B6CA8] text-white font-semibold"
+                    disabled={med.current_stock === 0}
+                    className="bg-gradient-to-r from-[#1B6CA8] to-[#4FC3F7] hover:from-[#4FC3F7] hover:to-[#1B6CA8] text-white font-semibold disabled:opacity-50"
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     Add
@@ -303,14 +504,19 @@ export const BillingTab = memo(() => {
               <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
                 {cart.map((item) => (
                   <motion.div
-                    key={item.id}
+                    key={item._id}
                     className="flex items-center justify-between p-3 rounded-lg bg-[#F7F9FC] border border-[#4FC3F7]/20"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                   >
                     <div className="flex-1">
                       <p className="font-semibold text-[#0A2342]">{item.name}</p>
-                      <p className="text-sm text-[#5A6A85]">₹{item.price} × {item.quantity}</p>
+                      <p className="text-sm text-[#5A6A85]">
+                        ₹{item.price} × {item.quantity}
+                        {item.current_stock <= 10 && (
+                          <span className="ml-2 text-orange-600">• Low stock: {item.current_stock}</span>
+                        )}
+                      </p>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
@@ -318,7 +524,7 @@ export const BillingTab = memo(() => {
                           size="sm"
                           variant="outline"
                           className="h-8 w-8 p-0 border-[#4FC3F7]/30 hover:bg-[#E8F4F8]"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item._id, item.quantity - 1)}
                         >
                           -
                         </Button>
@@ -327,8 +533,8 @@ export const BillingTab = memo(() => {
                           size="sm"
                           variant="outline"
                           className="h-8 w-8 p-0 border-[#4FC3F7]/30 hover:bg-[#E8F4F8]"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          disabled={item.quantity >= item.stock}
+                          onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                          disabled={item.quantity >= item.current_stock}
                         >
                           +
                         </Button>
@@ -340,7 +546,7 @@ export const BillingTab = memo(() => {
                         size="sm"
                         variant="ghost"
                         className="text-[#E74C3C] hover:text-[#C0392B] hover:bg-[#E74C3C]/10"
-                        onClick={() => removeFromCart(item.id)}
+                        onClick={() => removeFromCart(item._id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -409,26 +615,22 @@ export const BillingTab = memo(() => {
                 </tr>
               </thead>
               <tbody>
-                {billingHistory.map((invoice) => (
+                {invoiceHistory.map((invoice) => (
                   <motion.tr
-                    key={invoice.id}
+                    key={invoice._id}
                     className="border-b border-[#4FC3F7]/10 hover:bg-[#E8F4F8]"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                   >
-                    <td className="py-3 text-[#0A2342] font-medium">{invoice.id}</td>
-                    <td className="py-3 text-[#0A2342]">{invoice.patient}</td>
-                    <td className="py-3 text-[#5A6A85]">{invoice.date}</td>
-                    <td className="py-3 text-[#0A2342] font-semibold">₹{invoice.total}</td>
+                    <td className="py-3 text-[#0A2342] font-medium">{invoice.invoiceNumber}</td>
+                    <td className="py-3 text-[#0A2342]">{invoice.patientName}</td>
+                    <td className="py-3 text-[#5A6A85]">{new Date(invoice.createdAt).toLocaleDateString()}</td>
+                    <td className="py-3 text-[#0A2342] font-semibold">₹{invoice.total.toFixed(2)}</td>
                     <td className="py-3">
                       <Badge
-                        className={
-                          invoice.status === "Paid"
-                            ? "bg-[#2ECC71]/10 text-[#2ECC71] border-[#2ECC71]/30 font-semibold"
-                            : "bg-[#F1C40F]/10 text-[#F39C12] border-[#F1C40F]/30 font-semibold"
-                        }
+                        className="bg-[#2ECC71]/10 text-[#2ECC71] border-[#2ECC71]/30 font-semibold"
                       >
-                        {invoice.status}
+                        Paid
                       </Badge>
                     </td>
                     <td className="py-3">

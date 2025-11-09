@@ -4,7 +4,7 @@
  * Features:
  * - Multi-medicine search with comma-separated input
  * - Weighted store ranking: rating (40%), distance (35%), price (25%)
- * - Mandatory prescription upload for controlled medicines
+ * - Mandatory prescription upload for ALL orders (universal requirement)
  * - Delivery vs Pickup selection
  * - Dynamic delivery charge calculation
  * - Glassmorphism UI with animations
@@ -295,13 +295,12 @@ export const FindMedicineEnhanced = () => {
   };
 
   /**
-   * Check if any selected medicine requires prescription
+   * MANDATORY: Prescription required for ALL orders
+   * No medicine can be ordered without uploading prescription
    */
   const needsPrescription = useMemo(() => {
-    if (!selectedStore) return false;
-    return selectedStore.availableMedicines.some(med => 
-      requiresPrescription(med.medicineName)
-    );
+    // Always return true - prescription is mandatory for all orders
+    return true;
   }, [selectedStore]);
 
   /**
@@ -310,14 +309,15 @@ export const FindMedicineEnhanced = () => {
   const handlePlaceOrder = async () => {
     if (!selectedStore) return;
 
-    // Validate prescription if required
-    if (needsPrescription && !prescription) {
-      toast.error("Please upload a valid prescription to confirm your order.", {
-        duration: 4000,
+    // MANDATORY: Prescription validation - ALL orders require prescription
+    if (!prescription) {
+      toast.error("❌ Prescription Upload Required! Cannot place order without a valid prescription.", {
+        duration: 5000,
         style: {
           background: '#FEE2E2',
           color: '#991B1B',
-          border: '2px solid #DC2626'
+          border: '2px solid #DC2626',
+          fontWeight: 'bold'
         }
       });
       return;
@@ -337,6 +337,9 @@ export const FindMedicineEnhanced = () => {
       };
     });
 
+    // Calculate platform charge (2% of subtotal)
+    const platformCharge = subtotal * 0.02;
+
     // Calculate delivery charge
     const deliveryCharge = calculateDeliveryCharge(
       selectedStore.store.distanceKm,
@@ -344,7 +347,7 @@ export const FindMedicineEnhanced = () => {
       selectedStore.store
     );
 
-    const totalAmount = subtotal + deliveryCharge;
+    const totalAmount = subtotal + platformCharge + deliveryCharge;
 
     // Create order
     const orderId = addOrder({
@@ -355,6 +358,8 @@ export const FindMedicineEnhanced = () => {
         distance: `${selectedStore.store.distanceKm} km`
       },
       medicines: orderItems,
+      subtotal,
+      platformCharge,
       totalAmount,
       deliveryAddress: deliveryType === 'delivery' 
         ? deliveryAddress 
@@ -822,13 +827,18 @@ const OrderModal = ({
     return sum + (item.price * (quantities[item.medicineName] || 1));
   }, 0);
 
+  const platformCharge = subtotal * 0.02;
+
   const deliveryCharge = calculateDeliveryCharge(
     storeResult.store.distanceKm,
     deliveryType,
     storeResult.store
   );
 
-  const totalAmount = subtotal + deliveryCharge;
+  const totalAmount = subtotal + platformCharge + deliveryCharge;
+
+  // Block order if prescription is required but not uploaded
+  const canPlaceOrder = !needsPrescription || (needsPrescription && prescription);
 
   return (
     <Dialog open={show} onOpenChange={onClose}>
@@ -985,11 +995,11 @@ const OrderModal = ({
             </Select>
           </div>
 
-          {/* Prescription Upload - MANDATORY if needed */}
+          {/* Prescription Upload - MANDATORY FOR ALL ORDERS */}
           <div>
             <label className={`block font-semibold mb-2 flex items-center gap-2 ${needsPrescription ? 'text-red-600 dark:text-red-400' : ''}`}>
               <Upload className="h-4 w-4" />
-              Upload Prescription {needsPrescription && <span className="text-red-600">*</span>}
+              Upload Prescription (Required for all orders) {needsPrescription && <span className="text-red-600">*</span>}
             </label>
             <div className={`
               border-2 border-dashed rounded-xl p-6 text-center transition-all
@@ -1033,7 +1043,7 @@ const OrderModal = ({
             {needsPrescription && !prescription && (
               <p className="text-sm text-red-600 dark:text-red-400 mt-2 flex items-center gap-1">
                 <Info className="h-3 w-3" />
-                Prescription upload is mandatory for this order
+                Prescription upload is mandatory for all orders - cannot proceed without it
               </p>
             )}
           </div>
@@ -1053,18 +1063,22 @@ const OrderModal = ({
           <div className="p-4 bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-xl border-2 border-cyan-500/20">
             <div className="flex justify-between items-center mb-2">
               <span className="text-base">Subtotal:</span>
-              <span className="text-lg font-semibold">₹{subtotal}</span>
+              <span className="text-lg font-semibold">₹{subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-base">Platform Charge (2%):</span>
+              <span className="text-lg font-semibold">₹{platformCharge.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center mb-2">
               <span className="text-base">
                 {deliveryType === 'delivery' ? 'Delivery Charge:' : 'Pickup (Free):'}
               </span>
-              <span className="text-lg font-semibold">₹{deliveryCharge}</span>
+              <span className="text-lg font-semibold">₹{deliveryCharge.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center pt-2 border-t border-cyan-500/30">
               <span className="text-lg font-semibold">Total Amount:</span>
               <span className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
-                ₹{totalAmount}
+                ₹{totalAmount.toFixed(2)}
               </span>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 text-center">
@@ -1086,13 +1100,21 @@ const OrderModal = ({
             </Button>
             <Button 
               type="button"
-              onClick={onPlaceOrder} 
-              className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white"
+              onClick={onPlaceOrder}
+              disabled={!canPlaceOrder}
+              className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              title={!canPlaceOrder ? "Please upload prescription to continue" : ""}
             >
               <CheckCircle2 className="h-5 w-5 mr-2" />
               {deliveryType === 'pickup' ? 'Place Pickup Order' : 'Place Order'}
             </Button>
           </div>
+          {!canPlaceOrder && needsPrescription && (
+            <p className="text-sm text-red-600 dark:text-red-400 text-center font-medium flex items-center justify-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              Upload prescription to enable order placement
+            </p>
+          )}
         </div>
       </DialogContent>
     </Dialog>
