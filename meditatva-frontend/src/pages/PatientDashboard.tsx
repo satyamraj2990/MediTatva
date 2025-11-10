@@ -111,59 +111,62 @@ const PatientDashboard = () => {
         animate={{ y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
             <motion.div 
-              className="flex items-center gap-3"
+              className="flex items-center gap-2 sm:gap-3"
               whileHover={{ scale: 1.02 }}
             >
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
-                <Pill className="h-5 w-5 text-white" />
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                <Pill className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
                 MediTatva
               </h1>
             </motion.div>
 
-            <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
                   onClick={() => setShowNearbyFinder(true)}
-                  className="gap-2"
+                  className="gap-1.5 sm:gap-2 h-8 sm:h-10 px-2 sm:px-4 text-xs sm:text-sm"
                   style={{
                     background: 'linear-gradient(135deg, rgba(20, 184, 166, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)',
                     border: '1px solid rgba(20, 184, 166, 0.3)',
                     boxShadow: '0 0 20px rgba(20, 184, 166, 0.15)',
                   }}
                 >
-                  <MapPin className="h-4 w-4" />
-                  <span className="hidden md:inline">Find Nearby Stores</span>
+                  <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Find Nearby Stores</span>
+                  <span className="sm:hidden">Nearby</span>
                 </Button>
               </motion.div>
               <LocationDisplay variant="patient" showFullAddress={false} />
-              <ThemeToggle />
+              <div className="hidden sm:block">
+                <ThemeToggle />
+              </div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="relative hover:bg-white/5"
+                  className="relative hover:bg-white/5 h-8 w-8 sm:h-10 sm:w-10"
                 >
-                  <Bell className="h-5 w-5 text-gray-400" />
+                  <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                   <motion.span 
-                    className="absolute top-1 right-1 h-2 w-2 bg-cyan-500 rounded-full"
+                    className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 h-2 w-2 bg-cyan-500 rounded-full"
                     animate={{ scale: [1, 1.2, 1] }}
                     transition={{ duration: 2, repeat: Infinity }}
                   />
                 </Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button variant="ghost" size="icon" className="hover:bg-white/5">
-                  <User className="h-5 w-5 text-gray-400" />
+                <Button variant="ghost" size="icon" className="hover:bg-white/5 h-8 w-8 sm:h-10 sm:w-10">
+                  <User className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                 </Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button onClick={handleLogout} variant="ghost" size="icon" className="hover:bg-white/5">
-                  <LogOut className="h-5 w-5 text-gray-400" />
+                <Button onClick={handleLogout} variant="ghost" size="icon" className="hover:bg-white/5 h-8 w-8 sm:h-10 sm:w-10">
+                  <LogOut className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                 </Button>
               </motion.div>
             </div>
@@ -171,18 +174,18 @@ const PatientDashboard = () => {
         </div>
       </motion.nav>
 
-      <div className="container mx-auto px-4 py-8 sm:py-12 relative z-10">
+      <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8 lg:py-12 relative z-10">
         {/* Welcome Section with Animation */}
         <motion.div 
-          className="mb-8 sm:mb-12"
+          className="mb-6 sm:mb-8 lg:mb-12"
           initial="hidden"
           animate="visible"
           variants={fadeInUp}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
             Welcome back, John!
           </h2>
-          <p className="text-gray-400 text-base sm:text-lg">Find medicines near you instantly</p>
+          <p className="text-gray-400 text-sm sm:text-base lg:text-lg">Find medicines near you instantly</p>
         </motion.div>
 
         {/* Search Section - Premium Card */}
@@ -192,7 +195,7 @@ const PatientDashboard = () => {
           variants={fadeInUp}
         >
           <Card 
-            className="p-4 sm:p-6 mb-6 sm:mb-8 relative overflow-hidden"
+            className="p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6 lg:mb-8 relative overflow-hidden"
             style={{
               background: 'rgba(17, 24, 39, 0.6)',
               backdropFilter: 'blur(12px)',
@@ -202,21 +205,21 @@ const PatientDashboard = () => {
             {/* Gradient Top Border */}
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500/50 to-blue-600/50" />
             
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleSearch()}
                   placeholder="Search for medicines... (e.g., Paracetamol)"
-                  className="pl-10 bg-[#111827] border-white/10 text-white placeholder:text-gray-500 focus:border-cyan-500/50"
+                  className="pl-9 sm:pl-10 h-10 sm:h-11 text-sm sm:text-base bg-[#111827] border-white/10 text-white placeholder:text-gray-500 focus:border-cyan-500/50"
                 />
               </div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                 <Button 
                   onClick={handleSearch} 
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto h-10 sm:h-11 text-sm sm:text-base"
                   style={{
                     background: 'rgba(17, 24, 39, 0.8)',
                     border: '1px solid rgba(20, 184, 166, 0.5)',
@@ -230,11 +233,11 @@ const PatientDashboard = () => {
                 <Button 
                   onClick={() => setShowScanner(true)} 
                   variant="outline" 
-                  className="w-full sm:w-auto gap-2 border-white/10 hover:bg-white/5 text-white"
+                  className="w-full sm:w-auto gap-1.5 sm:gap-2 h-10 sm:h-11 text-sm sm:text-base border-white/10 hover:bg-white/5 text-white"
                 >
-                  <Camera className="h-4 w-4" />
-                  <span className="hidden sm:inline">MediTatva Lens</span>
-                  <span className="sm:hidden">Scan</span>
+                  <Camera className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden md:inline">MediTatva Lens</span>
+                  <span className="md:hidden">Scan</span>
                 </Button>
               </motion.div>
             </div>
@@ -249,7 +252,7 @@ const PatientDashboard = () => {
           variants={fadeInUp}
         >
           <Card 
-            className="p-4 sm:p-6 mb-6 sm:mb-8 relative overflow-hidden"
+            className="p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6 lg:mb-8 relative overflow-hidden"
             style={{
               background: 'rgba(17, 24, 39, 0.6)',
               backdropFilter: 'blur(12px)',
@@ -258,13 +261,13 @@ const PatientDashboard = () => {
           >
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500/50 to-pink-600/50" />
             
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
-              <h3 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-white">
-                <Calendar className="h-5 w-5 text-cyan-400" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 sm:mb-4 lg:mb-6">
+              <h3 className="text-lg sm:text-xl lg:text-2xl font-bold flex items-center gap-2 text-white">
+                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-400" />
                 Smart Refill Reminders
               </h3>
               <Badge 
-                className="w-fit"
+                className="w-fit text-xs sm:text-sm"
                 style={{
                   background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%)',
                   border: '1px solid rgba(147, 51, 234, 0.3)',
@@ -277,7 +280,7 @@ const PatientDashboard = () => {
             </div>
             
             <motion.div 
-              className="space-y-3"
+              className="space-y-2 sm:space-y-3"
               variants={staggerContainer}
               initial="hidden"
               whileInView="visible"
@@ -286,15 +289,15 @@ const PatientDashboard = () => {
               {mockRefillReminders.map((reminder) => (
                 <motion.div 
                   key={reminder.id} 
-                  className="p-4 rounded-lg bg-[#111827]/80 border border-white/5"
+                  className="p-3 sm:p-4 rounded-lg bg-[#111827]/80 border border-white/5"
                   variants={fadeInUp}
                   whileHover={{ scale: 1.01, borderColor: 'rgba(20, 184, 166, 0.2)' }}
                   transition={{ duration: 0.2 }}
                 >
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  <div className="flex flex-col gap-3">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <p className="font-semibold text-white">{reminder.medicineName}</p>
+                        <p className="font-semibold text-white text-sm sm:text-base">{reminder.medicineName}</p>
                         {reminder.status === "due-today" && (
                           <Badge 
                             variant="destructive" 
@@ -324,26 +327,27 @@ const PatientDashboard = () => {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-gray-400 flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {reminder.pharmacy} • Next refill: {new Date(reminder.nextRefill).toLocaleDateString()}
+                      <p className="text-xs sm:text-sm text-gray-400 flex items-center gap-1">
+                        <MapPin className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{reminder.pharmacy}</span>
+                        <span className="flex-shrink-0">• Next refill: {new Date(reminder.nextRefill).toLocaleDateString()}</span>
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                      <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex-1 min-w-[100px] sm:flex-initial">
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          className="border-white/10 hover:bg-white/5 text-gray-300 text-xs sm:text-sm"
+                          className="w-full border-white/10 hover:bg-white/5 text-gray-300 text-xs h-8 sm:h-9"
                         >
-                          <Bell className="h-4 w-4 mr-1 sm:mr-2" />
-                          Remind
+                          <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                          <span>Remind</span>
                         </Button>
                       </motion.div>
-                      <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                      <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex-1 min-w-[100px] sm:flex-initial">
                         <Button 
                           size="sm"
-                          className="text-xs sm:text-sm"
+                          className="w-full text-xs h-8 sm:h-9"
                           style={{
                             background: 'rgba(17, 24, 39, 0.8)',
                             border: '1px solid rgba(20, 184, 166, 0.5)',
@@ -361,18 +365,18 @@ const PatientDashboard = () => {
           </Card>
         </motion.div>
 
-        <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {/* Pharmacy List */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
-              <h3 className="text-xl sm:text-2xl font-bold text-white">Nearby Pharmacies</h3>
+          <div className="lg:col-span-2 space-y-3 sm:space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 sm:mb-4 lg:mb-6">
+              <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-white">Nearby Pharmacies</h3>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="border-white/10 hover:bg-white/5 text-gray-300 w-full sm:w-auto"
+                  className="border-white/10 hover:bg-white/5 text-gray-300 w-full sm:w-auto h-9 sm:h-10 text-xs sm:text-sm"
                 >
-                  <MapPin className="h-4 w-4 mr-2" />
+                  <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                   Map View
                 </Button>
               </motion.div>
@@ -383,7 +387,7 @@ const PatientDashboard = () => {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
-              className="space-y-4"
+              className="space-y-3 sm:space-y-4"
             >
               {mockPharmacies.map((pharmacy, index) => (
                 <motion.div
@@ -393,7 +397,7 @@ const PatientDashboard = () => {
                   transition={{ duration: 0.2 }}
                 >
                   <Card 
-                    className="p-4 sm:p-6 cursor-pointer relative overflow-hidden"
+                    className="p-3 sm:p-4 lg:p-6 cursor-pointer relative overflow-hidden"
                     style={{
                       background: 'rgba(17, 24, 39, 0.6)',
                       backdropFilter: 'blur(12px)',
@@ -403,46 +407,48 @@ const PatientDashboard = () => {
                   >
                     <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500/50 to-blue-600/50" />
                     
-                    <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-4">
-                      <div className="flex-1">
-                        <h4 className="text-lg font-semibold mb-2 text-white">{pharmacy.name}</h4>
-                        <p className="text-sm text-gray-400 flex items-center gap-1 flex-wrap">
-                          <MapPin className="h-4 w-4 flex-shrink-0" />
-                          <span className="break-words">{pharmacy.address}</span>
-                          <span className="text-cyan-400">• {pharmacy.distance}</span>
-                        </p>
+                    <div className="flex flex-col gap-3 mb-3 sm:mb-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-base sm:text-lg font-semibold mb-2 text-white truncate">{pharmacy.name}</h4>
+                          <p className="text-xs sm:text-sm text-gray-400 flex items-start gap-1 flex-wrap">
+                            <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5" />
+                            <span className="break-words line-clamp-2">{pharmacy.address}</span>
+                          </p>
+                          <p className="text-xs sm:text-sm text-cyan-400 mt-1">• {pharmacy.distance}</p>
+                        </div>
+                        <Badge 
+                          variant={pharmacy.isOpen ? "default" : "secondary"} 
+                          className={`${pharmacy.isOpen 
+                            ? "bg-green-500/20 text-green-400 border-green-500/30" 
+                            : "bg-gray-500/20 text-gray-400 border-gray-500/30"} flex-shrink-0 text-xs`}
+                        >
+                          {pharmacy.isOpen ? "Open" : "Closed"}
+                        </Badge>
                       </div>
-                      <Badge 
-                        variant={pharmacy.isOpen ? "default" : "secondary"} 
-                        className={pharmacy.isOpen 
-                          ? "bg-green-500/20 text-green-400 border-green-500/30 flex-shrink-0" 
-                          : "bg-gray-500/20 text-gray-400 border-gray-500/30 flex-shrink-0"}
-                      >
-                        {pharmacy.isOpen ? "Open" : "Closed"}
-                      </Badge>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4 text-sm">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 lg:gap-4 mb-3 sm:mb-4 text-xs sm:text-sm">
                       <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-yellow-400 text-yellow-400" />
                         <span className="font-semibold text-white">{pharmacy.rating}</span>
                         <span className="text-gray-400">({pharmacy.reviews})</span>
                       </div>
                       <div className="flex items-center gap-1 text-gray-400">
-                        <Clock className="h-4 w-4" />
-                        Open until 10 PM
+                        <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        <span className="text-xs sm:text-sm">Open until 10 PM</span>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
                       <motion.div 
-                        className="flex-1 min-w-[120px]"
+                        className="flex-1 min-w-[110px]"
                         whileHover={{ scale: 1.03 }} 
                         whileTap={{ scale: 0.97 }}
                       >
                         <Button 
                           size="sm" 
-                          className="w-full text-xs sm:text-sm"
+                          className="w-full text-xs h-8 sm:h-9"
                           style={{
                             background: 'rgba(17, 24, 39, 0.8)',
                             border: '1px solid rgba(20, 184, 166, 0.5)',
