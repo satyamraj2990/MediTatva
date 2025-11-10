@@ -180,26 +180,26 @@ const Login = () => {
                     }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   />
-                  <div className="relative grid grid-cols-2 gap-2">
+                  <div className="relative grid grid-cols-2 gap-1">
                     <button
                       type="button"
                       onClick={() => setRole("patient")}
-                      className={`relative z-10 flex items-center justify-center gap-2 py-3 px-3 rounded-lg transition-all whitespace-nowrap ${
+                      className={`relative z-10 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3 rounded-lg transition-all whitespace-nowrap ${
                         role === "patient" ? "text-white" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      <User className="h-4 w-4 shrink-0" />
-                      <span className="font-medium text-sm sm:text-base">Patient</span>
+                      <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                      <span className="font-medium text-xs sm:text-sm md:text-base">Patient</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setRole("pharmacy")}
-                      className={`relative z-10 flex items-center justify-center gap-2 py-3 px-3 rounded-lg transition-all whitespace-nowrap ${
+                      className={`relative z-10 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3 rounded-lg transition-all whitespace-nowrap ${
                         role === "pharmacy" ? "text-white" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      <Building2 className="h-4 w-4 shrink-0" />
-                      <span className="font-medium text-sm sm:text-base">Pharmacy</span>
+                      <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                      <span className="font-medium text-xs sm:text-sm md:text-base">Pharmacy</span>
                     </button>
                   </div>
                 </div>
