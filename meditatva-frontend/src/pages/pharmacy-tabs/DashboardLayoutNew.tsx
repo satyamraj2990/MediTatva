@@ -54,6 +54,23 @@ export const DashboardLayout = memo(() => {
   const [activeTab, setActiveTab] = useState<Tab>("order-requests");
   const [scrolled, setScrolled] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Auto-collapse sidebar on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setSidebarCollapsed(true);
+        setMobileMenuOpen(false);
+      } else {
+        setSidebarCollapsed(false);
+      }
+    };
+    
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const menuItems: Array<{
     id: Tab;
@@ -175,14 +192,43 @@ export const DashboardLayout = memo(() => {
       </div>
 
       <div className="flex relative z-10">
+        {/* Mobile Menu Toggle Button */}
+        <motion.button
+          className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-xl bg-white/80 backdrop-blur-md shadow-lg border border-white/20"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          {mobileMenuOpen ? (
+            <X className="h-5 w-5 text-slate-700" />
+          ) : (
+            <Menu className="h-5 w-5 text-slate-700" />
+          )}
+        </motion.button>
+
+        {/* Mobile Overlay */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="lg:hidden fixed inset-0 bg-black/50 z-30"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+
         {/* Glassmorphism Sidebar */}
         <motion.aside
           variants={sidebarVariants}
           initial="hidden"
-          animate="visible"
+          animate={mobileMenuOpen || !sidebarCollapsed ? "visible" : "hidden"}
           className={`${
             sidebarCollapsed ? 'w-20' : 'w-72'
-          } min-h-screen fixed left-0 top-0 transition-all duration-300`}
+          } min-h-screen fixed left-0 top-0 transition-all duration-300 z-40 ${
+            mobileMenuOpen ? 'translate-x-0' : 'lg:translate-x-0 -translate-x-full lg:static'
+          }`}
           style={{
             background: 'rgba(255, 255, 255, 0.7)',
             backdropFilter: 'blur(20px) saturate(180%)',
@@ -271,7 +317,10 @@ export const DashboardLayout = memo(() => {
 
                   return (
                     <div key={item.id}>
-                      <NavLink to={`/pharmacy/dashboard/${item.id}`}>
+                      <NavLink 
+                        to={`/pharmacy/dashboard/${item.id}`}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
                         <motion.div
                           variants={menuItemVariants}
                           className="relative group"
@@ -294,7 +343,7 @@ export const DashboardLayout = memo(() => {
 
                           <div
                             className={`
-                              flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 relative overflow-hidden
+                              flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-2xl transition-all duration-300 relative overflow-hidden
                               ${isActive
                                 ? 'bg-gradient-to-r from-blue-500 to-blue-400 text-white shadow-lg shadow-blue-500/30'
                                 : 'text-slate-600 hover:bg-white/60 hover:shadow-md'
@@ -315,13 +364,13 @@ export const DashboardLayout = memo(() => {
                             {/* Icon with Gradient Background */}
                             <motion.div
                               className={`
-                                relative h-10 w-10 rounded-xl flex items-center justify-center
+                                relative h-8 w-8 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center
                                 ${isActive ? 'bg-white/20' : `bg-gradient-to-br ${item.gradient} opacity-80 group-hover:opacity-100`}
                               `}
                               whileHover={{ rotate: 5, scale: 1.1 }}
                               transition={{ duration: 0.2 }}
                             >
-                              <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-white'}`} />
+                              <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${isActive ? 'text-white' : 'text-white'}`} />
                               
                               {/* Pulsing Dot for Active State */}
                               {isActive && (
@@ -341,7 +390,7 @@ export const DashboardLayout = memo(() => {
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: 0.1 }}
                               >
-                                <p className={`text-sm font-semibold ${isActive ? 'text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>
+                                <p className={`text-xs sm:text-sm font-semibold ${isActive ? 'text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>
                                   {item.label}
                                 </p>
                               </motion.div>
@@ -353,7 +402,7 @@ export const DashboardLayout = memo(() => {
                                 animate={{ scale: 1, rotate: 0 }}
                                 transition={{ type: "spring", stiffness: 200, damping: 15 }}
                               >
-                                <ChevronRight className="h-4 w-4 text-white" />
+                                <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
                               </motion.div>
                             )}
                           </div>
@@ -423,11 +472,11 @@ export const DashboardLayout = memo(() => {
         </motion.aside>
 
         {/* Main Content Area */}
-        <div className={`flex-1 ${sidebarCollapsed ? 'ml-20' : 'ml-72'} transition-all duration-300`}>
+        <div className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'} ml-0`}>
           {/* Floating Navbar */}
           <motion.header
             className={`
-              sticky top-4 mx-6 mb-6 z-50 rounded-2xl transition-all duration-300
+              sticky top-2 sm:top-4 mx-2 sm:mx-4 lg:mx-6 mb-4 sm:mb-6 z-20 rounded-xl sm:rounded-2xl transition-all duration-300
               ${scrolled 
                 ? 'bg-white/80 backdrop-blur-xl shadow-xl shadow-blue-500/10' 
                 : 'bg-white/60 backdrop-blur-lg shadow-lg'
@@ -440,11 +489,10 @@ export const DashboardLayout = memo(() => {
               border: '1px solid rgba(255, 255, 255, 0.5)',
             }}
           >
-            <div className="px-6 py-4">
-              <div className="flex items-center justify-between">
-                {/* Breadcrumb */}
+            <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
+              <div className="flex items-center justify-between gap-2">{/* Breadcrumb */}
                 <motion.div
-                  className="flex items-center gap-3"
+                  className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0"
                   initial={{ x: -20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ delay: 0.4 }}
@@ -453,16 +501,16 @@ export const DashboardLayout = memo(() => {
                     variant="ghost"
                     size="sm"
                     onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                    className="hover:bg-blue-500/10 hover:text-blue-600"
+                    className="hidden lg:flex hover:bg-blue-500/10 hover:text-blue-600 h-8 w-8 sm:h-9 sm:w-9 p-0"
                   >
-                    {sidebarCollapsed ? <Menu className="h-5 w-5" /> : <X className="h-5 w-5" />}
+                    {sidebarCollapsed ? <Menu className="h-4 w-4 sm:h-5 sm:w-5" /> : <X className="h-4 w-4 sm:h-5 sm:w-5" />}
                   </Button>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     {menuItems.find(item => item.id === activeTab) && (
                       <>
                         <motion.div
-                          className={`h-10 w-10 rounded-xl bg-gradient-to-br ${menuItems.find(item => item.id === activeTab)?.gradient} flex items-center justify-center`}
+                          className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-gradient-to-br ${menuItems.find(item => item.id === activeTab)?.gradient} flex items-center justify-center shrink-0`}
                           whileHover={{ rotate: 5, scale: 1.05 }}
                           style={{
                             boxShadow: '0 8px 24px rgba(59, 130, 246, 0.25)',
@@ -470,14 +518,14 @@ export const DashboardLayout = memo(() => {
                         >
                           {(() => {
                             const Icon = menuItems.find(item => item.id === activeTab)?.icon;
-                            return Icon ? <Icon className="h-5 w-5 text-white" /> : null;
+                            return Icon ? <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" /> : null;
                           })()}
                         </motion.div>
-                        <div>
-                          <p className="text-sm font-semibold text-slate-700">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs sm:text-sm font-semibold text-slate-700 truncate">
                             {menuItems.find(item => item.id === activeTab)?.label}
                           </p>
-                          <p className="text-xs text-slate-500">MediTatva Dashboard</p>
+                          <p className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">MediTatva Dashboard</p>
                         </div>
                       </>
                     )}
@@ -486,18 +534,18 @@ export const DashboardLayout = memo(() => {
 
                 {/* Right Actions */}
                 <motion.div
-                  className="flex items-center gap-3"
+                  className="flex items-center gap-1.5 sm:gap-2 lg:gap-3"
                   initial={{ x: 20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ delay: 0.5 }}
                 >
-                  {/* Activity Indicator */}
+                  {/* Activity Indicator - Hidden on mobile */}
                   <motion.div
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20"
+                    className="hidden md:flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20"
                     whileHover={{ scale: 1.05 }}
                   >
-                    <Activity className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-semibold text-blue-700">Active</span>
+                    <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
+                    <span className="text-xs sm:text-sm font-semibold text-blue-700">Active</span>
                   </motion.div>
 
                   {/* Notifications */}
@@ -508,11 +556,11 @@ export const DashboardLayout = memo(() => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="relative h-11 w-11 rounded-xl hover:bg-blue-500/10 hover:text-blue-600"
+                      className="relative h-8 w-8 sm:h-10 sm:w-10 lg:h-11 lg:w-11 rounded-lg sm:rounded-xl hover:bg-blue-500/10 hover:text-blue-600 p-0"
                     >
-                      <Bell className="h-5 w-5" />
+                      <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                       <motion.span
-                        className="absolute top-1 right-1 h-2.5 w-2.5 bg-gradient-to-r from-rose-500 to-red-500 rounded-full border-2 border-white"
+                        className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 h-2 w-2 sm:h-2.5 sm:w-2.5 bg-gradient-to-r from-rose-500 to-red-500 rounded-full border-2 border-white"
                         variants={pulseVariants}
                         animate="animate"
                         transition={{ duration: 2, repeat: Infinity }}
@@ -522,24 +570,24 @@ export const DashboardLayout = memo(() => {
 
                   {/* Profile */}
                   <motion.div
-                    className="flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r from-slate-100 to-blue-50 hover:from-blue-500 hover:to-cyan-500 cursor-pointer group transition-all duration-300"
+                    className="flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-slate-100 to-blue-50 hover:from-blue-500 hover:to-cyan-500 cursor-pointer group transition-all duration-300"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     style={{
                       boxShadow: '0 4px 16px rgba(59, 130, 246, 0.15)',
                     }}
                   >
-                    <Avatar className="h-9 w-9 ring-2 ring-white ring-offset-2 ring-offset-blue-100">
+                    <Avatar className="h-7 w-7 sm:h-8 sm:w-8 lg:h-9 lg:w-9 ring-2 ring-white ring-offset-1 sm:ring-offset-2 ring-offset-blue-100">
                       <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=pharmacist" />
-                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-400 text-white font-bold">
+                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-400 text-white font-bold text-xs sm:text-sm">
                         PH
                       </AvatarFallback>
                     </Avatar>
-                    <div className="hidden sm:block">
-                      <p className="text-sm font-bold text-slate-700 group-hover:text-white transition-colors">
+                    <div className="hidden lg:block">
+                      <p className="text-xs sm:text-sm font-bold text-slate-700 group-hover:text-white transition-colors">
                         Pharmacist
                       </p>
-                      <p className="text-xs text-slate-500 group-hover:text-white/80 transition-colors">
+                      <p className="text-[10px] sm:text-xs text-slate-500 group-hover:text-white/80 transition-colors">
                         Admin
                       </p>
                     </div>
@@ -551,7 +599,7 @@ export const DashboardLayout = memo(() => {
 
           {/* Page Content */}
           <motion.main
-            className="px-6 pb-8"
+            className="px-2 sm:px-4 lg:px-6 pb-4 sm:pb-6 lg:pb-8"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
