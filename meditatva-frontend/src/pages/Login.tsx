@@ -169,49 +169,38 @@ const Login = () => {
                   </p>
                 </div>
 
-                {/* Role Selector Tabs - iOS Segmented Control Style */}
+                {/* Role Selector - Clear Segmented Control */}
                 <div className="space-y-2">
-                  <Label className="text-xs sm:text-sm font-medium text-foreground">Select Your Role</Label>
-                  <div className="relative p-1 bg-muted/50 rounded-lg border border-border/50">
-                    <motion.div
-                      className="absolute top-1 bottom-1 rounded-md bg-primary shadow-md"
-                      initial={false}
-                      animate={{
-                        left: role === "patient" ? "0.25rem" : "50%",
-                        right: role === "patient" ? "50%" : "0.25rem",
-                      }}
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    />
-                    <div className="relative grid grid-cols-2 gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setRole("patient")}
-                        className={`relative z-10 flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 sm:px-4 rounded-md font-semibold transition-all duration-200 text-sm sm:text-base ${
-                          role === "patient" 
-                            ? "text-primary-foreground" 
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                        aria-pressed={role === "patient"}
-                        aria-label="Login as Patient"
-                      >
-                        <User className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                        <span>Patient</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setRole("pharmacy")}
-                        className={`relative z-10 flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 sm:px-4 rounded-md font-semibold transition-all duration-200 text-sm sm:text-base ${
-                          role === "pharmacy" 
-                            ? "text-primary-foreground" 
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                        aria-pressed={role === "pharmacy"}
-                        aria-label="Login as Pharmacy"
-                      >
-                        <Building2 className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                        <span>Pharmacy</span>
-                      </button>
-                    </div>
+                  <Label className="text-sm font-semibold text-foreground">Select Your Role</Label>
+                  <div className="grid grid-cols-2 gap-2 p-1 bg-muted/30 rounded-lg border-2 border-border">
+                    <button
+                      type="button"
+                      onClick={() => setRole("patient")}
+                      className={`flex items-center justify-center gap-2 py-3 px-4 rounded-md font-semibold transition-all duration-200 ${
+                        role === "patient" 
+                          ? "bg-primary text-primary-foreground shadow-md" 
+                          : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      }`}
+                      aria-pressed={role === "patient"}
+                      aria-label="Login as Patient"
+                    >
+                      <User className="h-4 w-4 shrink-0" />
+                      <span className="text-sm sm:text-base">Patient</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole("pharmacy")}
+                      className={`flex items-center justify-center gap-2 py-3 px-4 rounded-md font-semibold transition-all duration-200 ${
+                        role === "pharmacy" 
+                          ? "bg-primary text-primary-foreground shadow-md" 
+                          : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      }`}
+                      aria-pressed={role === "pharmacy"}
+                      aria-label="Login as Pharmacy"
+                    >
+                      <Building2 className="h-4 w-4 shrink-0" />
+                      <span className="text-sm sm:text-base">Pharmacy</span>
+                    </button>
                   </div>
                 </div>
 
@@ -232,10 +221,10 @@ const Login = () => {
                         onChange={(e) => setEmail(e.target.value)}
                         onFocus={() => setFocusedField("email")}
                         onBlur={() => setFocusedField(null)}
-                        className={`pl-11 sm:pl-12 h-12 text-base bg-background/50 border-2 transition-all ${
+                        className={`pl-11 sm:pl-12 h-12 text-base bg-card border-2 transition-all ${
                           focusedField === "email" 
-                            ? "border-primary ring-4 ring-primary/20" 
-                            : "border-border hover:border-primary/50"
+                            ? "border-primary ring-4 ring-primary/20 bg-background" 
+                            : "border-input hover:border-primary/50"
                         }`}
                         required
                         aria-label="Email Address"
@@ -261,10 +250,10 @@ const Login = () => {
                         onChange={(e) => setPassword(e.target.value)}
                         onFocus={() => setFocusedField("password")}
                         onBlur={() => setFocusedField(null)}
-                        className={`pl-11 sm:pl-12 h-12 text-base bg-background/50 border-2 transition-all ${
+                        className={`pl-11 sm:pl-12 h-12 text-base bg-card border-2 transition-all ${
                           focusedField === "password" 
-                            ? "border-primary ring-4 ring-primary/20" 
-                            : "border-border hover:border-primary/50"
+                            ? "border-primary ring-4 ring-primary/20 bg-background" 
+                            : "border-input hover:border-primary/50"
                         }`}
                         required
                         aria-label="Password"
