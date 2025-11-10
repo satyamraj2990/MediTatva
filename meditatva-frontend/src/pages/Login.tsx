@@ -157,8 +157,8 @@ const Login = () => {
             </motion.div>
 
             {/* Right Side - Login Form */}
-            <div className="p-4 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-center">
-              <motion.div variants={itemVariants} className="space-y-4 sm:space-y-6">
+            <div className="p-5 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-center">
+              <motion.div variants={itemVariants} className="space-y-3 sm:space-y-4 lg:space-y-6">
                 {/* Header */}
                 <div className="space-y-2">
                   <h3 className="text-xl sm:text-2xl font-bold text-foreground">
@@ -170,36 +170,36 @@ const Login = () => {
                 </div>
 
                 {/* Role Selector Tabs */}
-                <div className="relative bg-muted/30 rounded-xl p-1.5 backdrop-blur-sm">
+                <div className="relative bg-muted/30 rounded-xl p-1 backdrop-blur-sm">
                   <motion.div
-                    className="absolute top-1.5 bottom-1.5 rounded-lg premium-tab-indicator shadow-lg"
+                    className="absolute top-1 bottom-1 rounded-lg premium-tab-indicator shadow-lg"
                     initial={false}
                     animate={{
-                      left: role === "patient" ? "0.375rem" : "calc(50% + 0.125rem)",
-                      right: role === "patient" ? "calc(50% + 0.125rem)" : "0.375rem",
+                      left: role === "patient" ? "0.25rem" : "calc(50% + 0.125rem)",
+                      right: role === "patient" ? "calc(50% + 0.125rem)" : "0.25rem",
                     }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   />
-                  <div className="relative grid grid-cols-2 gap-1">
+                  <div className="relative grid grid-cols-2 gap-0.5">
                     <button
                       type="button"
                       onClick={() => setRole("patient")}
-                      className={`relative z-10 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3 rounded-lg transition-all whitespace-nowrap ${
+                      className={`relative z-10 flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-1.5 sm:px-2 rounded-lg transition-all whitespace-nowrap text-[11px] sm:text-xs md:text-sm ${
                         role === "patient" ? "text-white" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-                      <span className="font-medium text-xs sm:text-sm md:text-base">Patient</span>
+                      <User className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+                      <span className="font-medium">Patient</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setRole("pharmacy")}
-                      className={`relative z-10 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3 rounded-lg transition-all whitespace-nowrap ${
+                      className={`relative z-10 flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-1.5 sm:px-2 rounded-lg transition-all whitespace-nowrap text-[11px] sm:text-xs md:text-sm ${
                         role === "pharmacy" ? "text-white" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-                      <span className="font-medium text-xs sm:text-sm md:text-base">Pharmacy</span>
+                      <Building2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+                      <span className="font-medium">Pharmacy</span>
                     </button>
                   </div>
                 </div>
