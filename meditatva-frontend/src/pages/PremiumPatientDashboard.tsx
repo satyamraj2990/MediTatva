@@ -34,6 +34,7 @@ const PremiumPatientDashboardInner = () => {
   const [showChat, setShowChat] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Ensure demo auth for patient
   useEffect(() => {
@@ -177,9 +178,26 @@ const PremiumPatientDashboardInner = () => {
       />
 
       <div className="flex relative z-10">
+        {/* Mobile Overlay */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+
         {/* Premium Glassmorphism Sidebar */}
         <motion.aside
-          className={`${sidebarCollapsed ? 'w-20' : 'w-80'} h-screen fixed left-0 top-0 transition-all duration-500 ease-out`}
+          className={`
+            ${sidebarCollapsed ? 'w-20' : 'w-80'} h-screen fixed left-0 top-0 z-50 transition-all duration-500 ease-out
+            ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          `}
           initial={{ x: -100, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.5, type: "spring" }}
@@ -291,7 +309,10 @@ const PremiumPatientDashboardInner = () => {
                       className="relative"
                     >
                       <motion.button
-                        onClick={() => setActiveSection(item.id)}
+                        onClick={() => {
+                          setActiveSection(item.id);
+                          setMobileMenuOpen(false); // Close mobile menu on selection
+                        }}
                         className={`
                           w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden
                           ${isActive 
@@ -403,10 +424,10 @@ const PremiumPatientDashboardInner = () => {
         </motion.aside>
 
         {/* Main Content Area */}
-        <div className={`flex-1 ${sidebarCollapsed ? 'ml-20' : 'ml-80'} transition-all duration-500 ease-out`}>
+        <div className={`flex-1 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-80'} transition-all duration-500 ease-out`}>
           {/* Premium Floating Header */}
           <motion.header
-            className="sticky top-4 mx-6 mb-6 z-50 rounded-3xl backdrop-blur-2xl bg-white/70 dark:bg-slate-900/70 border-2 border-white/20 dark:border-slate-700/20 shadow-2xl transition-colors duration-500"
+            className="sticky top-4 mx-3 sm:mx-6 mb-6 z-50 rounded-3xl backdrop-blur-2xl bg-white/70 dark:bg-slate-900/70 border-2 border-white/20 dark:border-slate-700/20 shadow-2xl transition-colors duration-500"
             initial={{ y: -100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.6, type: "spring" }}
@@ -414,37 +435,43 @@ const PremiumPatientDashboardInner = () => {
               boxShadow: "0 20px 60px rgba(0, 0, 0, 0.1)",
             }}
           >
-            <div className="px-6 py-4">
-              <div className="flex items-center justify-between gap-4">
+            <div className="px-3 sm:px-6 py-4">
+              <div className="flex items-center justify-between gap-2 sm:gap-4">
                 {/* Left Section */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                    onClick={() => {
+                      if (window.innerWidth < 1024) {
+                        setMobileMenuOpen(!mobileMenuOpen);
+                      } else {
+                        setSidebarCollapsed(!sidebarCollapsed);
+                      }
+                    }}
                     className="h-11 w-11 rounded-xl hover:bg-gradient-to-br hover:from-blue-500/10 hover:to-cyan-500/10"
                   >
                     <motion.div
                       animate={{ rotate: sidebarCollapsed ? 0 : 180 }}
                       transition={{ duration: 0.3 }}
                     >
-                      {sidebarCollapsed ? <Menu className="h-5 w-5" /> : <X className="h-5 w-5" />}
+                      {sidebarCollapsed || window.innerWidth < 1024 ? <Menu className="h-5 w-5" /> : <X className="h-5 w-5" />}
                     </motion.div>
                   </Button>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     {menuItems.find(item => item.id === activeSection) && (
                       <>
                         <motion.div
-                          className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${menuItems.find(item => item.id === activeSection)?.gradient} flex items-center justify-center shadow-lg`}
+                          className={`h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-gradient-to-br ${menuItems.find(item => item.id === activeSection)?.gradient} flex items-center justify-center shadow-lg`}
                           whileHover={{ rotate: 5, scale: 1.05 }}
                         >
                           {(() => {
                             const Icon = menuItems.find(item => item.id === activeSection)?.icon;
-                            return Icon ? <Icon className="h-6 w-6 text-white" /> : null;
+                            return Icon ? <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" /> : null;
                           })()}
                         </motion.div>
-                        <div>
+                        <div className="hidden sm:block">
                           <p className="text-sm font-bold text-[rgb(var(--text-primary))]">
                             {menuItems.find(item => item.id === activeSection)?.label}
                           </p>
@@ -458,7 +485,7 @@ const PremiumPatientDashboardInner = () => {
                 </div>
 
                 {/* Right Actions */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   {/* Quick Scan Button */}
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                     <Button
@@ -536,7 +563,7 @@ const PremiumPatientDashboardInner = () => {
 
           {/* Page Content with Animations */}
           <motion.main
-            className="px-6 pb-8"
+            className="px-3 sm:px-6 pb-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
