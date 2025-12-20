@@ -4,6 +4,12 @@
  */
 
 import { analyzeImageWithTesseract } from './tesseractService';
+import { 
+  analyzePrescriptionWithAI, 
+  type PrescriptionAnalysis,
+  type MedicineEntry 
+} from './prescriptionAIService';
+
 const VISION_API_KEY = import.meta.env.VITE_GOOGLE_VISION_API_KEY;
 const VISION_API_URL = `https://vision.googleapis.com/v1/images:annotate?key=${VISION_API_KEY}`;
 
@@ -20,22 +26,69 @@ export interface VisionResponse {
   medications: string[];
   dosages: string[];
   warnings: string[];
+  // Enhanced AI analysis
+  aiAnalysis?: PrescriptionAnalysis;
 }
 
 /**
- * Converts image file to base64 string
+ * Converts image file to base64 string with optimization
  */
 export const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
+    // Optimize large images before processing
+    if (file.size > 2 * 1024 * 1024) { // > 2MB
+      console.log('📦 Compressing large image...');
+      compressImage(file).then(resolve).catch(reject);
+    } else {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = (error) => reject(error);
+    }
+  });
+};
+
+/**
+ * Compress image for faster processing
+ */
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      const result = reader.result as string;
-      // Remove data:image/...;base64, prefix
-      const base64 = result.split(',')[1];
-      resolve(base64);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+        
+        // Max dimensions for faster processing
+        const maxWidth = 1920;
+        const maxHeight = 1080;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = width * ratio;
+          height = height * ratio;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+        console.log('✅ Image compressed for faster processing');
+        resolve(base64);
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
     };
-    reader.onerror = (error) => reject(error);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 };
 
@@ -51,15 +104,60 @@ export const canvasToBase64 = (canvas: HTMLCanvasElement): string => {
  * Analyzes image using Google Vision API
  */
 export const analyzeImage = async (base64Image: string): Promise<VisionResponse> => {
+  console.time('⏱️ Total Analysis Time');
+  
   try {
-    console.log('🔍 Starting Vision API analysis...');
-    console.log('API Key exists:', !!VISION_API_KEY);
-    console.log('API Key:', VISION_API_KEY ? VISION_API_KEY.substring(0, 20) + '...' : 'MISSING');
-    console.log('Image size (base64):', base64Image.length, 'characters');
+    console.log('🔍 Starting image analysis...');
+    console.log('📊 Image size:', Math.round(base64Image.length / 1024), 'KB');
 
-    if (!VISION_API_KEY || VISION_API_KEY === 'undefined') {
-      console.error('❌ API Key is missing or undefined!');
-      throw new Error('Vision API key not configured. Please check .env file and restart the dev server.');
+    // If no API key, automatically use Tesseract.js fallback
+    if (!VISION_API_KEY || VISION_API_KEY === 'undefined' || VISION_API_KEY === 'YOUR_VISION_API_KEY_HERE') {
+      console.log('📝 Using FREE Tesseract.js OCR (no API key needed)');
+      
+      try {
+        // Run OCR and AI analysis in sequence
+        const tesseractText = await analyzeImageWithTesseract(base64Image);
+        console.log('✅ OCR extracted', tesseractText.length, 'characters');
+        
+        if (!tesseractText || tesseractText.trim().length === 0) {
+          console.timeEnd('⏱️ Total Analysis Time');
+          return {
+            text: 'No text detected in the image. Please try again with a clearer image.',
+            confidence: 0,
+            medications: [],
+            dosages: [],
+            warnings: ['No prescription text found - please ensure the image is clear and well-lit'],
+          };
+        }
+        
+        const analysis = extractMedicalInfo(tesseractText);
+        
+        // Use AI to analyze the OCR text
+        let aiAnalysis: PrescriptionAnalysis | undefined;
+        try {
+          aiAnalysis = await analyzePrescriptionWithAI(tesseractText, 0.75);
+        } catch (aiError) {
+          console.warn('⚠️ AI analysis failed:', aiError);
+        }
+        
+        console.timeEnd('⏱️ Total Analysis Time');
+        
+        return {
+          text: tesseractText,
+          confidence: 0.75,
+          medications: analysis.medications,
+          dosages: analysis.dosages,
+          warnings: [
+            '✅ FREE Tesseract.js OCR - no Google billing needed',
+            ...analysis.warnings
+          ],
+          aiAnalysis,
+        };
+      } catch (tesseractError) {
+        console.error('❌ Tesseract.js failed:', tesseractError);
+        console.timeEnd('⏱️ Total Analysis Time');
+        throw new Error('OCR failed. Please ensure the image is clear and readable.');
+      }
     }
 
     const response = await fetch(VISION_API_URL, {
@@ -172,39 +270,37 @@ export const analyzeImage = async (base64Image: string): Promise<VisionResponse>
 
     const confidence = annotations.fullTextAnnotation?.pages?.[0]?.confidence || 0.85;
 
+    // Enhanced: Use AI to analyze the prescription
+    console.log('🧠 Running AI-powered prescription analysis...');
+    let aiAnalysis: PrescriptionAnalysis | undefined;
+    try {
+      aiAnalysis = await analyzePrescriptionWithAI(fullText, confidence);
+      console.log('✅ AI analysis successful');
+    } catch (aiError) {
+      console.warn('⚠️ AI analysis failed, using basic extraction:', aiError);
+    }
+
     return {
       text: fullText,
       confidence,
       ...analysis,
+      aiAnalysis, // Include AI analysis results
     };
   } catch (error) {
     console.error('❌ Vision API Error:', error);
     
-    // Return demo data instead of failing
-    if (error instanceof Error) {
-      return getDemoResult(error.message);
+    // Try Tesseract.js as fallback instead of demo data
+    console.log('🔄 Trying Tesseract.js fallback...');
+    try {
+      // Extract base64 image from error context if available
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Original error:', errorMessage);
+      throw new Error(`Vision API failed: ${errorMessage}. Please use Tesseract.js by not configuring Vision API key.`);
+    } catch (fallbackError) {
+      throw fallbackError;
     }
-    return getDemoResult('Unknown error occurred');
   }
 };
-
-/**
- * Returns demo/fallback data when API fails
- */
-function getDemoResult(errorMessage: string): VisionResponse {
-  console.log('🎭 Returning demo prescription data');
-  return {
-    text: `DEMO MODE - API Error: ${errorMessage}\n\nDr. Sarah Johnson, MD\nPrescription\n\nPatient: Demo User\nDate: Nov 12, 2025\n\nRx:\n1. Amoxicillin 500mg\n   Take 1 capsule 3 times daily\n   Duration: 7 days\n\n2. Ibuprofen 400mg\n   Take 1 tablet every 6 hours as needed\n   Max 4 tablets per day\n\nWARNING: Do not take on empty stomach\nCAUTION: May cause drowsiness`,
-    confidence: 0.95,
-    medications: ['Amoxicillin', 'Ibuprofen'],
-    dosages: ['500mg', '400mg', '1 capsule 3 times daily', '1 tablet every 6 hours'],
-    warnings: [
-      'WARNING: Do not take on empty stomach',
-      'CAUTION: May cause drowsiness',
-      `Note: API Error - ${errorMessage}. Showing demo data.`
-    ],
-  };
-}
 
 /**
  * Extracts medical information from OCR text

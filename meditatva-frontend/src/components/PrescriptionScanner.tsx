@@ -13,7 +13,9 @@ import {
   Pill,
   FileText,
   AlertTriangle,
-  Scan
+  Scan,
+  Sparkles,
+  Brain
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
@@ -21,6 +23,7 @@ import {
   analyzePrescriptionFromCamera,
   VisionResponse 
 } from '@/services/visionService';
+import { getConfidenceBadgeColor } from '@/services/prescriptionAIService';
 
 interface PrescriptionScannerProps {
   isOpen: boolean;
@@ -30,12 +33,40 @@ interface PrescriptionScannerProps {
 export const PrescriptionScanner = ({ isOpen, onClose }: PrescriptionScannerProps) => {
   const [mode, setMode] = useState<'choose' | 'camera' | 'upload'>('choose');
   const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [scanStage, setScanStage] = useState('');
   const [result, setResult] = useState<VisionResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Simulate progress for better UX
+  useEffect(() => {
+    if (isScanning) {
+      setScanProgress(0);
+      setScanStage('Preparing image...');
+      
+      const progressInterval = setInterval(() => {
+        setScanProgress(prev => {
+          if (prev < 30) {
+            setScanStage('Extracting text...');
+            return prev + 2;
+          } else if (prev < 60) {
+            setScanStage('Analyzing with AI...');
+            return prev + 1;
+          } else if (prev < 90) {
+            setScanStage('Validating medicines...');
+            return prev + 0.5;
+          }
+          return prev;
+        });
+      }, 100);
+      
+      return () => clearInterval(progressInterval);
+    }
+  }, [isScanning]);
 
   // Start camera
   const startCamera = async () => {
@@ -91,24 +122,28 @@ export const PrescriptionScanner = ({ isOpen, onClose }: PrescriptionScannerProp
 
     setIsScanning(true);
     setError(null);
+    setScanProgress(0);
+    setScanStage('Capturing image...');
 
     try {
       const analysisResult = await analyzePrescriptionFromCamera(videoRef.current);
+      setScanProgress(100);
+      setScanStage('Complete!');
       setResult(analysisResult);
       stopCamera();
       
-      // Check if demo mode was used (text starts with "DEMO MODE")
-      if (analysisResult.text.startsWith('DEMO MODE')) {
-        toast.warning('Demo Mode: Vision API error. Check console for details.');
-      } else {
-        toast.success('Prescription scanned successfully!');
-      }
+      toast.success('Prescription scanned successfully!', {
+        description: `${analysisResult.aiAnalysis?.medicines.length || 0} medicines detected`,
+      });
     } catch (err) {
       console.error('❌ Scan error:', err);
       setError('Failed to analyze prescription. Please try again.');
-      toast.error('Scan failed');
+      toast.error('Scan failed', {
+        description: 'Please ensure the image is clear and well-lit'
+      });
     } finally {
       setIsScanning(false);
+      setScanProgress(0);
     }
   };
 
@@ -132,23 +167,27 @@ export const PrescriptionScanner = ({ isOpen, onClose }: PrescriptionScannerProp
     setIsScanning(true);
     setError(null);
     setMode('upload');
+    setScanProgress(0);
+    setScanStage('Reading image...');
 
     try {
       const analysisResult = await analyzePrescriptionFile(file);
+      setScanProgress(100);
+      setScanStage('Complete!');
       setResult(analysisResult);
       
-      // Check if demo mode was used (text starts with "DEMO MODE")
-      if (analysisResult.text.startsWith('DEMO MODE')) {
-        toast.warning('Demo Mode: Vision API error. Check console for details.');
-      } else {
-        toast.success('Prescription analyzed successfully!');
-      }
+      toast.success('Prescription analyzed successfully!', {
+        description: `${analysisResult.aiAnalysis?.medicines.length || 0} medicines detected`,
+      });
     } catch (err) {
       console.error('❌ Upload error:', err);
       setError('Failed to analyze prescription. Please try again.');
-      toast.error('Analysis failed');
+      toast.error('Analysis failed', {
+        description: 'Please ensure the image is clear and readable'
+      });
     } finally {
       setIsScanning(false);
+      setScanProgress(0);
     }
   };
 
@@ -356,11 +395,25 @@ export const PrescriptionScanner = ({ isOpen, onClose }: PrescriptionScannerProp
                 >
                   <Loader2 className="h-16 w-16 text-cyan-500 animate-spin mx-auto mb-4" />
                   <h4 className="text-xl font-bold text-[rgb(var(--text-primary))] mb-2">
-                    Analyzing Prescription
+                    {scanStage}
                   </h4>
-                  <p className="text-[rgb(var(--text-secondary))]">
+                  <p className="text-[rgb(var(--text-secondary))] mb-4">
                     Please wait while we process your image...
                   </p>
+                  {/* Progress Bar */}
+                  <div className="max-w-md mx-auto">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                      <motion.div 
+                        className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2.5 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${scanProgress}%` }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    </div>
+                    <p className="text-sm text-[rgb(var(--text-secondary))] mt-2">
+                      {Math.round(scanProgress)}% complete
+                    </p>
+                  </div>
                 </motion.div>
               )}
 
@@ -387,12 +440,101 @@ export const PrescriptionScanner = ({ isOpen, onClose }: PrescriptionScannerProp
                       Scan Complete!
                     </h4>
                     <p className="text-[rgb(var(--text-secondary))]">
-                      Confidence: {Math.round(result.confidence * 100)}%
+                      OCR Confidence: {Math.round(result.confidence * 100)}%
                     </p>
                   </div>
 
-                  {/* Medications */}
-                  {result.medications.length > 0 && (
+                  {/* AI Analysis Results - ENHANCED */}
+                  {result.aiAnalysis && (
+                    <Card className="p-5 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-purple-950/30 dark:via-pink-950/30 dark:to-blue-950/30 border-2 border-purple-300 dark:border-purple-500/40 shadow-lg">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                          <Brain className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <h5 className="font-bold text-lg text-[rgb(var(--text-primary))] flex items-center gap-2">
+                            AI-Powered Analysis
+                            <Sparkles className="h-4 w-4 text-yellow-500" />
+                          </h5>
+                          <p className="text-xs text-[rgb(var(--text-secondary))]">
+                            Overall Confidence: {result.aiAnalysis.overall_confidence}%
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Medicines Detected by AI */}
+                      {result.aiAnalysis.medicines.length > 0 ? (
+                        <div className="space-y-3 mb-4">
+                          {result.aiAnalysis.medicines.map((medicine, index) => (
+                            <motion.div
+                              key={index}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.1 }}
+                              className="p-3 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700"
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <Pill className="h-5 w-5 text-blue-500" />
+                                  <span className="font-bold text-[rgb(var(--text-primary))]">
+                                    {medicine.name}
+                                  </span>
+                                  {medicine.needsReview && (
+                                    <Badge variant="destructive" className="text-xs">
+                                      ⚠️ Review
+                                    </Badge>
+                                  )}
+                                </div>
+                                <Badge 
+                                  className={`${getConfidenceBadgeColor(medicine.confidence)} text-white text-xs`}
+                                >
+                                  {medicine.confidence}%
+                                </Badge>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                  <span className="text-[rgb(var(--text-secondary))] text-xs">Dosage:</span>
+                                  <p className="font-medium text-[rgb(var(--text-primary))]">{medicine.dosage}</p>
+                                </div>
+                                <div>
+                                  <span className="text-[rgb(var(--text-secondary))] text-xs">Frequency:</span>
+                                  <p className="font-medium text-[rgb(var(--text-primary))]">{medicine.frequency}</p>
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-500/30 mb-4">
+                          <p className="text-sm text-yellow-800 dark:text-yellow-400">
+                            ⚠️ No medicines clearly identified. Please verify prescription manually.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* AI Warnings */}
+                      {result.aiAnalysis.warnings.length > 0 && (
+                        <div className="p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-500/30">
+                          <div className="flex items-center gap-2 mb-2">
+                            <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                            <span className="text-sm font-semibold text-orange-800 dark:text-orange-400">
+                              Important Notices
+                            </span>
+                          </div>
+                          <ul className="space-y-1">
+                            {result.aiAnalysis.warnings.map((warning, index) => (
+                              <li key={index} className="text-xs text-orange-700 dark:text-orange-300">
+                                • {warning}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </Card>
+                  )}
+
+                  {/* Basic Medications (fallback if no AI analysis) */}
+                  {!result.aiAnalysis && result.medications.length > 0 && (
                     <Card className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-2 border-blue-200 dark:border-blue-500/20">
                       <div className="flex items-center gap-2 mb-3">
                         <Pill className="h-5 w-5 text-blue-600 dark:text-cyan-400" />
@@ -412,7 +554,7 @@ export const PrescriptionScanner = ({ isOpen, onClose }: PrescriptionScannerProp
                   )}
 
                   {/* Dosages */}
-                  {result.dosages.length > 0 && (
+                  {!result.aiAnalysis && result.dosages.length > 0 && (
                     <Card className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-2 border-purple-200 dark:border-purple-500/20">
                       <div className="flex items-center gap-2 mb-3">
                         <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
@@ -428,8 +570,8 @@ export const PrescriptionScanner = ({ isOpen, onClose }: PrescriptionScannerProp
                     </Card>
                   )}
 
-                  {/* Warnings */}
-                  {result.warnings.length > 0 && (
+                  {/* Warnings (basic - only if no AI analysis) */}
+                  {!result.aiAnalysis && result.warnings.length > 0 && (
                     <Card className="p-4 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 border-2 border-orange-200 dark:border-orange-500/20">
                       <div className="flex items-center gap-2 mb-3">
                         <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
