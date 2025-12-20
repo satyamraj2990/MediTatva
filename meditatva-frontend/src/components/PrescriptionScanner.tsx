@@ -15,7 +15,8 @@ import {
   AlertTriangle,
   Scan,
   Sparkles,
-  Brain
+  Brain,
+  SwitchCamera
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
@@ -38,6 +39,8 @@ export const PrescriptionScanner = ({ isOpen, onClose }: PrescriptionScannerProp
   const [result, setResult] = useState<VisionResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,25 +71,154 @@ export const PrescriptionScanner = ({ isOpen, onClose }: PrescriptionScannerProp
     }
   }, [isScanning]);
 
+  // Enumerate available cameras
+  useEffect(() => {
+    const getCameras = async () => {
+      try {
+        // Request permission first
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cameras = devices.filter(device => device.kind === 'videoinput');
+        setAvailableCameras(cameras);
+        console.log('📹 Available cameras:', cameras.length);
+      } catch (err) {
+        console.error('Failed to enumerate cameras:', err);
+      }
+    };
+    getCameras();
+  }, []);
+
   // Start camera
-  const startCamera = async () => {
+  const startCamera = async (facing: 'user' | 'environment' = facingMode) => {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: 1280, height: 720 },
+      console.log('📹 Starting camera with facing mode:', facing);
+      
+      // Stop existing stream first
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+
+      // Check if camera is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera not supported on this device');
+      }
+
+      const constraints: MediaStreamConstraints = {
+        video: {
+          facingMode: facing,
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
         audio: false,
-      });
+      };
+
+      console.log('📋 Requesting camera with constraints:', constraints);
+      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      console.log('📹 Media stream obtained:', mediaStream.getTracks());
+      console.log('📹 Video tracks active:', mediaStream.getVideoTracks().map(t => ({
+        label: t.label,
+        enabled: t.enabled,
+        readyState: t.readyState
+      })));
       
       setStream(mediaStream);
+      setFacingMode(facing);
+      
       if (videoRef.current) {
+        console.log('🎬 Setting srcObject...');
         videoRef.current.srcObject = mediaStream;
+        
+        // Explicitly set attributes
+        videoRef.current.muted = true;
+        videoRef.current.playsInline = true;
+        videoRef.current.autoplay = true;
+        
+        // Wait for metadata and try to play
+        const playPromise = new Promise<void>((resolve, reject) => {
+          if (!videoRef.current) {
+            reject(new Error('Video ref lost'));
+            return;
+          }
+          
+          const video = videoRef.current;
+          
+          video.onloadedmetadata = async () => {
+            console.log('📺 Metadata loaded, dimensions:', video.videoWidth, 'x', video.videoHeight);
+            try {
+              await video.play();
+              console.log('✅ Video playing successfully');
+              resolve();
+            } catch (playErr) {
+              console.error('❌ Play error:', playErr);
+              // Retry after short delay
+              setTimeout(async () => {
+                try {
+                  await video.play();
+                  console.log('✅ Video playing on retry');
+                  resolve();
+                } catch (retryErr) {
+                  console.error('❌ Retry failed:', retryErr);
+                  reject(retryErr);
+                }
+              }, 100);
+            }
+          };
+          
+          video.onerror = (err) => {
+            console.error('❌ Video error:', err);
+            reject(err);
+          };
+          
+          // Timeout after 5 seconds
+          setTimeout(() => {
+            if (video.paused) {
+              console.warn('⚠️ Video still paused after 5s, force playing...');
+              video.play().catch(err => console.error('Force play failed:', err));
+            }
+            resolve();
+          }, 5000);
+        });
+        
+        await playPromise;
       }
+      
       setMode('camera');
       setError(null);
-    } catch (err) {
-      console.error('Camera error:', err);
-      setError('Failed to access camera. Please check permissions.');
-      toast.error('Camera access denied');
+      
+      toast.success(`Camera activated: ${facing === 'user' ? 'Front' : 'Back'} camera`);
+    } catch (err: any) {
+      console.error('❌ Camera error:', err);
+      console.error('Error details:', {
+        name: err.name,
+        message: err.message,
+        constraint: err.constraint
+      });
+      
+      let errorMsg = 'Failed to access camera. ';
+      if (err.name === 'NotAllowedError') {
+        errorMsg += 'Camera permission denied. Please allow camera access.';
+      } else if (err.name === 'NotFoundError') {
+        errorMsg += 'No camera found on this device.';
+      } else if (err.name === 'NotReadableError') {
+        errorMsg += 'Camera is already in use.';
+      } else {
+        errorMsg += err.message || 'Please check permissions and try again.';
+      }
+      
+      setError(errorMsg);
+      toast.error('Camera access failed', {
+        description: errorMsg
+      });
     }
+  };
+
+  // Toggle camera (front/back)
+  const toggleCamera = () => {
+    const newFacingMode = facingMode === 'environment' ? 'user' : 'environment';
+    console.log('🔄 Switching camera from', facingMode, 'to', newFacingMode);
+    toast.info(`Switching to ${newFacingMode === 'user' ? 'front' : 'back'} camera...`);
+    startCamera(newFacingMode);
   };
 
   // Stop camera
@@ -259,6 +391,15 @@ export const PrescriptionScanner = ({ isOpen, onClose }: PrescriptionScannerProp
                     Choose how you want to scan your prescription
                   </p>
 
+                  {/* Camera Info */}
+                  {availableCameras.length > 1 && (
+                    <div className="mb-4 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-500/30 rounded-xl">
+                      <p className="text-sm text-green-700 dark:text-green-400 text-center">
+                        ✨ {availableCameras.length} cameras detected - You can switch between them!
+                      </p>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Camera Option */}
                     <motion.div
@@ -335,10 +476,32 @@ export const PrescriptionScanner = ({ isOpen, onClose }: PrescriptionScannerProp
                       ref={videoRef}
                       autoPlay
                       playsInline
+                      muted
                       className="w-full h-full object-cover"
+                      style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
                     />
+                    
+                    {/* Camera info badge */}
+                    <div className="absolute top-4 left-4 z-10">
+                      <Badge className="bg-black/70 text-white border-white/20">
+                        {facingMode === 'environment' ? '📷 Back Camera' : '🤳 Front Camera'}
+                      </Badge>
+                    </div>
+
+                    {/* Toggle Camera Button - Always show if not scanning */}
+                    {!isScanning && (
+                      <Button
+                        onClick={toggleCamera}
+                        className="absolute top-4 right-4 z-10 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg border-0 px-4 py-2 h-auto"
+                        size="sm"
+                      >
+                        <SwitchCamera className="h-5 w-5 mr-2" />
+                        Switch to {facingMode === 'environment' ? 'Front' : 'Back'}
+                      </Button>
+                    )}
+
                     {isScanning && (
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
                         <div className="text-center">
                           <Loader2 className="h-12 w-12 text-cyan-400 animate-spin mx-auto mb-3" />
                           <p className="text-white font-semibold">Analyzing prescription...</p>
@@ -353,6 +516,15 @@ export const PrescriptionScanner = ({ isOpen, onClose }: PrescriptionScannerProp
                       <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
                     </div>
                   )}
+
+                  {/* Camera Info */}
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-500/30 rounded-xl">
+                    <p className="text-sm text-blue-700 dark:text-blue-400 text-center">
+                      💡 {availableCameras.length > 1 
+                        ? 'Tap the switch button to toggle between cameras' 
+                        : 'Position prescription in frame and capture'}
+                    </p>
+                  </div>
 
                   <div className="flex gap-3">
                     <Button
