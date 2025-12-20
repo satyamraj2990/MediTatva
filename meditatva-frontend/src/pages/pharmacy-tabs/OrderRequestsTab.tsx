@@ -261,8 +261,9 @@ export const OrderRequestsTab = () => {
         transition={{ delay: 0.3 }}
       >
         <Card className="overflow-hidden border-2 border-blue-100 bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full">\n              <thead className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b-2 border-blue-100">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)] custom-scrollbar">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b-2 border-blue-100 sticky top-0 z-10">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                     Order Details

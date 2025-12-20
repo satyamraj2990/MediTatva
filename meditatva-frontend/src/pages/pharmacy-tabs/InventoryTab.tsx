@@ -34,9 +34,11 @@ import {
   Package, Search, Plus, Edit, Trash2, Download, Upload,
   Filter, TrendingUp, AlertTriangle, Calendar, DollarSign,
   PackageSearch, Barcode, FileSpreadsheet, RefreshCw,
-  CheckCircle2, XCircle, Clock, Pill, ShoppingCart, Sparkles
+  CheckCircle2, XCircle, Clock, Pill, ShoppingCart, Sparkles, FileDown
 } from "lucide-react";
 import { toast } from "sonner";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
@@ -308,6 +310,84 @@ export const InventoryTab = memo(() => {
     toast.success("Inventory exported successfully!");
   };
 
+  // Export to PDF
+  const handleExportPDF = () => {
+    try {
+      const doc = new jsPDF();
+      
+      // Add title
+      doc.setFontSize(18);
+      doc.setTextColor(40, 40, 40);
+      doc.text('Medicine Inventory Report', 14, 20);
+      
+      // Add metadata
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
+      doc.text(`Total Items: ${stats.totalItems}`, 14, 34);
+      doc.text(`Total Value: ₹${stats.totalValue.toFixed(2)}`, 14, 40);
+      doc.text(`Low Stock Items: ${stats.lowStock}`, 100, 34);
+      doc.text(`Out of Stock: ${stats.outOfStock}`, 100, 40);
+      
+      // Add table
+      autoTable(doc, {
+        startY: 50,
+        head: [['Medicine Name', 'Batch', 'Quantity', 'Price', 'Expiry Date', 'Status']],
+        body: filteredInventory.map(item => {
+          const stockStatus = getStockStatus(item.quantity);
+          const expiryStatus = getExpiryStatus(item.expiryDate);
+          return [
+            item.name,
+            item.batchNumber,
+            item.quantity.toString(),
+            `₹${item.price.toFixed(2)}`,
+            new Date(item.expiryDate).toLocaleDateString(),
+            stockStatus.status
+          ];
+        }),
+        headStyles: {
+          fillColor: [59, 130, 246],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        bodyStyles: {
+          textColor: [40, 40, 40],
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245]
+        },
+        columnStyles: {
+          0: { cellWidth: 50 },
+          1: { cellWidth: 30 },
+          2: { cellWidth: 20, halign: 'center' },
+          3: { cellWidth: 25, halign: 'right' },
+          4: { cellWidth: 30, halign: 'center' },
+          5: { cellWidth: 30, halign: 'center' }
+        },
+        margin: { top: 50, left: 14, right: 14 },
+        didDrawPage: function(data) {
+          // Add footer with page number
+          doc.setFontSize(8);
+          doc.setTextColor(150);
+          doc.text(
+            `Page ${data.pageNumber} of ${doc.getNumberOfPages()}`,
+            doc.internal.pageSize.width / 2,
+            doc.internal.pageSize.height - 10,
+            { align: 'center' }
+          );
+        }
+      });
+      
+      // Save the PDF
+      doc.save(`inventory-report-${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success("PDF exported successfully!");
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast.error("Failed to export PDF");
+    }
+  };
+
   // Import from CSV
   const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -544,6 +624,15 @@ export const InventoryTab = memo(() => {
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Medicine
+            </Button>
+
+            <Button
+              onClick={handleExportPDF}
+              variant="outline"
+              className="border-[#E74C3C] text-[#E74C3C] hover:bg-[#E74C3C]/10"
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              Export PDF
             </Button>
 
             <Button

@@ -1,6 +1,6 @@
 import { memo, useState, useEffect, ReactNode, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Menu, Sun, Moon } from "lucide-react";
+import { ChevronLeft, Sun, Moon, LogOut } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
@@ -44,26 +44,27 @@ export const ResponsiveDashboardLayout = memo(({
   logoSubtext = "Premium Health Care",
   onLogout,
 }: ResponsiveDashboardLayoutProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const { theme, setTheme } = useTheme();
 
-  // Responsive behavior
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
       if (!mobile) {
-        setSidebarOpen(false); // Keep closed on desktop by default
+        setSidebarOpen(true);
+      }
+      if (mobile && !isMobile) {
+        setSidebarOpen(false);
       }
     };
     
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [isMobile]);
 
-  // Keyboard shortcut (Esc to close)
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && sidebarOpen) {
@@ -76,8 +77,10 @@ export const ResponsiveDashboardLayout = memo(({
   }, [sidebarOpen]);
 
   const toggleSidebar = useCallback(() => {
-    setSidebarOpen(prev => !prev);
-  }, []);
+    if (isMobile) {
+      setSidebarOpen(prev => !prev);
+    }
+  }, [isMobile]);
 
   const handleItemClick = (id: string, customOnClick?: () => void) => {
     if (customOnClick) {
@@ -86,7 +89,6 @@ export const ResponsiveDashboardLayout = memo(({
       onItemClick(id);
     }
     
-    // Close sidebar after selection on mobile
     if (isMobile) {
       setSidebarOpen(false);
     }
@@ -95,23 +97,23 @@ export const ResponsiveDashboardLayout = memo(({
   const themeColors = {
     pharmacy: {
       bg: 'from-slate-50 via-blue-50/30 to-indigo-50/20',
-      sidebarBg: '#1a2332',
-      cardBg: '#242e42',
+      sidebarBg: theme === 'dark' ? '#1e293b' : '#ffffff',
+      cardBg: theme === 'dark' ? '#334155' : '#f1f5f9',
       activeBg: '#3b82f6',
-      textPrimary: '#ffffff',
-      textSecondary: '#94a3b8',
-      border: '#2d3748',
+      textPrimary: theme === 'dark' ? '#ffffff' : '#1e293b',
+      textSecondary: theme === 'dark' ? '#94a3b8' : '#64748b',
+      border: theme === 'dark' ? '#475569' : '#e2e8f0',
       accent: '#3b82f6',
       logo: 'from-blue-600 to-cyan-500',
     },
     patient: {
       bg: 'from-[#0B1220] via-[#111827] to-[#0B1220]',
-      sidebarBg: '#1e293b',
-      cardBg: '#283244',
+      sidebarBg: theme === 'dark' ? '#1e293b' : '#ffffff',
+      cardBg: theme === 'dark' ? '#334155' : '#f1f5f9',
       activeBg: '#14b8a6',
-      textPrimary: '#ffffff',
-      textSecondary: '#94a3b8',
-      border: '#334155',
+      textPrimary: theme === 'dark' ? '#ffffff' : '#1e293b',
+      textSecondary: theme === 'dark' ? '#94a3b8' : '#64748b',
+      border: theme === 'dark' ? '#475569' : '#e2e8f0',
       accent: '#14b8a6',
       logo: 'from-teal-600 to-cyan-500',
     }
@@ -122,7 +124,7 @@ export const ResponsiveDashboardLayout = memo(({
   return (
     <div 
       className={cn(
-        "relative min-h-screen bg-gradient-to-br transition-colors duration-300",
+        "relative h-screen bg-gradient-to-br transition-colors duration-300 overflow-hidden",
         dashboardTheme === 'pharmacy' 
           ? "from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"
           : "from-[#0B1220] via-[#111827] to-[#0B1220]"
@@ -130,15 +132,17 @@ export const ResponsiveDashboardLayout = memo(({
       style={{
         filter: 'none !important',
         WebkitFilter: 'none !important',
+        display: 'flex',
+        flexDirection: 'column',
       } as React.CSSProperties}
     >
       {/* Top Header Bar - Fixed */}
       <motion.header
         className={cn(
           "fixed top-0 left-0 right-0 z-30 border-b transition-colors duration-300",
-          dashboardTheme === 'pharmacy'
-            ? "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800"
-            : "bg-gray-900 border-gray-800"
+          theme === 'dark'
+            ? "bg-gray-900 border-gray-700"
+            : "bg-white border-gray-200"
         )}
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -173,7 +177,7 @@ export const ResponsiveDashboardLayout = memo(({
           >
             <h1 className={cn(
               "text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r bg-clip-text text-transparent animate-gradient",
-              `${currentTheme.logo}`
+              theme === 'dark' ? `${currentTheme.logo}` : "from-blue-600 to-cyan-600"
             )}>
               {logoText}
             </h1>
@@ -207,44 +211,45 @@ export const ResponsiveDashboardLayout = memo(({
         </div>
       </motion.header>
 
-      {/* Mobile Overlay */}
+      {/* Mobile Overlay - Only on Mobile */}
       <AnimatePresence>
-        {sidebarOpen && (
+        {sidebarOpen && isMobile && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 bg-black/40"
-            style={{ 
-              zIndex: 998,
-            }}
+            className="fixed inset-0 bg-black/50 z-40"
+            style={{ top: '80px' }}
             onClick={() => setSidebarOpen(false)}
           />
         )}
       </AnimatePresence>
 
-      {/* Sidebar - Completely Hidden When Closed - Responsive Width */}
-      <motion.aside
-        initial={false}
-        animate={{ 
-          opacity: sidebarOpen ? 1 : 0
-        }}
-        transition={{ 
-          duration: 0.3
-        }}
-        className={`
-          fixed left-0 top-0 h-screen flex flex-col w-full max-w-[85vw] sm:max-w-[380px] shadow-2xl
-          ${sidebarOpen ? 'block' : 'hidden'}
-        `}
-        style={{
-          zIndex: 999,
-          backgroundColor: currentTheme.sidebarBg,
-          boxShadow: sidebarOpen ? '0 4px 20px rgba(0,0,0,0.3)' : 'none',
-        }}
-      >
-        {/* Sidebar Header - Responsive Spacing */}
-        <div className="p-4 sm:p-6 border-b" style={{ borderColor: currentTheme.border }}>
+      {/* Main Layout Container - Account for fixed header */}
+      <div className="flex" style={{ marginTop: '80px', minHeight: 'calc(100vh - 80px)' }}>
+        
+        {/* Sidebar - Fixed width on Desktop, Overlay on Mobile */}
+        <aside
+          className={cn(
+            "flex flex-col border-r overflow-hidden transition-all duration-300",
+            isMobile ? "fixed left-0 z-50" : "relative flex-shrink-0",
+            isMobile && !sidebarOpen && "border-transparent"
+          )}
+          style={{
+            backgroundColor: currentTheme.sidebarBg,
+            borderColor: currentTheme.border,
+            boxShadow: isMobile && sidebarOpen ? '2px 0 8px rgba(0,0,0,0.1)' : 'none',
+            height: 'calc(100vh - 80px)',
+            top: isMobile ? '80px' : '0',
+            width: isMobile ? (sidebarOpen ? '320px' : '0px') : '320px',
+          }}
+        >
+          {/* Sidebar Content - Always show on desktop, conditionally on mobile */}
+          {(!isMobile || sidebarOpen) && (
+            <>
+              {/* Sidebar Header - Responsive Spacing */}
+              <div className="p-4 sm:p-6 border-b" style={{ borderColor: currentTheme.border }}>
           {/* Logo */}
           <motion.div
             className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6"
@@ -261,7 +266,7 @@ export const ResponsiveDashboardLayout = memo(({
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold text-white truncate">{logoText}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold truncate" style={{ color: currentTheme.textPrimary }}>{logoText}</h1>
               <p className="text-xs sm:text-sm truncate" style={{ color: currentTheme.textSecondary }}>
                 {logoSubtext}
               </p>
@@ -284,7 +289,7 @@ export const ResponsiveDashboardLayout = memo(({
                 <div className="absolute bottom-0 right-0 h-3.5 w-3.5 sm:h-4 sm:w-4 bg-green-500 rounded-full border-2 border-white"></div>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-white text-base sm:text-lg truncate">{userName}</h3>
+                <h3 className="font-semibold text-base sm:text-lg truncate" style={{ color: currentTheme.textPrimary }}>{userName}</h3>
                 <p className="text-xs sm:text-sm truncate" style={{ color: currentTheme.textSecondary }}>
                   {userEmail}
                 </p>
@@ -349,11 +354,11 @@ export const ResponsiveDashboardLayout = memo(({
                       : (item.iconBg || currentTheme.accent + '40'),
                   }}
                 >
-                  <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                  <Icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: isActive ? '#ffffff' : currentTheme.textPrimary }} />
                 </div>
 
                 <div className="flex-1 text-left min-w-0">
-                  <p className="font-semibold text-sm sm:text-base truncate text-white">
+                  <p className="font-semibold text-sm sm:text-base truncate" style={{ color: isActive ? '#ffffff' : currentTheme.textPrimary }}>
                     {item.label}
                   </p>
                   {item.description && (
@@ -399,26 +404,26 @@ export const ResponsiveDashboardLayout = memo(({
             <span className="text-sm sm:text-base">Logout</span>
           </motion.button>
         </div>
-      </motion.aside>
+            </>
+          )}
+        </aside>
 
-      {/* Main Content - Full Width When Sidebar Closed */}
-      <motion.main
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="pt-20 transition-all duration-300 min-h-screen"
-        style={{
-          marginLeft: 0,
-          filter: 'none !important',
-          WebkitFilter: 'none !important',
-          backdropFilter: 'none !important',
-          WebkitBackdropFilter: 'none !important',
-        } as React.CSSProperties}
-      >
-        <div className="px-4 sm:px-6 md:px-8 py-6 max-w-7xl mx-auto">
-          {children}
-        </div>
-      </motion.main>
+        {/* Main Content - Flex-1 to fill remaining space */}
+        <main
+          className="flex-1 w-full overflow-y-auto overflow-x-hidden"
+          style={{
+            filter: 'none !important',
+            WebkitFilter: 'none !important',
+            backdropFilter: 'none !important',
+            WebkitBackdropFilter: 'none !important',
+            height: 'calc(100vh - 80px)',
+          } as React.CSSProperties}
+        >
+          <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+            {children}
+          </div>
+        </main>
+      </div>
 
       {/* Custom Scrollbar & Animations */}
       <style>{`
