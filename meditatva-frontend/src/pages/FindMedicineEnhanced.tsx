@@ -2,6 +2,7 @@
  * Enhanced Find Medicine Page for MediTatva Patient Dashboard
  * 
  * Features:
+ * - Real-time fetching of nearby hospitals and pharmacies using user's location
  * - Multi-medicine search with comma-separated input
  * - Weighted store ranking: rating (40%), distance (35%), price (25%)
  * - Mandatory prescription upload for ALL orders (universal requirement)
@@ -10,6 +11,7 @@
  * - Glassmorphism UI with animations
  * - Real-time file validation (JPG/PNG/PDF, max 5MB)
  * - Smart split orders across multiple stores
+ * - Uses OpenStreetMap Overpass API to fetch actual medical facilities
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -19,7 +21,7 @@ import {
   Filter, SortAsc, X, Plus, Minus, FileText,
   CreditCard, Home, Truck, Award, AlertCircle,
   Package, CheckCircle2, Clock, TrendingUp, Sparkles,
-  Phone, Shield, Info
+  Phone, Shield, Info, RefreshCw, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,10 +31,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { GHARUAN_MEDICAL_STORES, calculateDeliveryCharge, requiresPrescription, EnhancedMedicalStore } from "@/data/gharuanMedicineData";
+import { GHARUAN_MEDICAL_STORES, calculateDeliveryCharge, requiresPrescription, EnhancedMedicalStore, fetchNearbyMedicalStores } from "@/data/gharuanMedicineData";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useOrders } from "@/contexts/OrderContext";
+
+interface UserLocation {
+  latitude: number;
+  longitude: number;
+}
 
 interface MedicineAvailability {
   medicineName: string;
@@ -55,15 +62,238 @@ type SortOption = "priority" | "nearest" | "cheapest" | "best-rated";
 type FilterDistance = "all" | "2" | "5" | "10";
 type FilterRating = "all" | "4" | "4.5";
 
-export const FindMedicineEnhanced = () => {
+/**
+ * IMPORTANT: Navigation Pattern Documentation
+ * 
+ * This component can be used in two contexts:
+ * 1. Standalone page (direct route access)
+ * 2. Embedded in a dashboard (as a section)
+ * 
+ * To prevent UI issues where clicking "View My Orders" changes the entire dashboard
+ * instead of just switching sections, we use the onNavigateToOrders prop.
+ * 
+ * ✅ CORRECT: When embedded in dashboard, pass onNavigateToOrders callback
+ *    Example: <FindMedicineEnhanced onNavigateToOrders={() => setActiveSection('orders')} />
+ * 
+ * ❌ WRONG: Don't use navigate() directly when inside a dashboard
+ *    This will change the entire route and reload the page
+ * 
+ * The component checks if onNavigateToOrders is provided:
+ * - If YES: Use it (dashboard context - switch section only)
+ * - If NO: Use navigate() (standalone context - change route)
+ */
+interface FindMedicineEnhancedProps {
+  onNavigateToOrders?: () => void; // Callback to switch to orders section within dashboard
+}
+
+export const FindMedicineEnhanced = ({ onNavigateToOrders }: FindMedicineEnhancedProps = {}) => {
   const navigate = useNavigate();
   const { addOrder } = useOrders();
+  
+  // Location state
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [nearbyStores, setNearbyStores] = useState<EnhancedMedicalStore[]>(GHARUAN_MEDICAL_STORES);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [showLocationInput, setShowLocationInput] = useState(false);
+  const [manualLocation, setManualLocation] = useState("");
+  const [locationSource, setLocationSource] = useState<"auto" | "manual">("auto");
+  const [locationName, setLocationName] = useState<string>("");
   
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [searchedMedicines, setSearchedMedicines] = useState<string[]>([]);
   const [storeResults, setStoreResults] = useState<StoreResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  // Get user location on mount
+  useEffect(() => {
+    getUserLocation();
+  }, []);
+
+  // Fetch nearby stores when location is available
+  useEffect(() => {
+    if (userLocation) {
+      loadNearbyStores();
+    }
+  }, [userLocation]);
+
+  const getUserLocation = async () => {
+    setIsLoadingLocation(true);
+    
+    if (!("geolocation" in navigator)) {
+      toast.error("Geolocation is not supported by your browser");
+      // Use CGC Jhangeri as fallback
+      setUserLocation({
+        latitude: 30.6968,
+        longitude: 76.4606
+      });
+      setLocationSource("manual");
+      setLocationName("CGC Jhangeri, Ludhiana (Default)");
+      setIsLoadingLocation(false);
+      return;
+    }
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          resolve, 
+          reject, 
+          {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0, // Don't use cached position
+          }
+        );
+      });
+
+      const location = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude
+      };
+
+      setUserLocation(location);
+      setLocationSource("auto");
+      setLocationName("Your current location");
+      toast.success(`Location detected (±${position.coords.accuracy.toFixed(0)}m)`);
+    } catch (error: any) {
+      console.error("GPS location error:", error);
+      
+      // Try IP-based geolocation as fallback
+      try {
+        toast.info("GPS unavailable, trying IP-based location...");
+        
+        const ipResponse = await fetch('https://ipapi.co/json/', {
+          headers: {
+            'User-Agent': 'MediTatva/1.0'
+          }
+        });
+        
+        if (ipResponse.ok) {
+          const ipData = await ipResponse.json();
+          
+          if (ipData.latitude && ipData.longitude && !ipData.error) {
+            setUserLocation({
+              latitude: ipData.latitude,
+              longitude: ipData.longitude
+            });
+            setLocationSource("auto");
+            const locationStr = `${ipData.city || 'Unknown'}, ${ipData.region || ipData.country || ''}`;
+            setLocationName(locationStr);
+            toast.success(`Location detected via IP: ${locationStr.trim()}`);
+            setIsLoadingLocation(false);
+            return;
+          }
+        }
+        throw new Error("IP geolocation failed");
+      } catch (ipError) {
+        console.error("IP geolocation failed:", ipError);
+        
+        // Use CGC Jhangeri, Ludhiana (PIN: 142027) as final fallback
+        if (error.code === 1) {
+          toast.error("Location access denied. Using CGC Jhangeri, Ludhiana.");
+        } else {
+          toast.error("Failed to get location. Using CGC Jhangeri, Ludhiana.");
+        }
+        
+        setUserLocation({
+          latitude: 30.6968,  // CGC Jhangeri, Block B1 coordinates
+          longitude: 76.4606
+        });
+        setLocationSource("manual");
+        setLocationName("CGC Jhangeri, Ludhiana (Default)");
+        setShowLocationInput(true);
+      }
+    } finally {
+      setIsLoadingLocation(false);
+    }
+  };
+
+  const setManualLocationByPlace = async (placeName: string, lat: number, lon: number) => {
+    setIsLoadingLocation(true);
+    try {
+      setUserLocation({
+        latitude: lat,
+        longitude: lon
+      });
+      setLocationSource("manual");
+      setLocationName(placeName);
+      toast.success(`Location set to ${placeName}`);
+      setShowLocationInput(false);
+    } finally {
+      setIsLoadingLocation(false);
+    }
+  };
+
+  const searchManualLocation = async () => {
+    if (!manualLocation.trim()) {
+      toast.error("Please enter a location");
+      return;
+    }
+
+    setIsLoadingLocation(true);
+    
+    try {
+      // Use Nominatim to search for the location
+      const searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(manualLocation)}&countrycodes=in&addressdetails=1&limit=1`;
+      
+      const response = await fetch(searchUrl, {
+        headers: {
+          "Accept-Language": "en",
+          "User-Agent": "MediTatva/1.0",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to search location");
+      }
+
+      const data = await response.json();
+
+      if (data.length === 0) {
+        toast.error("Location not found. Try a different search term.");
+        setIsLoadingLocation(false);
+        return;
+      }
+
+      const place = data[0];
+      setUserLocation({
+        latitude: parseFloat(place.lat),
+        longitude: parseFloat(place.lon)
+      });
+      setLocationSource("manual");
+      setLocationName(place.display_name.split(",").slice(0, 2).join(","));
+      toast.success(`Location set to ${place.display_name}`);
+      setShowLocationInput(false);
+    } catch (error) {
+      console.error("Location search error:", error);
+      toast.error("Failed to search location. Please try again.");
+    } finally {
+      setIsLoadingLocation(false);
+    }
+  };
+
+  const loadNearbyStores = async () => {
+    if (!userLocation) return;
+    
+    try {
+      toast.info("Fetching nearby hospitals and pharmacies...");
+      const stores = await fetchNearbyMedicalStores(
+        userLocation.latitude, 
+        userLocation.longitude, 
+        10 // 10km radius
+      );
+      
+      if (stores.length > 0) {
+        setNearbyStores(stores);
+        toast.success(`Found ${stores.length} medical stores nearby`);
+      } else {
+        toast.info("Using default area stores");
+      }
+    } catch (error) {
+      console.error("Error loading nearby stores:", error);
+      toast.error("Failed to load nearby stores. Using default data.");
+    }
+  };
   
   // Filter & Sort state
   const [sortBy, setSortBy] = useState<SortOption>("priority");
@@ -144,10 +374,10 @@ export const FindMedicineEnhanced = () => {
 
     setSearchedMedicines(medicineNames);
 
-    // Search across all stores
+    // Search across all nearby stores
     const results: StoreResult[] = [];
 
-    GHARUAN_MEDICAL_STORES.forEach(store => {
+    nearbyStores.forEach(store => {
       const availableMedicines: MedicineAvailability[] = [];
       const missingMedicines: string[] = [];
       let totalPrice = 0;
@@ -180,19 +410,38 @@ export const FindMedicineEnhanced = () => {
           store.rating || 4.0
         );
 
+        // SUDOKU PATTERN: Boost priority for stores with ALL medicines available
+        const availabilityScore = availableMedicines.length / medicineNames.length;
+        const boostedPriorityScore = priorityScore * (1 + availabilityScore * 2); // 3x boost for 100% availability
+
         results.push({
           store,
           availableMedicines,
           missingMedicines,
           totalPrice,
-          priorityScore,
+          priorityScore: boostedPriorityScore,
           estimatedDelivery: getEstimatedDelivery(store.distanceKm)
         });
       }
     });
 
-    // Sort by priority by default
-    results.sort((a, b) => b.priorityScore - a.priorityScore);
+    // SUDOKU PATTERN: Sort by availability completeness first, then priority
+    results.sort((a, b) => {
+      // Stores with ALL medicines available come first
+      const aComplete = a.missingMedicines.length === 0 ? 1 : 0;
+      const bComplete = b.missingMedicines.length === 0 ? 1 : 0;
+      
+      if (aComplete !== bComplete) {
+        return bComplete - aComplete; // Complete availability first
+      }
+      
+      // Then by number of available medicines
+      const aDiff = b.availableMedicines.length - a.availableMedicines.length;
+      if (aDiff !== 0) return aDiff;
+      
+      // Finally by priority score
+      return b.priorityScore - a.priorityScore;
+    });
 
     setStoreResults(results);
     setIsSearching(false);
@@ -202,7 +451,7 @@ export const FindMedicineEnhanced = () => {
     } else {
       toast.error("No stores found with the requested medicines");
     }
-  }, [searchQuery]);
+  }, [searchQuery, nearbyStores]);
 
   /**
    * Apply filters and sorting
@@ -222,7 +471,24 @@ export const FindMedicineEnhanced = () => {
       filtered = filtered.filter(r => (r.store.rating || 0) >= minRating);
     }
 
-    // Sort
+    // SUDOKU PATTERN: Apply secondary sort - stores with ALL medicines first
+    // This ensures complete availability is always prioritized regardless of sort option
+    const sortWithAvailability = (arr: StoreResult[]) => {
+      return arr.sort((a, b) => {
+        const aComplete = a.missingMedicines.length === 0 ? 1 : 0;
+        const bComplete = b.missingMedicines.length === 0 ? 1 : 0;
+        
+        // Complete availability always wins
+        if (aComplete !== bComplete) {
+          return bComplete - aComplete;
+        }
+        
+        // If both complete or both incomplete, maintain current order
+        return 0;
+      });
+    };
+
+    // Sort by selected criteria
     switch (sortBy) {
       case "nearest":
         filtered.sort((a, b) => a.store.distanceKm - b.store.distanceKm);
@@ -239,7 +505,8 @@ export const FindMedicineEnhanced = () => {
         break;
     }
 
-    return filtered;
+    // Apply availability-first sorting on top
+    return sortWithAvailability(filtered);
   }, [storeResults, sortBy, filterDistance, filterRating]);
 
   /**
@@ -295,12 +562,17 @@ export const FindMedicineEnhanced = () => {
   };
 
   /**
-   * MANDATORY: Prescription required for ALL orders
-   * No medicine can be ordered without uploading prescription
+   * Check if any medicine in the order requires prescription
+   * OTC medicines like Paracetamol, Cetirizine don't need prescription
+   * Antibiotics like Amoxicillin, Azithromycin require prescription
    */
   const needsPrescription = useMemo(() => {
-    // Always return true - prescription is mandatory for all orders
-    return true;
+    if (!selectedStore) return false;
+    
+    // Check if any medicine in the order requires prescription
+    return selectedStore.availableMedicines.some(item => 
+      requiresPrescription(item.medicineName)
+    );
   }, [selectedStore]);
 
   /**
@@ -309,18 +581,38 @@ export const FindMedicineEnhanced = () => {
   const handlePlaceOrder = async () => {
     if (!selectedStore) return;
 
-    // MANDATORY: Prescription validation - ALL orders require prescription
-    if (!prescription) {
-      toast.error("❌ Prescription Upload Required! Cannot place order without a valid prescription.", {
-        duration: 5000,
-        style: {
-          background: '#FEE2E2',
-          color: '#991B1B',
-          border: '2px solid #DC2626',
-          fontWeight: 'bold'
+    // Check if any medicine requires prescription
+    const medicinesRequiringPrescription = selectedStore.availableMedicines.filter(item => 
+      requiresPrescription(item.medicineName)
+    );
+
+    const hasPrescriptionRequired = medicinesRequiringPrescription.length > 0;
+
+    // VALIDATION: Check prescription requirement
+    if (hasPrescriptionRequired && !prescription) {
+      const medicineNames = medicinesRequiringPrescription.map(m => m.medicineName).join(", ");
+      toast.error(
+        `❌ Prescription Required!`,
+        {
+          description: `The following medicines require a valid prescription: ${medicineNames}. Please upload your prescription to continue.`,
+          duration: 6000,
+          style: {
+            background: '#FEE2E2',
+            color: '#991B1B',
+            border: '2px solid #DC2626',
+            fontWeight: 'bold'
+          }
         }
-      });
+      );
       return;
+    }
+
+    // Show info if prescription is uploaded but not required
+    if (!hasPrescriptionRequired && prescription) {
+      toast.info("ℹ️ Prescription uploaded (not required for these medicines)", {
+        description: "Your order contains only over-the-counter medicines.",
+        duration: 3000
+      });
     }
 
     // Calculate final totals
@@ -410,9 +702,163 @@ export const FindMedicineEnhanced = () => {
             💊 Find Medicine
           </motion.h1>
           <p className="text-slate-600 dark:text-slate-400">
-            Search for one or multiple medicines across nearby stores in Gharuan area
+            Search for medicines across nearby hospitals and pharmacies in your area
           </p>
         </div>
+
+        {/* Location Status Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-4"
+        >
+          <Card className="p-3 backdrop-blur-xl bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-700 border border-cyan-500/20 rounded-xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MapPin className={`h-5 w-5 ${isLoadingLocation ? 'text-yellow-500 animate-pulse' : locationSource === 'manual' ? 'text-blue-500' : 'text-green-500'}`} />
+                <div>
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                    {isLoadingLocation ? (
+                      "Detecting your location..."
+                    ) : userLocation ? (
+                      locationName || (locationSource === 'manual' ? "Manual Location" : "Location detected")
+                    ) : (
+                      "No location set"
+                    )}
+                  </p>
+                  {nearbyStores.length > 0 && !isLoadingLocation && (
+                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                      {nearbyStores.length} medical facilities found nearby
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowLocationInput(!showLocationInput)}
+                  className="flex items-center gap-2"
+                >
+                  <MapPin className="h-4 w-4" />
+                  Change Location
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    getUserLocation();
+                    if (userLocation) loadNearbyStores();
+                  }}
+                  disabled={isLoadingLocation}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isLoadingLocation ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Manual Location Input */}
+        <AnimatePresence>
+          {showLocationInput && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-4"
+            >
+              <Card className="p-4 backdrop-blur-xl bg-white/90 dark:bg-slate-800/90 border border-cyan-500/20 rounded-xl">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                      Select or Enter Your Location
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowLocationInput(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  {/* Quick Location Buttons */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setManualLocationByPlace("CGC Jhangeri Block B1, Ludhiana", 30.6968, 76.4606)}
+                      className="justify-start text-left"
+                    >
+                      <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">CGC Jhangeri B1</div>
+                        <div className="text-xs text-muted-foreground">Ludhiana, Punjab 142027</div>
+                      </div>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setManualLocationByPlace("CGC Jhangeri Campus, Ludhiana", 30.6975, 76.4615)}
+                      className="justify-start text-left"
+                    >
+                      <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">CGC Campus</div>
+                        <div className="text-xs text-muted-foreground">Ludhiana, Punjab 142027</div>
+                      </div>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setManualLocationByPlace("Mohali, Punjab", 30.7046, 76.7179)}
+                      className="justify-start text-left"
+                    >
+                      <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">Mohali</div>
+                        <div className="text-xs text-muted-foreground">Punjab 160055</div>
+                      </div>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setManualLocationByPlace("Ludhiana City Center, Punjab", 30.9010, 75.8573)}
+                      className="justify-start text-left"
+                    >
+                      <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">Ludhiana City</div>
+                        <div className="text-xs text-muted-foreground">Punjab 141001</div>
+                      </div>
+                    </Button>
+                  </div>
+
+                  {/* Manual Search */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Or search: city, area, PIN code..."
+                      value={manualLocation}
+                      onChange={(e) => setManualLocation(e.target.value)}
+                      onKeyPress={(e) => e.key === "Enter" && searchManualLocation()}
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={searchManualLocation}
+                      disabled={isLoadingLocation}
+                      className="bg-cyan-500 hover:bg-cyan-600"
+                    >
+                      {isLoadingLocation ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Search className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Sticky Search Bar */}
         <motion.div
@@ -626,11 +1072,25 @@ export const FindMedicineEnhanced = () => {
         />
 
         {/* Success Modal */}
+        {/* 
+          NAVIGATION PATTERN: 
+          - If onNavigateToOrders prop exists (dashboard context): Use it to switch sections
+          - If onNavigateToOrders is undefined (standalone): Navigate to dashboard route
+          This prevents UI breaking when switching between sections within the same dashboard
+        */}
         <SuccessModal
           show={showSuccessModal}
           onClose={() => setShowSuccessModal(false)}
           orderIds={placedOrderIds}
-          onViewOrders={() => navigate("/patient/premium")}
+          onViewOrders={() => {
+            if (onNavigateToOrders) {
+              // Dashboard context: Switch to orders section without changing route
+              onNavigateToOrders();
+            } else {
+              // Standalone context: Navigate to full dashboard
+              navigate("/patient/premium");
+            }
+          }}
         />
       </motion.div>
     </div>
@@ -871,7 +1331,16 @@ const OrderModal = ({
             <Alert className="border-red-200 bg-red-50 dark:bg-red-900/20">
               <Shield className="h-4 w-4 text-red-600" />
               <AlertDescription className="text-red-800 dark:text-red-200">
-                <strong>Prescription Required:</strong> One or more medicines in your order require a valid prescription.
+                <strong>⚠️ Prescription Required:</strong> Your order includes medicines like Amoxicillin or Azithromycin that require a valid doctor's prescription. Upload required.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!needsPrescription && (
+            <Alert className="border-green-200 bg-green-50 dark:bg-green-900/20">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800 dark:text-green-200">
+                <strong>✓ No Prescription Required:</strong> All medicines in your cart (Paracetamol, Cetirizine, etc.) are over-the-counter. Prescription upload is optional.
               </AlertDescription>
             </Alert>
           )}
@@ -995,19 +1464,39 @@ const OrderModal = ({
             </Select>
           </div>
 
-          {/* Prescription Upload - MANDATORY FOR ALL ORDERS */}
+          {/* Prescription Upload - CONDITIONAL based on medicine type */}
           <div>
             <label className={`block font-semibold mb-2 flex items-center gap-2 ${needsPrescription ? 'text-red-600 dark:text-red-400' : ''}`}>
               <Upload className="h-4 w-4" />
-              Upload Prescription (Required for all orders) {needsPrescription && <span className="text-red-600">*</span>}
+              Upload Prescription {needsPrescription && <span className="text-red-600">* Required</span>}
+              {!needsPrescription && <span className="text-slate-500 text-sm font-normal">(Optional)</span>}
             </label>
+            
+            {needsPrescription && (
+              <Alert className="mb-3 border-red-200 bg-red-50 dark:bg-red-900/20">
+                <Shield className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-800 dark:text-red-200 text-sm">
+                  <strong>Prescription Required:</strong> Your order contains medicines that require a valid doctor's prescription (e.g., Amoxicillin, Azithromycin). Please upload to proceed.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {!needsPrescription && (
+              <Alert className="mb-3 border-green-200 bg-green-50 dark:bg-green-900/20">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800 dark:text-green-200 text-sm">
+                  <strong>No Prescription Required:</strong> Your order contains only over-the-counter medicines (e.g., Paracetamol, Cetirizine). Prescription upload is optional.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className={`
               border-2 border-dashed rounded-xl p-6 text-center transition-all
               ${prescription 
                 ? 'border-green-500 bg-green-50 dark:bg-green-900/10' 
                 : needsPrescription 
-                  ? 'border-red-500 bg-red-50 dark:bg-red-900/10' 
-                  : 'border-slate-300 dark:border-slate-600'}
+                  ? 'border-red-500 bg-red-50 dark:bg-red-900/10 animate-pulse' 
+                  : 'border-slate-300 dark:border-slate-600 hover:border-cyan-500'}
             `}>
               <input
                 type="file"
@@ -1021,17 +1510,17 @@ const OrderModal = ({
                   <>
                     <CheckCircle2 className="h-12 w-12 mx-auto text-green-600 mb-2" />
                     <p className="text-sm font-semibold text-green-700 dark:text-green-400">
-                      {prescription.name}
+                      ✓ {prescription.name}
                     </p>
                     <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                      {(prescription.size / 1024).toFixed(2)} KB
+                      {(prescription.size / 1024).toFixed(2)} KB • Click to change
                     </p>
                   </>
                 ) : (
                   <>
-                    <Upload className="h-12 w-12 mx-auto text-slate-400 mb-2" />
+                    <Upload className={`h-12 w-12 mx-auto mb-2 ${needsPrescription ? 'text-red-500' : 'text-slate-400'}`} />
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      Click to upload prescription
+                      {needsPrescription ? '⚠️ Click to upload prescription (Required)' : 'Click to upload prescription (Optional)'}
                     </p>
                     <p className="text-xs text-slate-500 mt-1">
                       JPG, PNG, or PDF (max 5MB)
@@ -1042,8 +1531,8 @@ const OrderModal = ({
             </div>
             {needsPrescription && !prescription && (
               <p className="text-sm text-red-600 dark:text-red-400 mt-2 flex items-center gap-1">
-                <Info className="h-3 w-3" />
-                Prescription upload is mandatory for all orders - cannot proceed without it
+                <AlertCircle className="h-4 w-4" />
+                <strong>Important:</strong> Cannot place order without prescription for controlled medicines
               </p>
             )}
           </div>

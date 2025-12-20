@@ -115,12 +115,12 @@ const INITIAL_STATE: CabinetState = {
   familyMembers: [
     {
       id: "family-1",
-      name: "Sarah Johnson",
+      name: "Priya Sharma",
       relationship: "Spouse",
     },
     {
       id: "family-2",
-      name: "Alex Johnson",
+      name: "Aarav Sharma",
       relationship: "Child",
     },
   ],

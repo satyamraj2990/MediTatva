@@ -303,6 +303,104 @@ export const MedicineOrders = () => {
                   ))}
                 </div>
 
+                {/* Prescription Section - More Prominent */}
+                {selectedOrder.prescriptionUrl && (
+                  <Card className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-2 border-blue-300 dark:border-blue-700">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <h3 className="font-semibold text-blue-900 dark:text-blue-200">Prescription Uploaded</h3>
+                      </div>
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        Your prescription has been securely uploaded and is available for download.
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            try {
+                              if (selectedOrder.prescriptionUrl) {
+                                // Create a blob from base64 data
+                                const base64Data = selectedOrder.prescriptionUrl.split(',')[1];
+                                const mimeType = selectedOrder.prescriptionUrl.split(':')[1].split(';')[0];
+                                
+                                // Convert base64 to blob
+                                const byteCharacters = atob(base64Data);
+                                const byteNumbers = new Array(byteCharacters.length);
+                                for (let i = 0; i < byteCharacters.length; i++) {
+                                  byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                }
+                                const byteArray = new Uint8Array(byteNumbers);
+                                const blob = new Blob([byteArray], { type: mimeType });
+                                
+                                // Create object URL and open in new tab
+                                const url = URL.createObjectURL(blob);
+                                window.open(url, '_blank');
+                                
+                                // Clean up after a delay
+                                setTimeout(() => URL.revokeObjectURL(url), 100);
+                                
+                                toast.success('Opening prescription in new tab...');
+                              }
+                            } catch (error) {
+                              console.error('Error viewing prescription:', error);
+                              toast.error('Failed to open prescription. Try downloading instead.');
+                            }
+                          }}
+                          className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 gap-2"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            try {
+                              if (selectedOrder.prescriptionUrl) {
+                                // Create a blob from base64 data
+                                const base64Data = selectedOrder.prescriptionUrl.split(',')[1];
+                                const mimeType = selectedOrder.prescriptionUrl.split(':')[1].split(';')[0];
+                                
+                                // Determine file extension
+                                let extension = 'pdf';
+                                if (mimeType.includes('jpeg') || mimeType.includes('jpg')) extension = 'jpg';
+                                else if (mimeType.includes('png')) extension = 'png';
+                                
+                                // Convert base64 to blob
+                                const byteCharacters = atob(base64Data);
+                                const byteNumbers = new Array(byteCharacters.length);
+                                for (let i = 0; i < byteCharacters.length; i++) {
+                                  byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                }
+                                const byteArray = new Uint8Array(byteNumbers);
+                                const blob = new Blob([byteArray], { type: mimeType });
+                                
+                                // Create download link
+                                const url = URL.createObjectURL(blob);
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.download = `Prescription_${selectedOrder.orderNumber}.${extension}`;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                URL.revokeObjectURL(url);
+                                
+                                toast.success('Prescription downloaded successfully!');
+                              }
+                            } catch (error) {
+                              console.error('Error downloading prescription:', error);
+                              toast.error('Failed to download prescription. Please try again.');
+                            }
+                          }}
+                          variant="outline"
+                          className="flex-1 border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 gap-2"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-slate-600 dark:text-slate-400">Order Date</p>
@@ -313,6 +411,22 @@ export const MedicineOrders = () => {
                     <p className="font-medium">{selectedOrder.paymentMethod}</p>
                   </div>
                 </div>
+
+                {/* Delivery Method */}
+                {selectedOrder.deliveryMethod && (
+                  <div>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Delivery Method</p>
+                    <p className="font-medium capitalize">{selectedOrder.deliveryMethod}</p>
+                  </div>
+                )}
+
+                {/* Additional Notes */}
+                {selectedOrder.customerNotes && (
+                  <div>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Customer Notes</p>
+                    <p className="text-sm bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">{selectedOrder.customerNotes}</p>
+                  </div>
+                )}
 
                 {/* Pricing Breakdown */}
                 <div className="space-y-2 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
@@ -337,29 +451,6 @@ export const MedicineOrders = () => {
                     <span className="text-teal-600 dark:text-teal-400">₹{selectedOrder.totalAmount.toFixed(2)}</span>
                   </div>
                 </div>
-
-                {/* View Prescription Button */}
-                {selectedOrder.prescriptionUrl && (
-                  <div className="space-y-2">
-                    <h3 className="font-semibold flex items-center gap-2">
-                      <FileText className="w-5 h-5" />
-                      Prescription
-                    </h3>
-                    <Button
-                      onClick={() => {
-                        if (selectedOrder.prescriptionUrl) {
-                          // Open prescription in new tab
-                          window.open(selectedOrder.prescriptionUrl, '_blank');
-                          toast.success('Opening prescription...');
-                        }
-                      }}
-                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 gap-2"
-                    >
-                      <Download className="w-4 h-4" />
-                      View / Download Prescription
-                    </Button>
-                  </div>
-                )}
               </div>
             </DialogContent>
           </Dialog>

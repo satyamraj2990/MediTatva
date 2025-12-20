@@ -31,9 +31,9 @@ interface MedicalDocument {
 
 export const MedicalCabinet = () => {
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([
-    { id: "1", name: "John Doe", relation: "Self", photo: "👤", age: 35 },
-    { id: "2", name: "Jane Doe", relation: "Spouse", photo: "👤", age: 32 },
-    { id: "3", name: "Emma Doe", relation: "Daughter", photo: "👤", age: 8 },
+    { id: "1", name: "Rajesh Kumar", relation: "Self", photo: "👤", age: 35 },
+    { id: "2", name: "Priya Kumar", relation: "Spouse", photo: "👤", age: 32 },
+    { id: "3", name: "Aarav Kumar", relation: "Son", photo: "👤", age: 8 },
   ]);
 
   const [documents, setDocuments] = useState<MedicalDocument[]>([
@@ -44,7 +44,7 @@ export const MedicalCabinet = () => {
       title: "Blood Pressure Medication",
       date: "2024-11-05",
       fileUrl: "#",
-      doctor: "Dr. Smith"
+      doctor: "Dr. Sharma"
     },
     {
       id: "2",
@@ -53,7 +53,7 @@ export const MedicalCabinet = () => {
       title: "Complete Blood Count",
       date: "2024-10-28",
       fileUrl: "#",
-      doctor: "Dr. Johnson"
+      doctor: "Dr. Gupta"
     },
     {
       id: "3",

@@ -17,6 +17,7 @@ import { NearbyMedicalStoresPage } from "@/pages/NearbyMedicalStoresPage";
 import { FindMedicineEnhanced } from "@/pages/FindMedicineEnhanced";
 import { MyMedicineCabinetPage } from "@/pages/MyMedicineCabinetPage";
 import { PrescriptionScanner } from "@/components/PrescriptionScanner";
+import { MedicineAvailabilitySudoku } from "@/components/MedicineAvailabilitySudoku";
 import {
   Home, Calendar, ShoppingCart, Bell, FolderOpen,
   MapPin, MessageCircle, LogOut, Menu, X,
@@ -730,6 +731,16 @@ const PremiumPatientDashboardInner = () => {
                       </Card>
                     </motion.div>
                   </div>
+
+                  {/* Medicine Availability Sudoku */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="mt-8"
+                  >
+                    <MedicineAvailabilitySudoku />
+                  </motion.div>
                 </motion.div>
               )}
 
@@ -789,7 +800,17 @@ const PremiumPatientDashboardInner = () => {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
                 >
-                  <FindMedicineEnhanced />
+                  {/* 
+                    CRITICAL: Always pass onNavigateToOrders to embedded components
+                    This ensures "View My Orders" button switches sections instead of changing routes
+                    Without this prop, clicking the button would reload the entire page
+                  */}
+                  <FindMedicineEnhanced 
+                    onNavigateToOrders={() => {
+                      setActiveSection('orders'); // Switch to orders section
+                      toast.success('Navigating to your orders...');
+                    }}
+                  />
                 </motion.div>
               )}
 

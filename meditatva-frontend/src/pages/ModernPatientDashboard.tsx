@@ -14,6 +14,7 @@ import { MedicineOrders } from "@/components/MedicineOrders";
 import { HealthReminders } from "@/components/HealthReminders";
 import { NearbyMedicalStoresPage } from "@/pages/NearbyMedicalStoresPage";
 import { FindMedicineEnhanced } from "@/pages/FindMedicineEnhanced";
+import { MedicineAvailabilitySudoku } from "@/components/MedicineAvailabilitySudoku";
 import {
   Home, Calendar, ShoppingCart, Bell, FolderOpen,
   MapPin, MessageCircle, User, LogOut, Menu, X,
@@ -343,6 +344,9 @@ const ModernPatientDashboard = () => {
                         </div>
                       </Card>
                     </div>
+
+                    {/* Medicine Availability Sudoku */}
+                    <MedicineAvailabilitySudoku />
                   </div>
                 </motion.div>
               )}
@@ -373,7 +377,17 @@ const ModernPatientDashboard = () => {
 
               {activeSection === 'find-medicine' && (
                 <motion.div key="find-medicine" initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-20}}>
-                  <FindMedicineEnhanced />
+                  {/* 
+                    IMPORTANT: Pass onNavigateToOrders prop to prevent navigation issues
+                    This callback switches to 'orders' section within THIS dashboard
+                    Without it, the component would use navigate() and change the entire route
+                  */}
+                  <FindMedicineEnhanced 
+                    onNavigateToOrders={() => {
+                      setActiveSection('orders'); // Stay in same dashboard, switch section
+                      toast.success('Navigating to your orders...');
+                    }}
+                  />
                 </motion.div>
               )}
 
