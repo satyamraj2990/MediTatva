@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import "./no-blur-override.css";
 
 // Ensure root element exists and has proper styling
 const rootElement = document.getElementById("root");

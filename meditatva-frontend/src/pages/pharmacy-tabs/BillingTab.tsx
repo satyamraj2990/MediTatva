@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Search, Plus, ShoppingCart, Trash2, FileText, Clock,
-  Download, X, User, Phone, Mail, CreditCard, AlertTriangle
+  Download, X, User, Phone, Mail, CreditCard, AlertTriangle, Package
 } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -48,6 +48,82 @@ interface InvoiceHistory {
   paymentMethod: string;
 }
 
+// Local inventory medicines (same as InventoryTab)
+const inventoryMedicines: Medicine[] = [
+  {
+    _id: "1",
+    name: "Paracetamol 500mg",
+    brand: "PharmaCo Ltd",
+    price: 2.50,
+    current_stock: 450,
+    inStock: true,
+    requiresPrescription: false,
+  },
+  {
+    _id: "2",
+    name: "Cetirizine 10mg",
+    brand: "AllergyMed",
+    price: 4.75,
+    current_stock: 28,
+    inStock: true,
+    requiresPrescription: false,
+  },
+  {
+    _id: "3",
+    name: "Ibuprofen 400mg",
+    brand: "PainFree Corp",
+    price: 3.20,
+    current_stock: 185,
+    inStock: true,
+    requiresPrescription: false,
+  },
+  {
+    _id: "4",
+    name: "Amoxicillin 500mg",
+    brand: "AntiBio Pharma",
+    price: 8.50,
+    current_stock: 0,
+    inStock: false,
+    requiresPrescription: true,
+  },
+  {
+    _id: "5",
+    name: "Omeprazole 20mg",
+    brand: "DigestiCare",
+    price: 5.25,
+    current_stock: 320,
+    inStock: true,
+    requiresPrescription: false,
+  },
+  {
+    _id: "6",
+    name: "Metformin 500mg",
+    brand: "DiabetesControl",
+    price: 6.90,
+    current_stock: 140,
+    inStock: true,
+    requiresPrescription: true,
+  },
+  {
+    _id: "7",
+    name: "Aspirin 75mg",
+    brand: "CardioHealth",
+    price: 1.80,
+    current_stock: 95,
+    inStock: true,
+    requiresPrescription: false,
+  },
+  {
+    _id: "8",
+    name: "Atorvastatin 10mg",
+    brand: "CardioMed",
+    price: 9.80,
+    current_stock: 210,
+    inStock: true,
+    requiresPrescription: true,
+  },
+];
+
 export const BillingTab = memo(() => {
   const [searchQuery, setSearchQuery] = useState("");
   const [medicines, setMedicines] = useState<Medicine[]>([]);
@@ -61,6 +137,7 @@ export const BillingTab = memo(() => {
   const [paymentType, setPaymentType] = useState("cash");
   const [isProcessing, setIsProcessing] = useState(false);
   const [invoiceHistory, setInvoiceHistory] = useState<InvoiceHistory[]>([]);
+  const [showInventoryMedicines, setShowInventoryMedicines] = useState(true);
 
   // Search medicines from API
   useEffect(() => {
@@ -213,147 +290,253 @@ export const BillingTab = memo(() => {
     setIsProcessing(true);
 
     try {
-      // Pre-validate stock levels before finalizing (real-time check)
-      const stockValidationPromises = cart.map(async (item) => {
-        const response = await fetch(`${API_URL}/medicines/search?q=${encodeURIComponent(item.name)}`);
-        const data = await response.json();
-        if (data.success && data.data.length > 0) {
-          const currentStock = data.data[0].current_stock;
-          if (currentStock < item.quantity) {
-            return {
-              valid: false,
-              item: item.name,
-              available: currentStock,
-              requested: item.quantity
-            };
-          }
+      // Generate invoice number
+      const invoiceNumber = `INV-${Date.now()}`;
+      const currentDate = new Date();
+
+      // Try to save to backend (if available)
+      let backendSaved = false;
+      try {
+        const invoiceData = {
+          customerName: patientName,
+          customerPhone: contactNumber,
+          paymentMethod: paymentType,
+          items: cart.map(item => ({
+            medicineId: item._id,
+            quantity: item.quantity,
+            unitPrice: item.price
+          })),
+          notes: email ? `Customer email: ${email}` : undefined
+        };
+
+        const response = await fetch(`${API_URL}/invoices/finalize`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(invoiceData)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          backendSaved = true;
+          toast.success("✅ Invoice saved to database!");
         }
-        return { valid: true };
-      });
-
-      const validationResults = await Promise.all(stockValidationPromises);
-      const invalidItems = validationResults.filter(r => !r.valid);
-      
-      if (invalidItems.length > 0) {
-        const errorMsg = invalidItems.map(i => 
-          `${i.item}: Only ${i.available} available (requested ${i.requested})`
-        ).join(', ');
-        toast.error(`Stock updated: ${errorMsg}`);
-        setIsProcessing(false);
-        return;
+      } catch (error) {
+        console.log("Backend not available, generating invoice locally");
+        toast.info("📄 Generating invoice locally");
       }
 
-      // Prepare invoice data for backend
-      const invoiceData = {
-        customerName: patientName,
-        customerPhone: contactNumber,
-        paymentMethod: paymentType,
-        items: cart.map(item => ({
-          medicineId: item._id,
-          quantity: item.quantity,
-          unitPrice: item.price
-        })),
-        notes: email ? `Customer email: ${email}` : undefined
-      };
-
-      // Call backend API to finalize invoice
-      const response = await fetch(`${API_URL}/invoices/finalize`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(invoiceData)
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        // Handle errors (out of stock, etc.)
-        toast.error(result.message || 'Failed to create invoice');
-        setIsProcessing(false);
-        return;
-      }
-
-      const invoice = result.data;
-
-      // Generate PDF Invoice
+      // Generate PDF Invoice (works with or without backend)
       const pdf = new jsPDF();
       const pageWidth = pdf.internal.pageSize.width;
+      const pageHeight = pdf.internal.pageSize.height;
       
-      // Header
+      // Modern gradient header
       pdf.setFillColor(27, 108, 168);
-      pdf.rect(0, 0, pageWidth, 40, 'F');
+      pdf.rect(0, 0, pageWidth, 50, 'F');
+      
+      // Add decorative accent
+      pdf.setFillColor(79, 195, 247);
+      pdf.rect(0, 0, pageWidth, 5, 'F');
+      
+      // Company name
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(24);
-      pdf.text("MEDITATVA PHARMACY", pageWidth / 2, 20, { align: 'center' });
-      pdf.setFontSize(12);
-      pdf.text("Tax Invoice", pageWidth / 2, 30, { align: 'center' });
+      pdf.setFontSize(28);
+      pdf.setFont(undefined, 'bold');
+      pdf.text("MediTatva", pageWidth / 2, 20, { align: 'center' });
+      
+      pdf.setFontSize(14);
+      pdf.setFont(undefined, 'normal');
+      pdf.text("PHARMACY & HEALTHCARE", pageWidth / 2, 30, { align: 'center' });
+      
+      pdf.setFontSize(11);
+      pdf.text("📍 123 Health Street, Medical City | 📞 +91-9876543210 | 📧 info@meditatva.com", pageWidth / 2, 40, { align: 'center' });
 
-      // Invoice details
+      // Invoice title
+      pdf.setFillColor(232, 244, 248);
+      pdf.rect(0, 52, pageWidth, 15, 'F');
+      pdf.setTextColor(27, 108, 168);
+      pdf.setFontSize(20);
+      pdf.setFont(undefined, 'bold');
+      pdf.text("TAX INVOICE", pageWidth / 2, 62, { align: 'center' });
+
+      // Invoice metadata
       pdf.setTextColor(0, 0, 0);
       pdf.setFontSize(10);
-      pdf.text(`Invoice #: ${invoice.invoiceNumber}`, 20, 50);
-      pdf.text(`Date: ${new Date(invoice.createdAt).toLocaleDateString()}`, 20, 57);
-      pdf.text(`Payment: ${paymentType}`, 20, 64);
+      pdf.setFont(undefined, 'normal');
+      
+      // Left side
+      pdf.setFont(undefined, 'bold');
+      pdf.text("Invoice Number:", 20, 80);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(invoiceNumber, 65, 80);
+      
+      pdf.setFont(undefined, 'bold');
+      pdf.text("Invoice Date:", 20, 87);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(currentDate.toLocaleDateString('en-IN', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }), 65, 87);
+      
+      pdf.setFont(undefined, 'bold');
+      pdf.text("Payment Method:", 20, 94);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(paymentType.toUpperCase(), 65, 94);
 
-      // Patient details
-      pdf.setFontSize(12);
-      pdf.text("Bill To:", 20, 80);
+      // Right side - Due status
+      pdf.setFillColor(46, 204, 113);
+      pdf.rect(pageWidth - 60, 75, 40, 10, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(9);
+      pdf.setFont(undefined, 'bold');
+      pdf.text("PAID", pageWidth - 40, 82, { align: 'center' });
+
+      // Patient details box
+      pdf.setDrawColor(79, 195, 247);
+      pdf.setLineWidth(0.5);
+      pdf.roundedRect(20, 105, pageWidth - 40, 35, 3, 3, 'S');
+      
+      pdf.setTextColor(27, 108, 168);
+      pdf.setFontSize(11);
+      pdf.setFont(undefined, 'bold');
+      pdf.text("BILL TO:", 25, 113);
+      
+      pdf.setTextColor(0, 0, 0);
       pdf.setFontSize(10);
-      pdf.text(patientName, 20, 87);
-      pdf.text(contactNumber, 20, 94);
-      if (email) pdf.text(email, 20, 101);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(`Name: ${patientName}`, 25, 121);
+      pdf.text(`Contact: ${contactNumber}`, 25, 128);
+      if (email) {
+        pdf.text(`Email: ${email}`, 25, 135);
+      }
 
       // Table header
-      let yPos = 120;
-      pdf.setFillColor(232, 244, 248);
-      pdf.rect(20, yPos - 5, pageWidth - 40, 10, 'F');
+      let yPos = 155;
+      pdf.setFillColor(27, 108, 168);
+      pdf.rect(20, yPos - 8, pageWidth - 40, 10, 'F');
+      
+      pdf.setTextColor(255, 255, 255);
       pdf.setFontSize(10);
-      pdf.text("Medicine", 25, yPos);
-      pdf.text("Qty", 120, yPos);
-      pdf.text("Price", 145, yPos);
-      pdf.text("Total", 170, yPos);
+      pdf.setFont(undefined, 'bold');
+      pdf.text("#", 25, yPos - 2);
+      pdf.text("Medicine Name", 35, yPos - 2);
+      pdf.text("Qty", 115, yPos - 2, { align: 'center' });
+      pdf.text("Unit Price", 140, yPos - 2, { align: 'right' });
+      pdf.text("Amount", 180, yPos - 2, { align: 'right' });
 
       // Table rows
-      yPos += 10;
-      invoice.items.forEach((item: any) => {
-        pdf.text(item.medicineName, 25, yPos);
-        pdf.text(item.quantity.toString(), 120, yPos);
-        pdf.text(`₹${item.unitPrice}`, 145, yPos);
-        pdf.text(`₹${item.lineTotal.toFixed(2)}`, 170, yPos);
-        yPos += 7;
+      yPos += 8;
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(9);
+      
+      cart.forEach((item, index) => {
+        // Alternate row colors
+        if (index % 2 === 0) {
+          pdf.setFillColor(248, 249, 250);
+          pdf.rect(20, yPos - 5, pageWidth - 40, 8, 'F');
+        }
+        
+        pdf.text(`${index + 1}`, 25, yPos);
+        pdf.text(item.name, 35, yPos);
+        pdf.text(item.quantity.toString(), 115, yPos, { align: 'center' });
+        pdf.text(`₹${item.price.toFixed(2)}`, 140, yPos, { align: 'right' });
+        pdf.text(`₹${(item.price * item.quantity).toFixed(2)}`, 180, yPos, { align: 'right' });
+        yPos += 8;
       });
 
-      // Totals
-      yPos += 10;
-      pdf.line(20, yPos, pageWidth - 20, yPos);
-      yPos += 10;
+      // Totals section
+      yPos += 5;
+      const totalsStartY = yPos;
+      pdf.setDrawColor(79, 195, 247);
+      pdf.setLineWidth(0.3);
+      pdf.line(20, yPos - 3, pageWidth - 20, yPos - 3);
+
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'normal');
+      
+      // Subtotal
       pdf.text("Subtotal:", 120, yPos);
-      pdf.text(`₹${invoice.subtotal.toFixed(2)}`, 170, yPos);
+      pdf.text(`₹${calculateSubtotal().toFixed(2)}`, 180, yPos, { align: 'right' });
       yPos += 7;
-      if (invoice.tax > 0) {
-        pdf.text("GST (5%):", 120, yPos);
-        pdf.text(`₹${invoice.tax.toFixed(2)}`, 170, yPos);
-        yPos += 7;
-      }
+      
+      // GST
+      pdf.text("GST (5%):", 120, yPos);
+      pdf.text(`₹${calculateTax().toFixed(2)}`, 180, yPos, { align: 'right' });
+      yPos += 7;
+      
+      // Platform Fee
       pdf.text("Platform Fee (2%):", 120, yPos);
-      pdf.text(`₹${calculatePlatformFee().toFixed(2)}`, 170, yPos);
+      pdf.text(`₹${calculatePlatformFee().toFixed(2)}`, 180, yPos, { align: 'right' });
       yPos += 10;
+
+      // Grand Total box
+      pdf.setFillColor(27, 108, 168);
+      pdf.rect(115, yPos - 6, 70, 12, 'F');
+      pdf.setTextColor(255, 255, 255);
       pdf.setFontSize(12);
       pdf.setFont(undefined, 'bold');
-      pdf.text("TOTAL:", 120, yPos);
-      pdf.text(`₹${invoice.total.toFixed(2)}`, 170, yPos);
+      pdf.text("GRAND TOTAL:", 120, yPos);
+      pdf.text(`₹${calculateTotal().toFixed(2)}`, 180, yPos, { align: 'right' });
+
+      // Amount in words
+      yPos += 15;
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(9);
+      pdf.setFont(undefined, 'italic');
+      const amountInWords = numberToWords(calculateTotal());
+      pdf.text(`Amount in words: ${amountInWords} Rupees Only`, 20, yPos);
+
+      // Terms & Conditions
+      yPos += 15;
+      pdf.setFontSize(9);
+      pdf.setFont(undefined, 'bold');
+      pdf.text("Terms & Conditions:", 20, yPos);
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(8);
+      yPos += 5;
+      pdf.text("• All medicines are subject to availability and stock verification.", 20, yPos);
+      yPos += 4;
+      pdf.text("• This is a computer-generated invoice and does not require a signature.", 20, yPos);
+      yPos += 4;
+      pdf.text("• Please check all items before leaving the pharmacy.", 20, yPos);
+      yPos += 4;
+      if (backendSaved) {
+        pdf.text("✓ This invoice has been saved to the database for your records.", 20, yPos);
+      } else {
+        pdf.text("⚠ This invoice was generated offline. Please ensure proper record keeping.", 20, yPos);
+      }
 
       // Footer
+      pdf.setFillColor(232, 244, 248);
+      pdf.rect(0, pageHeight - 25, pageWidth, 25, 'F');
+      pdf.setTextColor(27, 108, 168);
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'bold');
+      pdf.text("Thank you for choosing MediTatva!", pageWidth / 2, pageHeight - 15, { align: 'center' });
       pdf.setFontSize(8);
       pdf.setFont(undefined, 'normal');
-      pdf.text("Thank you for your business!", pageWidth / 2, 280, { align: 'center' });
-      pdf.text("⚠️ Inventory has been automatically updated", pageWidth / 2, 285, { align: 'center' });
+      pdf.text("Your health is our priority | Available 24/7", pageWidth / 2, pageHeight - 8, { align: 'center' });
 
       // Save PDF
-      pdf.save(`invoice-${invoice.invoiceNumber}.pdf`);
+      const fileName = `MediTatva_Invoice_${invoiceNumber}_${patientName.replace(/\s+/g, '_')}.pdf`;
+      pdf.save(fileName);
       
-      toast.success("✅ Invoice created! Inventory updated successfully!");
+      toast.success(`✅ Invoice ${invoiceNumber} downloaded successfully!`);
+      
+      // Store invoice in history
+      const newInvoice = {
+        _id: invoiceNumber,
+        invoiceNumber,
+        patientName,
+        createdAt: currentDate.toISOString(),
+        total: calculateTotal(),
+        paymentMethod: paymentType
+      };
+      setInvoiceHistory([newInvoice, ...invoiceHistory]);
       
       // Reset form
       setShowBillingModal(false);
@@ -363,28 +546,40 @@ export const BillingTab = memo(() => {
       setEmail("");
       setPaymentType("cash");
       
-      // Refresh medicine search to show updated stock in real-time
-      if (searchQuery.length >= 2) {
-        try {
-          const refreshResponse = await fetch(`${API_URL}/medicines/search?q=${encodeURIComponent(searchQuery)}`);
-          const refreshData = await refreshResponse.json();
-          if (refreshData.success) {
-            setMedicines(refreshData.data || []);
-            toast.info("📊 Stock levels refreshed");
-          }
-        } catch (error) {
-          console.error('Failed to refresh stock:', error);
-        }
-      }
-      
-      // Refresh invoice history to show new invoice
+      // Refresh invoice history
       await fetchInvoiceHistory();
     } catch (error) {
-      console.error("Invoice creation error:", error);
-      toast.error("Failed to create invoice. Please try again.");
+      console.error("Invoice generation error:", error);
+      toast.error("Failed to generate invoice. Please try again.");
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Helper function to convert number to words
+  const numberToWords = (num: number): string => {
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    
+    if (num === 0) return 'Zero';
+    
+    const numStr = Math.floor(num).toString();
+    const length = numStr.length;
+    
+    if (length > 9) return 'Amount too large';
+    
+    const convert = (n: number): string => {
+      if (n < 10) return ones[n];
+      if (n < 20) return teens[n - 10];
+      if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+      if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + convert(n % 100) : '');
+      if (n < 100000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + convert(n % 1000) : '');
+      if (n < 10000000) return convert(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + convert(n % 100000) : '');
+      return convert(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + convert(n % 10000000) : '');
+    };
+    
+    return convert(Math.floor(num));
   };
 
   return (
@@ -395,6 +590,7 @@ export const BillingTab = memo(() => {
         animate="animate"
         exit="exit"
         className="space-y-3 sm:space-y-4"
+        style={{ filter: 'none', WebkitFilter: 'none' }}
       >
         {/* Search and Add to Cart */}
         <Card
@@ -406,20 +602,122 @@ export const BillingTab = memo(() => {
             boxShadow: '0 4px 20px rgba(27, 108, 168, 0.08)',
           }}
         >
-          <h3 className="text-base sm:text-lg font-bold text-[#0A2342] mb-2 sm:mb-3">Search Medicines</h3>
+          <h3 className="text-base sm:text-lg font-bold text-[#0A2342] mb-2 sm:mb-3">Add Medicines to Bill</h3>
+          
+          {/* Toggle between Search and Inventory */}
+          <div className="flex gap-2 mb-3">
+            <Button
+              variant={showInventoryMedicines ? "default" : "outline"}
+              onClick={() => setShowInventoryMedicines(true)}
+              size="sm"
+              className={showInventoryMedicines 
+                ? "bg-gradient-to-r from-[#1B6CA8] to-[#4FC3F7] text-white" 
+                : "border-[#4FC3F7]/30 text-[#1B6CA8]"}
+            >
+              <Package className="h-4 w-4 mr-2" />
+              Inventory
+            </Button>
+            <Button
+              variant={!showInventoryMedicines ? "default" : "outline"}
+              onClick={() => setShowInventoryMedicines(false)}
+              size="sm"
+              className={!showInventoryMedicines 
+                ? "bg-gradient-to-r from-[#1B6CA8] to-[#4FC3F7] text-white" 
+                : "border-[#4FC3F7]/30 text-[#1B6CA8]"}
+            >
+              <Search className="h-4 w-4 mr-2" />
+              API Search
+            </Button>
+          </div>
+
           <div className="flex gap-2 sm:gap-4 mb-3 sm:mb-4">
             <div className="flex-1 relative">
               <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-[#5A6A85]" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by medicine name..."
+                placeholder={showInventoryMedicines ? "Search inventory..." : "Search by medicine name..."}
                 className="pl-8 sm:pl-10 text-sm sm:text-base bg-white border-[#4FC3F7]/30 text-[#0A2342] placeholder:text-[#5A6A85] focus:border-[#1B6CA8] focus:ring-[#1B6CA8]"
               />
             </div>
           </div>
 
           <div className="space-y-2 max-h-60 overflow-y-auto">
+            {showInventoryMedicines ? (
+              // Show inventory medicines
+              <>
+                {inventoryMedicines
+                  .filter(med => 
+                    searchQuery.length === 0 || 
+                    med.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    med.brand?.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  .map((medicine) => (
+                    <motion.div
+                      key={medicine._id}
+                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 sm:p-3 rounded-lg border hover:shadow-md transition-all"
+                      style={{
+                        borderColor: medicine.inStock ? 'rgba(79, 195, 247, 0.3)' : 'rgba(231, 76, 60, 0.3)',
+                        backgroundColor: medicine.inStock ? 'rgba(255, 255, 255, 1)' : 'rgba(231, 76, 60, 0.05)',
+                      }}
+                      whileHover={{ scale: 1.01 }}
+                    >
+                      <div className="flex-1 mb-2 sm:mb-0">
+                        <p className="font-semibold text-[#0A2342] text-sm sm:text-base">{medicine.name}</p>
+                        <p className="text-xs sm:text-sm text-[#5A6A85]">
+                          {medicine.brand}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs sm:text-sm font-bold text-[#1B6CA8]">
+                            ₹{medicine.price}
+                          </span>
+                          <Badge
+                            className={
+                              medicine.current_stock === 0
+                                ? "bg-[#E74C3C]/10 text-[#E74C3C] border-[#E74C3C]/30 text-xs"
+                                : medicine.current_stock < 50
+                                ? "bg-[#F39C12]/10 text-[#F39C12] border-[#F39C12]/30 text-xs"
+                                : "bg-[#2ECC71]/10 text-[#2ECC71] border-[#2ECC71]/30 text-xs"
+                            }
+                          >
+                            Stock: {medicine.current_stock}
+                          </Badge>
+                          {medicine.requiresPrescription && (
+                            <Badge className="bg-[#9B59B6]/10 text-[#9B59B6] border-[#9B59B6]/30 text-xs">
+                              Rx
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => addToCart(medicine)}
+                        disabled={!medicine.inStock}
+                        size="sm"
+                        className={
+                          medicine.inStock
+                            ? "bg-gradient-to-r from-[#1B6CA8] to-[#4FC3F7] hover:from-[#4FC3F7] hover:to-[#1B6CA8] text-white text-xs sm:text-sm"
+                            : "bg-gray-300 text-gray-500 cursor-not-allowed text-xs sm:text-sm"
+                        }
+                      >
+                        <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        {medicine.inStock ? "Add" : "Out of Stock"}
+                      </Button>
+                    </motion.div>
+                  ))}
+                {inventoryMedicines.filter(med => 
+                  searchQuery.length === 0 || 
+                  med.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  med.brand?.toLowerCase().includes(searchQuery.toLowerCase())
+                ).length === 0 && (
+                  <div className="text-center py-8">
+                    <Package className="h-12 w-12 text-[#5A6A85] mx-auto mb-2" />
+                    <p className="text-[#5A6A85]">No matching medicines in inventory</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              // Show API search results
+              <>
             {isSearching && (
               <div className="text-center py-4">
                 <p className="text-[#5A6A85]">Searching...</p>
@@ -476,6 +774,8 @@ export const BillingTab = memo(() => {
                 </motion.div>
               </motion.div>
             ))}
+              </>
+            )}
           </div>
         </Card>
 

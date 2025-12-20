@@ -348,6 +348,7 @@ export const InventoryTab = memo(() => {
       animate="animate"
       exit="exit"
       className="space-y-6"
+      style={{ filter: 'none', WebkitFilter: 'none' }}
     >
       {/* Top Summary Banner */}
       <motion.div variants={cardVariants}>

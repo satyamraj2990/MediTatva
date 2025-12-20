@@ -560,9 +560,9 @@ const PharmacyDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen flex relative overflow-hidden">
+    <div className="min-h-screen flex relative overflow-hidden" style={{ filter: 'none' }}>
       {/* Professional Healthcare Background */}
-      <div className="fixed inset-0 pointer-events-none">
+      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0 }}>
         <div className="absolute inset-0 bg-gradient-to-br from-[#E8F4F8] via-[#F7F9FC] to-[#FFFFFF]" />
         <motion.div
           className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#4FC3F7]/60 to-transparent"
@@ -578,7 +578,7 @@ const PharmacyDashboard = () => {
 
       {/* Sidebar */}
       <motion.aside
-        className="w-64 relative z-10 flex-shrink-0"
+        className="w-64 relative z-20 flex-shrink-0"
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
@@ -679,7 +679,7 @@ const PharmacyDashboard = () => {
       <main className="flex-1 relative z-10 overflow-y-auto bg-gradient-to-br from-[#E8F4F8]/50 via-[#F7F9FC]/30 to-[#FFFFFF]/10">
         {/* Top Bar */}
         <div
-          className="sticky top-0 z-20 border-b"
+          className="sticky top-0 z-30 border-b"
           style={{
             background: 'linear-gradient(135deg, #1B6CA8 0%, #4FC3F7 100%)',
             backdropFilter: 'blur(20px)',
@@ -2256,7 +2256,8 @@ const PharmacyDashboard = () => {
       <AnimatePresence>
         {showBillingModal && (
           <motion.div
-            className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/50 z-[999] flex items-center justify-center p-4"
+            style={{ backdropFilter: 'blur(8px)' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

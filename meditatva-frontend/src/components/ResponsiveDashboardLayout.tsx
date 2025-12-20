@@ -120,19 +120,25 @@ export const ResponsiveDashboardLayout = memo(({
   const currentTheme = themeColors[dashboardTheme];
 
   return (
-    <div className={cn(
-      "relative min-h-screen bg-gradient-to-br transition-colors duration-300",
-      dashboardTheme === 'pharmacy' 
-        ? "from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"
-        : "from-[#0B1220] via-[#111827] to-[#0B1220]"
-    )}>
+    <div 
+      className={cn(
+        "relative min-h-screen bg-gradient-to-br transition-colors duration-300",
+        dashboardTheme === 'pharmacy' 
+          ? "from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"
+          : "from-[#0B1220] via-[#111827] to-[#0B1220]"
+      )}
+      style={{
+        filter: 'none !important',
+        WebkitFilter: 'none !important',
+      } as React.CSSProperties}
+    >
       {/* Top Header Bar - Fixed */}
       <motion.header
         className={cn(
-          "fixed top-0 left-0 right-0 z-30 backdrop-blur-xl border-b transition-colors duration-300",
+          "fixed top-0 left-0 right-0 z-30 border-b transition-colors duration-300",
           dashboardTheme === 'pharmacy'
-            ? "bg-white/80 dark:bg-gray-900/80 border-gray-200 dark:border-gray-800"
-            : "bg-gray-900/80 border-gray-800"
+            ? "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800"
+            : "bg-gray-900 border-gray-800"
         )}
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -209,8 +215,10 @@ export const ResponsiveDashboardLayout = memo(({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            style={{ zIndex: 998 }}
+            className="fixed inset-0 bg-black/40"
+            style={{ 
+              zIndex: 998,
+            }}
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -232,7 +240,6 @@ export const ResponsiveDashboardLayout = memo(({
         style={{
           zIndex: 999,
           backgroundColor: currentTheme.sidebarBg,
-          backdropFilter: 'blur(20px)',
           boxShadow: sidebarOpen ? '0 4px 20px rgba(0,0,0,0.3)' : 'none',
         }}
       >
@@ -401,8 +408,12 @@ export const ResponsiveDashboardLayout = memo(({
         transition={{ delay: 0.3 }}
         className="pt-20 transition-all duration-300 min-h-screen"
         style={{
-          marginLeft: 0, // Always 0 margin since sidebar is off-canvas
-        }}
+          marginLeft: 0,
+          filter: 'none !important',
+          WebkitFilter: 'none !important',
+          backdropFilter: 'none !important',
+          WebkitBackdropFilter: 'none !important',
+        } as React.CSSProperties}
       >
         <div className="px-4 sm:px-6 md:px-8 py-6 max-w-7xl mx-auto">
           {children}

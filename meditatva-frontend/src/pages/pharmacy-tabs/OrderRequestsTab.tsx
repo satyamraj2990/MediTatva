@@ -121,7 +121,15 @@ export const OrderRequestsTab = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-3 sm:p-4 lg:p-6">
+    <div 
+      className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-3 sm:p-4 lg:p-6"
+      style={{ 
+        filter: 'none !important', 
+        WebkitFilter: 'none !important',
+        backdropFilter: 'none !important',
+        WebkitBackdropFilter: 'none !important'
+      } as React.CSSProperties}
+    >
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -148,7 +156,7 @@ export const OrderRequestsTab = () => {
         transition={{ delay: 0.1 }}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6"
       >
-        <Card className="p-4 border-2 border-blue-100 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all">
+        <Card className="p-4 border-2 border-blue-100 bg-white hover:shadow-lg transition-all">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 font-medium">Total Orders</p>
@@ -160,7 +168,7 @@ export const OrderRequestsTab = () => {
           </div>
         </Card>
 
-        <Card className="p-4 border-2 border-yellow-100 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all">
+        <Card className="p-4 border-2 border-yellow-100 bg-white hover:shadow-lg transition-all">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 font-medium">Pending</p>
@@ -172,7 +180,7 @@ export const OrderRequestsTab = () => {
           </div>
         </Card>
 
-        <Card className="p-4 border-2 border-blue-100 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all">
+        <Card className="p-4 border-2 border-blue-100 bg-white hover:shadow-lg transition-all">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 font-medium">Confirmed</p>
@@ -184,7 +192,7 @@ export const OrderRequestsTab = () => {
           </div>
         </Card>
 
-        <Card className="p-4 border-2 border-green-100 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all">
+        <Card className="p-4 border-2 border-green-100 bg-white hover:shadow-lg transition-all">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 font-medium">Delivered</p>
@@ -196,7 +204,7 @@ export const OrderRequestsTab = () => {
           </div>
         </Card>
 
-        <Card className="p-4 border-2 border-red-100 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all">
+        <Card className="p-4 border-2 border-red-100 bg-white hover:shadow-lg transition-all">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 font-medium">Cancelled</p>
@@ -216,7 +224,7 @@ export const OrderRequestsTab = () => {
         transition={{ delay: 0.2 }}
         className="mb-6"
       >
-        <Card className="p-4 bg-white/90 backdrop-blur-sm border-2 border-blue-100">
+        <Card className="p-4 bg-white border-2 border-blue-100">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -252,10 +260,9 @@ export const OrderRequestsTab = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <Card className="overflow-hidden border-2 border-blue-100 bg-white/90 backdrop-blur-sm">
+        <Card className="overflow-hidden border-2 border-blue-100 bg-white">
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b-2 border-blue-100">
+            <table className="w-full">\n              <thead className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b-2 border-blue-100">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                     Order Details
