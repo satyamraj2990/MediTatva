@@ -145,6 +145,7 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
   const [isTyping, setIsTyping] = useState(false);
   const [chatSession, setChatSession] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleClose = () => {
     if (onClose) {
@@ -161,6 +162,16 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Focus input when chatbot opens
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+        console.log('Input focused');
+      }, 100);
+    }
+  }, [isOpen]);
 
   // Initialize chat session when chatbot opens
   useEffect(() => {
@@ -265,7 +276,8 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
       handleSend();
     }
   };
@@ -361,19 +373,34 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-white/10 bg-white dark:bg-[#1a1f2e]">
+      <div className="p-4 border-t border-white/10 bg-white dark:bg-[#1a1f2e] relative z-10">
         <form onSubmit={handleSendMessage} className="flex gap-2">
-          <Input
+          <input
+            ref={inputRef}
+            type="text"
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => {
+              console.log('Input change:', e.target.value);
+              setInputValue(e.target.value);
+            }}
+            onKeyDown={handleKeyPress}
             placeholder="Describe your symptoms..."
-            className="flex-1 bg-gray-100 dark:bg-white/5 border-white/10"
-            disabled={isTyping}
+            className="flex h-10 w-full rounded-md border border-input bg-gray-100 dark:bg-white/5 px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:text-sm"
+            autoComplete="off"
+            readOnly={false}
+            style={{ 
+              pointerEvents: 'auto !important', 
+              userSelect: 'text !important', 
+              touchAction: 'manipulation',
+              WebkitUserSelect: 'text',
+              MozUserSelect: 'text',
+              msUserSelect: 'text'
+            }}
           />
           <Button
             type="submit"
             disabled={!inputValue.trim() || isTyping}
-            className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700"
+            className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 pointer-events-auto"
           >
             <Send className="w-4 h-4" />
           </Button>
@@ -404,7 +431,8 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
     <>
       {/* Floating Button - Enhanced with gradient */}
       <motion.div
-        className="fixed bottom-6 right-6 z-50"
+        className="fixed bottom-6 right-6"
+        style={{ zIndex: 9998 }}
         whileHover={{ translateY: -6, scale: 1.06, rotate: -3 }}
         whileTap={{ scale: 0.94, rotate: 0, translateY: -2 }}
         transition={{ type: "spring", stiffness: 300, damping: 18 }}
@@ -433,12 +461,14 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
 
       {/* Chat Window */}
       {isOpen && (
-        <Card className="fixed bottom-24 right-3 sm:right-6 w-[calc(100vw-24px)] sm:w-[420px] h-[calc(100vh-120px)] sm:h-[600px] shadow-2xl z-50 flex flex-col animate-in slide-in-from-bottom duration-300"
+        <Card className="fixed bottom-24 right-3 sm:right-6 w-[calc(100vw-24px)] sm:w-[420px] h-[calc(100vh-120px)] sm:h-[600px] shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300"
           style={{
             background: 'rgba(255, 255, 255, 0.98)',
             backdropFilter: 'blur(20px)',
             border: '1px solid rgba(27, 108, 168, 0.2)',
             boxShadow: '0 20px 60px rgba(27, 108, 168, 0.3)',
+            zIndex: 9999,
+            pointerEvents: 'auto'
           }}
         >
           {/* Header - MediTatva Branding */}
@@ -543,26 +573,42 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
           </div>
 
           {/* Input - Enhanced styling */}
-          <div className="p-4 border-t border-gray-200 bg-white rounded-b-xl">
-            <div className="flex gap-2">
-              <Input
+          <div className="p-4 border-t border-gray-200 bg-white rounded-b-xl relative z-10">
+            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2">
+              <input
+                ref={inputRef}
+                type="text"
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onChange={(e) => {
+                  console.log('Input change (floating):', e.target.value);
+                  setInputValue(e.target.value);
+                }}
+                onKeyDown={handleKeyPress}
                 placeholder="Describe your symptoms... (Any language supported)"
-                className="flex-1 border-[#1B6CA8]/30 focus:border-[#1B6CA8] focus:ring-[#1B6CA8]/20"
+                className="flex h-10 w-full rounded-md border border-[#1B6CA8]/30 px-3 py-2 text-base focus:border-[#1B6CA8] focus:ring-2 focus:ring-[#1B6CA8]/20 focus-visible:outline-none md:text-sm"
+                autoComplete="off"
+                readOnly={false}
+                style={{ 
+                  pointerEvents: 'auto !important', 
+                  userSelect: 'text !important', 
+                  touchAction: 'manipulation',
+                  WebkitUserSelect: 'text',
+                  MozUserSelect: 'text',
+                  msUserSelect: 'text'
+                }}
               />
               <Button
-                onClick={handleSend}
+                type="submit"
+                disabled={!inputValue.trim() || isTyping}
                 size="icon"
-                className="h-10 w-10"
+                className="h-10 w-10 pointer-events-auto"
                 style={{
                   background: 'linear-gradient(135deg, #1B6CA8 0%, #4FC3F7 100%)',
                 }}
               >
                 <Send className="h-4 w-4 text-white" />
               </Button>
-            </div>
+            </form>
             <p className="text-xs text-gray-400 mt-2 text-center">
               💡 Powered by MediTatva AI • Multilingual Support
             </p>
