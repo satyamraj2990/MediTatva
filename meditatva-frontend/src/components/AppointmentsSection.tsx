@@ -95,8 +95,8 @@ export const AppointmentsSection = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white">Appointments</h2>
-          <p className="text-gray-400 text-sm mt-1">Manage your doctor consultations</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Appointments</h2>
+          <p className="text-gray-700 dark:text-gray-400 text-sm mt-1">Manage your doctor consultations</p>
         </div>
         <Button
           onClick={() => setShowBooking(true)}
@@ -116,7 +116,7 @@ export const AppointmentsSection = () => {
             className={`px-4 py-2 capitalize transition-all ${
               selectedTab === tab
                 ? "text-cyan-400 border-b-2 border-cyan-400"
-                : "text-gray-400 hover:text-white"
+                : "text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             }`}
           >
             {tab}
@@ -142,7 +142,7 @@ export const AppointmentsSection = () => {
                     <div className="text-4xl">{apt.avatar}</div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-white font-semibold">{apt.doctor}</h3>
+                        <h3 className="text-gray-900 dark:text-white font-semibold">{apt.doctor}</h3>
                         <Badge 
                           variant="outline" 
                           className={`${getStatusColor(apt.status)} border`}
@@ -153,18 +153,18 @@ export const AppointmentsSection = () => {
                           </span>
                         </Badge>
                       </div>
-                      <p className="text-gray-400 text-sm mb-3">{apt.specialty}</p>
+                      <p className="text-gray-700 dark:text-gray-400 text-sm mb-3">{apt.specialty}</p>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                        <div className="flex items-center gap-2 text-gray-300">
+                        <div className="flex items-center gap-2 text-gray-900 dark:text-gray-300">
                           <Calendar className="w-4 h-4 text-cyan-400" />
                           {new Date(apt.date).toLocaleDateString()}
                         </div>
-                        <div className="flex items-center gap-2 text-gray-300">
+                        <div className="flex items-center gap-2 text-gray-900 dark:text-gray-300">
                           <Clock className="w-4 h-4 text-purple-400" />
                           {apt.time}
                         </div>
-                        <div className="flex items-center gap-2 text-gray-300">
+                        <div className="flex items-center gap-2 text-gray-900 dark:text-gray-300">
                           {apt.mode === "online" ? (
                             <Video className="w-4 h-4 text-green-400" />
                           ) : (
@@ -220,7 +220,7 @@ export const AppointmentsSection = () => {
         {filteredAppointments.length === 0 && (
           <div className="text-center py-12">
             <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-            <p className="text-gray-400">No {selectedTab} appointments</p>
+            <p className="text-gray-700 dark:text-gray-400">No {selectedTab} appointments</p>
           </div>
         )}
       </div>

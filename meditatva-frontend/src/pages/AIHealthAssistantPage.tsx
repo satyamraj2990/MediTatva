@@ -154,12 +154,7 @@ User Question: ${input}`,
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
+
 
   const quickActions = [
     { icon: Pill, text: 'Medicine alternatives', query: 'What are alternatives to Paracetamol for fever?' },
@@ -388,18 +383,24 @@ User Question: ${input}`,
       </div>
 
       {/* Input Area */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-200 shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-lg z-50">
         <div className="max-w-5xl mx-auto px-4 py-4">
           <div className="flex gap-3 items-end">
             <textarea
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
               placeholder="Ask me anything about health, medicines, or symptoms..."
-              className="flex-1 resize-none rounded-2xl border-2 border-gray-300 focus:border-blue-500 focus:ring-0 px-4 py-3 max-h-32 min-h-[48px] transition-colors"
+              className="flex-1 resize-none rounded-2xl border-2 border-gray-300 focus:border-blue-500 focus:ring-0 focus:outline-none px-4 py-3 max-h-32 min-h-[48px] transition-colors bg-white"
               rows={1}
               disabled={isLoading}
+              autoComplete="off"
             />
             <button
               onClick={handleSend}
