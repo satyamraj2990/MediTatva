@@ -12,6 +12,7 @@ import { MedicalCabinet } from "@/components/MedicalCabinet";
 import { AppointmentsSection } from "@/components/AppointmentsSection";
 import { MedicineOrders } from "@/components/MedicineOrders";
 import { HealthReminders } from "@/components/HealthReminders";
+import { Chatbot } from "@/components/Chatbot";
 import { NearbyMedicalStoresPage } from "@/pages/NearbyMedicalStoresPage";
 import { FindMedicineEnhanced } from "@/pages/FindMedicineEnhanced";
 import { MedicineAvailabilitySudoku } from "@/components/MedicineAvailabilitySudoku";
@@ -19,7 +20,7 @@ import {
   Home, Calendar, ShoppingCart, Bell, FolderOpen,
   MapPin, MessageCircle, User, LogOut, Menu, X,
   Pill, Camera, Search, Activity, Heart, ChevronRight,
-  Scan, Zap, TrendingUp, AlertCircle, CheckCircle2, Settings
+  Scan, Zap, TrendingUp, AlertCircle, CheckCircle2, Settings, MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -396,15 +397,29 @@ const ModernPatientDashboard = () => {
                   <div className="space-y-6">
                     <div>
                       <h2 className="text-3xl font-bold text-slate-800">AI Health Assistant</h2>
-                      <p className="text-slate-500 mt-1">Get instant health advice and consultation</p>
+                      <p className="text-slate-500 mt-1">Get instant health advice, medicine substitutes, and consultation</p>
                     </div>
-                    <Card className="p-8 bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200">
-                      <div className="text-center">
-                        <MessageCircle className="h-20 w-20 text-purple-500 mx-auto mb-4" />
-                        <h3 className="text-2xl font-bold text-slate-800 mb-2">AI Health Assistant Coming Soon</h3>
-                        <p className="text-slate-600">
-                          Our AI-powered health assistant will provide personalized health advice, answer your medical questions, and help you manage your wellness journey.
-                        </p>
+                    <Card 
+                      onClick={() => navigate('/ai-assistant')}
+                      className="p-8 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 border-2 border-purple-200 cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                    >
+                      <div className="text-center space-y-4">
+                        <div className="flex justify-center">
+                          <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-4 rounded-2xl shadow-lg">
+                            <MessageSquare className="h-12 w-12 text-white" />
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            Open AI Health Assistant
+                          </h3>
+                          <p className="text-slate-600 mt-2">
+                            Click here to chat with our AI assistant for health advice and medicine alternatives
+                          </p>
+                        </div>
+                        <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg">
+                          Start Chatting →
+                        </Button>
                       </div>
                     </Card>
                   </div>

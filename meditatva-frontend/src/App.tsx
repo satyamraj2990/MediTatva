@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import PatientDashboard from "./pages/PatientDashboard";
 import PatientDashboardPremium from "./pages/PatientDashboardPremium";
 import PremiumPatientDashboard from "./pages/PremiumPatientDashboard";
+import AIHealthAssistantPage from "./pages/AIHealthAssistantPage";
 import NotFound from "./pages/NotFound";
 
 // Lazy load pharmacy dashboard components for better performance
@@ -49,6 +50,7 @@ const App = () => (
               <Route path="/patient/responsive" element={<PatientDashboardResponsive />} />
               <Route path="/patient/premium" element={<PatientDashboardPremium />} />
               <Route path="/patient/modern" element={<PremiumPatientDashboard />} />
+              <Route path="/ai-assistant" element={<AIHealthAssistantPage />} />
               
               {/* Pharmacy Dashboard with Nested Routes */}
               <Route path="/pharmacy/dashboard" element={<PharmacyDashboard />}>

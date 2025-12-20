@@ -13,6 +13,7 @@ import { MedicalCabinet } from "@/components/MedicalCabinet";
 import { AppointmentsSection } from "@/components/AppointmentsSection";
 import { MedicineOrders } from "@/components/MedicineOrders";
 import { HealthReminders } from "@/components/HealthReminders";
+import { Chatbot } from "@/components/Chatbot";
 import { NearbyMedicalStoresPage } from "@/pages/NearbyMedicalStoresPage";
 import { FindMedicineEnhanced } from "@/pages/FindMedicineEnhanced";
 import { MyMedicineCabinetPage } from "@/pages/MyMedicineCabinetPage";
@@ -22,7 +23,7 @@ import {
   Home, Calendar, ShoppingCart, Bell, FolderOpen,
   MapPin, MessageCircle, LogOut, Menu, X,
   Pill, Camera, Search, Activity, Heart, ChevronRight,
-  Scan, Zap, TrendingUp, Sparkles, Settings
+  Scan, Zap, TrendingUp, Sparkles, Settings, MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -823,24 +824,37 @@ const PremiumPatientDashboardInner = () => {
                   transition={{ duration: 0.2, ease: "easeOut" }}
                   className="space-y-6"
                 >
-                  <Card className="p-12 text-center bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 backdrop-blur-sm border-2 border-purple-200 dark:border-purple-700/20 shadow-xl">
-                    <motion.div
-                      animate={{
-                        y: [0, -10, 0],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
+                  <div className="space-y-4">
+                    <div>
+                      <h2 className="text-3xl font-bold text-[rgb(var(--text-primary))] mb-2">AI Health Assistant</h2>
+                      <p className="text-[rgb(var(--text-secondary))]">
+                        Get instant health advice, medicine substitutes, and personalized wellness recommendations
+                      </p>
+                    </div>
+                    <Card 
+                      onClick={() => navigate('/ai-assistant')}
+                      className="p-8 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-pink-900/20 backdrop-blur-sm border-2 border-purple-200 dark:border-purple-700/20 shadow-xl cursor-pointer hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
                     >
-                      <MessageCircle className="h-24 w-24 text-purple-500 mx-auto mb-6" />
-                    </motion.div>
-                    <h3 className="text-3xl font-bold text-[rgb(var(--text-primary))] mb-3">AI Health Assistant Coming Soon</h3>
-                    <p className="text-[rgb(var(--text-secondary))] max-w-md mx-auto">
-                      Get instant health advice, medication reminders, and personalized wellness recommendations from our AI-powered assistant.
-                    </p>
-                  </Card>
+                      <div className="text-center space-y-4">
+                        <div className="flex justify-center">
+                          <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-4 rounded-2xl shadow-lg">
+                            <MessageSquare className="h-12 w-12 text-white" />
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            Open AI Health Assistant
+                          </h3>
+                          <p className="text-[rgb(var(--text-secondary))] mt-2">
+                            Click here to chat with our AI assistant for health advice and medicine alternatives
+                          </p>
+                        </div>
+                        <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg">
+                          Start Chatting →
+                        </Button>
+                      </div>
+                    </Card>
+                  </div>
                 </motion.div>
               )}
 
