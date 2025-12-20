@@ -327,199 +327,333 @@ export const BillingTab = memo(() => {
         toast.info("📄 Generating invoice locally");
       }
 
-      // Generate PDF Invoice (works with or without backend)
+      // Generate Professional PDF Invoice
       const pdf = new jsPDF();
       const pageWidth = pdf.internal.pageSize.width;
       const pageHeight = pdf.internal.pageSize.height;
       
-      // Modern gradient header
-      pdf.setFillColor(27, 108, 168);
+      // ==================== PREMIUM HEADER SECTION ====================
+      // Gradient background (simulated with layers)
+      pdf.setFillColor(13, 71, 161); // Deep blue
+      pdf.rect(0, 0, pageWidth, 60, 'F');
+      
+      pdf.setFillColor(25, 118, 210); // Medium blue
       pdf.rect(0, 0, pageWidth, 50, 'F');
       
-      // Add decorative accent
-      pdf.setFillColor(79, 195, 247);
-      pdf.rect(0, 0, pageWidth, 5, 'F');
+      pdf.setFillColor(33, 150, 243); // Light blue
+      pdf.rect(0, 0, pageWidth, 40, 'F');
       
-      // Company name
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(28);
+      // Top accent stripe
+      pdf.setFillColor(0, 200, 83); // Green accent
+      pdf.rect(0, 0, pageWidth, 3, 'F');
+      
+      // Logo/Brand section (left side)
+      pdf.setFillColor(255, 255, 255);
+      pdf.circle(35, 25, 15, 'F');
+      
+      pdf.setTextColor(33, 150, 243);
+      pdf.setFontSize(24);
       pdf.setFont(undefined, 'bold');
-      pdf.text("MediTatva", pageWidth / 2, 20, { align: 'center' });
+      pdf.text("M", 35, 30, { align: 'center' });
       
-      pdf.setFontSize(14);
-      pdf.setFont(undefined, 'normal');
-      pdf.text("PHARMACY & HEALTHCARE", pageWidth / 2, 30, { align: 'center' });
+      // Company name and details
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(26);
+      pdf.setFont(undefined, 'bold');
+      pdf.text("MediTatva Healthcare", 55, 22);
       
       pdf.setFontSize(11);
-      pdf.text("📍 123 Health Street, Medical City | 📞 +91-9876543210 | 📧 info@meditatva.com", pageWidth / 2, 40, { align: 'center' });
-
-      // Invoice title
-      pdf.setFillColor(232, 244, 248);
-      pdf.rect(0, 52, pageWidth, 15, 'F');
-      pdf.setTextColor(27, 108, 168);
-      pdf.setFontSize(20);
+      pdf.setFont(undefined, 'normal');
+      pdf.text("Premium Pharmacy & Medical Services", 55, 30);
+      
+      pdf.setFontSize(9);
+      pdf.text("📍 123 Medical Plaza, Healthcare District, City - 110001", 55, 37);
+      pdf.text("📞 +91-9876543210  |  📧 contact@meditatva.com  |  🌐 www.meditatva.com", 55, 43);
+      
+      // License info
+      pdf.setFontSize(8);
+      pdf.text("Drug License No: DL-2024-12345  |  GST: 29ABCDE1234F1Z5", 55, 49);
+      
+      // ==================== INVOICE TITLE BANNER ====================
+      pdf.setFillColor(245, 245, 245);
+      pdf.rect(0, 60, pageWidth, 18, 'F');
+      
+      // Left side - Invoice title
+      pdf.setTextColor(33, 150, 243);
+      pdf.setFontSize(22);
       pdf.setFont(undefined, 'bold');
-      pdf.text("TAX INVOICE", pageWidth / 2, 62, { align: 'center' });
-
-      // Invoice metadata
+      pdf.text("TAX INVOICE", 20, 72);
+      
+      // Right side - PAID stamp
+      pdf.setDrawColor(0, 200, 83);
+      pdf.setLineWidth(2);
+      pdf.roundedRect(pageWidth - 50, 63, 35, 12, 2, 2, 'S');
+      pdf.setTextColor(0, 200, 83);
+      pdf.setFontSize(14);
+      pdf.setFont(undefined, 'bold');
+      pdf.text("PAID", pageWidth - 32.5, 71, { align: 'center' });
+      
+      // ==================== INVOICE DETAILS SECTION ====================
+      let yPos = 88;
+      
+      // Left column - Invoice details box
+      pdf.setDrawColor(33, 150, 243);
+      pdf.setLineWidth(0.5);
+      pdf.setFillColor(240, 248, 255);
+      pdf.roundedRect(20, yPos, 85, 32, 2, 2, 'FD');
+      
       pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
-      
-      // Left side
+      pdf.setFontSize(9);
       pdf.setFont(undefined, 'bold');
-      pdf.text("Invoice Number:", 20, 80);
+      pdf.text("Invoice Number:", 23, yPos + 6);
       pdf.setFont(undefined, 'normal');
-      pdf.text(invoiceNumber, 65, 80);
+      pdf.text(invoiceNumber, 23, yPos + 11);
       
       pdf.setFont(undefined, 'bold');
-      pdf.text("Invoice Date:", 20, 87);
+      pdf.text("Invoice Date:", 23, yPos + 17);
       pdf.setFont(undefined, 'normal');
       pdf.text(currentDate.toLocaleDateString('en-IN', { 
         year: 'numeric', 
-        month: 'long', 
+        month: 'short', 
         day: 'numeric' 
-      }), 65, 87);
+      }) + ' ' + currentDate.toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }), 23, yPos + 22);
       
       pdf.setFont(undefined, 'bold');
-      pdf.text("Payment Method:", 20, 94);
+      pdf.text("Payment Method:", 23, yPos + 28);
       pdf.setFont(undefined, 'normal');
-      pdf.text(paymentType.toUpperCase(), 65, 94);
-
-      // Right side - Due status
-      pdf.setFillColor(46, 204, 113);
-      pdf.rect(pageWidth - 60, 75, 40, 10, 'F');
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(9);
-      pdf.setFont(undefined, 'bold');
-      pdf.text("PAID", pageWidth - 40, 82, { align: 'center' });
-
-      // Patient details box
-      pdf.setDrawColor(79, 195, 247);
-      pdf.setLineWidth(0.5);
-      pdf.roundedRect(20, 105, pageWidth - 40, 35, 3, 3, 'S');
+      pdf.text(paymentType.toUpperCase(), 65, yPos + 28);
       
-      pdf.setTextColor(27, 108, 168);
-      pdf.setFontSize(11);
+      // Right column - Patient details box
+      pdf.setDrawColor(33, 150, 243);
+      pdf.setFillColor(255, 248, 240);
+      pdf.roundedRect(110, yPos, 85, 32, 2, 2, 'FD');
+      
+      pdf.setTextColor(33, 150, 243);
+      pdf.setFontSize(10);
       pdf.setFont(undefined, 'bold');
-      pdf.text("BILL TO:", 25, 113);
+      pdf.text("PATIENT DETAILS", 113, yPos + 6);
       
       pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(10);
+      pdf.setFontSize(9);
+      pdf.setFont(undefined, 'bold');
+      pdf.text("Name:", 113, yPos + 13);
       pdf.setFont(undefined, 'normal');
-      pdf.text(`Name: ${patientName}`, 25, 121);
-      pdf.text(`Contact: ${contactNumber}`, 25, 128);
+      pdf.text(patientName, 128, yPos + 13);
+      
+      pdf.setFont(undefined, 'bold');
+      pdf.text("Contact:", 113, yPos + 19);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(contactNumber, 128, yPos + 19);
+      
       if (email) {
-        pdf.text(`Email: ${email}`, 25, 135);
+        pdf.setFont(undefined, 'bold');
+        pdf.text("Email:", 113, yPos + 25);
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(8);
+        pdf.text(email, 128, yPos + 25);
       }
-
-      // Table header
-      let yPos = 155;
-      pdf.setFillColor(27, 108, 168);
-      pdf.rect(20, yPos - 8, pageWidth - 40, 10, 'F');
+      
+      // ==================== ITEMS TABLE ====================
+      yPos = 132;
+      
+      // Table header with gradient effect
+      pdf.setFillColor(33, 150, 243);
+      pdf.rect(20, yPos, pageWidth - 40, 12, 'F');
       
       pdf.setTextColor(255, 255, 255);
       pdf.setFontSize(10);
       pdf.setFont(undefined, 'bold');
-      pdf.text("#", 25, yPos - 2);
-      pdf.text("Medicine Name", 35, yPos - 2);
-      pdf.text("Qty", 115, yPos - 2, { align: 'center' });
-      pdf.text("Unit Price", 140, yPos - 2, { align: 'right' });
-      pdf.text("Amount", 180, yPos - 2, { align: 'right' });
-
-      // Table rows
-      yPos += 8;
+      pdf.text("#", 25, yPos + 8);
+      pdf.text("Medicine Details", 35, yPos + 8);
+      pdf.text("HSN", 105, yPos + 8);
+      pdf.text("Qty", 125, yPos + 8, { align: 'center' });
+      pdf.text("Rate", 145, yPos + 8, { align: 'right' });
+      pdf.text("Amount", 185, yPos + 8, { align: 'right' });
+      
+      // Table rows with professional styling
+      yPos += 12;
       pdf.setTextColor(0, 0, 0);
       pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(9);
       
       cart.forEach((item, index) => {
-        // Alternate row colors
+        // Alternate row background
         if (index % 2 === 0) {
-          pdf.setFillColor(248, 249, 250);
-          pdf.rect(20, yPos - 5, pageWidth - 40, 8, 'F');
+          pdf.setFillColor(250, 250, 250);
+          pdf.rect(20, yPos, pageWidth - 40, 10, 'F');
         }
         
-        pdf.text(`${index + 1}`, 25, yPos);
-        pdf.text(item.name, 35, yPos);
-        pdf.text(item.quantity.toString(), 115, yPos, { align: 'center' });
-        pdf.text(`₹${item.price.toFixed(2)}`, 140, yPos, { align: 'right' });
-        pdf.text(`₹${(item.price * item.quantity).toFixed(2)}`, 180, yPos, { align: 'right' });
-        yPos += 8;
+        // Draw subtle row separator
+        pdf.setDrawColor(220, 220, 220);
+        pdf.setLineWidth(0.1);
+        pdf.line(20, yPos + 10, pageWidth - 20, yPos + 10);
+        
+        pdf.setFontSize(9);
+        pdf.setFont(undefined, 'normal');
+        
+        // Serial number
+        pdf.text(`${index + 1}.`, 25, yPos + 7);
+        
+        // Medicine name (bold)
+        pdf.setFont(undefined, 'bold');
+        pdf.text(item.name.substring(0, 35), 35, yPos + 7);
+        
+        // HSN code (example)
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(8);
+        pdf.text("30049099", 105, yPos + 7);
+        
+        pdf.setFontSize(9);
+        // Quantity
+        pdf.text(`${item.quantity}`, 125, yPos + 7, { align: 'center' });
+        
+        // Unit price
+        pdf.text(`₹${item.price.toFixed(2)}`, 145, yPos + 7, { align: 'right' });
+        
+        // Line total (bold)
+        pdf.setFont(undefined, 'bold');
+        pdf.text(`₹${(item.price * item.quantity).toFixed(2)}`, 185, yPos + 7, { align: 'right' });
+        
+        yPos += 10;
       });
-
-      // Totals section
+      
+      // ==================== SUMMARY SECTION ====================
       yPos += 5;
-      const totalsStartY = yPos;
-      pdf.setDrawColor(79, 195, 247);
+      
+      // Summary box
+      pdf.setDrawColor(200, 200, 200);
       pdf.setLineWidth(0.3);
-      pdf.line(20, yPos - 3, pageWidth - 20, yPos - 3);
-
+      pdf.line(115, yPos, pageWidth - 20, yPos);
+      
+      yPos += 8;
       pdf.setFontSize(10);
       pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(80, 80, 80);
       
       // Subtotal
       pdf.text("Subtotal:", 120, yPos);
-      pdf.text(`₹${calculateSubtotal().toFixed(2)}`, 180, yPos, { align: 'right' });
-      yPos += 7;
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`₹${calculateSubtotal().toFixed(2)}`, 185, yPos, { align: 'right' });
       
-      // GST
-      pdf.text("GST (5%):", 120, yPos);
-      pdf.text(`₹${calculateTax().toFixed(2)}`, 180, yPos, { align: 'right' });
       yPos += 7;
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(80, 80, 80);
+      pdf.text("CGST (2.5%):", 120, yPos);
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`₹${(calculateTax() / 2).toFixed(2)}`, 185, yPos, { align: 'right' });
       
-      // Platform Fee
-      pdf.text("Platform Fee (2%):", 120, yPos);
-      pdf.text(`₹${calculatePlatformFee().toFixed(2)}`, 180, yPos, { align: 'right' });
+      yPos += 7;
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(80, 80, 80);
+      pdf.text("SGST (2.5%):", 120, yPos);
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`₹${(calculateTax() / 2).toFixed(2)}`, 185, yPos, { align: 'right' });
+      
+      yPos += 7;
+      pdf.setFont(undefined, 'normal');
+      pdf.setTextColor(80, 80, 80);
+      pdf.text("Service Charge:", 120, yPos);
+      pdf.setFont(undefined, 'bold');
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`₹${calculatePlatformFee().toFixed(2)}`, 185, yPos, { align: 'right' });
+      
+      yPos += 3;
+      pdf.setDrawColor(33, 150, 243);
+      pdf.setLineWidth(0.5);
+      pdf.line(115, yPos, pageWidth - 20, yPos);
+      
+      // Grand Total with highlight
       yPos += 10;
-
-      // Grand Total box
-      pdf.setFillColor(27, 108, 168);
-      pdf.rect(115, yPos - 6, 70, 12, 'F');
+      pdf.setFillColor(33, 150, 243);
+      pdf.rect(115, yPos - 7, 75, 13, 'F');
+      
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(12);
+      pdf.setFontSize(13);
       pdf.setFont(undefined, 'bold');
       pdf.text("GRAND TOTAL:", 120, yPos);
-      pdf.text(`₹${calculateTotal().toFixed(2)}`, 180, yPos, { align: 'right' });
-
-      // Amount in words
-      yPos += 15;
+      pdf.setFontSize(14);
+      pdf.text(`₹${calculateTotal().toFixed(2)}`, 185, yPos, { align: 'right' });
+      
+      // Amount in words box
+      yPos += 13;
+      pdf.setDrawColor(33, 150, 243);
+      pdf.setFillColor(240, 248, 255);
+      pdf.roundedRect(20, yPos, pageWidth - 40, 12, 2, 2, 'FD');
+      
       pdf.setTextColor(0, 0, 0);
       pdf.setFontSize(9);
-      pdf.setFont(undefined, 'italic');
-      const amountInWords = numberToWords(calculateTotal());
-      pdf.text(`Amount in words: ${amountInWords} Rupees Only`, 20, yPos);
-
-      // Terms & Conditions
-      yPos += 15;
-      pdf.setFontSize(9);
       pdf.setFont(undefined, 'bold');
-      pdf.text("Terms & Conditions:", 20, yPos);
-      pdf.setFont(undefined, 'normal');
-      pdf.setFontSize(8);
-      yPos += 5;
-      pdf.text("• All medicines are subject to availability and stock verification.", 20, yPos);
-      yPos += 4;
-      pdf.text("• This is a computer-generated invoice and does not require a signature.", 20, yPos);
-      yPos += 4;
-      pdf.text("• Please check all items before leaving the pharmacy.", 20, yPos);
-      yPos += 4;
-      if (backendSaved) {
-        pdf.text("✓ This invoice has been saved to the database for your records.", 20, yPos);
-      } else {
-        pdf.text("⚠ This invoice was generated offline. Please ensure proper record keeping.", 20, yPos);
-      }
-
-      // Footer
-      pdf.setFillColor(232, 244, 248);
-      pdf.rect(0, pageHeight - 25, pageWidth, 25, 'F');
-      pdf.setTextColor(27, 108, 168);
+      const amountInWords = numberToWords(calculateTotal());
+      pdf.text("Amount in Words:", 23, yPos + 8);
+      pdf.setFont(undefined, 'italic');
+      pdf.text(`${amountInWords} Rupees Only`, 58, yPos + 8);
+      
+      // ==================== NOTES & TERMS ====================
+      yPos += 20;
       pdf.setFontSize(10);
       pdf.setFont(undefined, 'bold');
-      pdf.text("Thank you for choosing MediTatva!", pageWidth / 2, pageHeight - 15, { align: 'center' });
+      pdf.setTextColor(33, 150, 243);
+      pdf.text("Important Notes:", 20, yPos);
+      
       pdf.setFontSize(8);
       pdf.setFont(undefined, 'normal');
-      pdf.text("Your health is our priority | Available 24/7", pageWidth / 2, pageHeight - 8, { align: 'center' });
+      pdf.setTextColor(80, 80, 80);
+      yPos += 5;
+      pdf.text("• Please verify all medicines before leaving the counter. No returns accepted after exit.", 20, yPos);
+      yPos += 4;
+      pdf.text("• Keep medicines away from children. Store in cool, dry place unless specified.", 20, yPos);
+      yPos += 4;
+      pdf.text("• Check expiry dates before consumption. Consult doctor for any adverse reactions.", 20, yPos);
+      yPos += 4;
+      pdf.text("• This is a computer-generated invoice and does not require physical signature.", 20, yPos);
+      yPos += 4;
+      if (backendSaved) {
+        pdf.setTextColor(0, 150, 0);
+        pdf.text("✓ Invoice saved to database successfully. Reference ID: " + invoiceNumber, 20, yPos);
+      } else {
+        pdf.setTextColor(200, 100, 0);
+        pdf.text("⚠ Generated offline. Please maintain records for compliance.", 20, yPos);
+      }
+      
+      // ==================== PROFESSIONAL FOOTER ====================
+      yPos = pageHeight - 30;
+      
+      // Footer gradient background
+      pdf.setFillColor(245, 245, 245);
+      pdf.rect(0, yPos, pageWidth, 30, 'F');
+      
+      pdf.setFillColor(33, 150, 243);
+      pdf.rect(0, yPos, pageWidth, 2, 'F');
+      
+      // Signature section
+      yPos += 10;
+      pdf.setDrawColor(150, 150, 150);
+      pdf.setLineWidth(0.3);
+      pdf.line(20, yPos, 70, yPos);
+      pdf.line(pageWidth - 70, yPos, pageWidth - 20, yPos);
+      
+      pdf.setTextColor(100, 100, 100);
+      pdf.setFontSize(8);
+      pdf.setFont(undefined, 'italic');
+      pdf.text("Customer Signature", 45, yPos + 5, { align: 'center' });
+      pdf.text("Authorized Signatory", pageWidth - 45, yPos + 5, { align: 'center' });
+      
+      // Footer text
+      yPos += 13;
+      pdf.setTextColor(33, 150, 243);
+      pdf.setFontSize(10);
+      pdf.setFont(undefined, 'bold');
+      pdf.text("Thank You for Choosing MediTatva!", pageWidth / 2, yPos, { align: 'center' });
+      
+      pdf.setTextColor(100, 100, 100);
+      pdf.setFontSize(8);
+      pdf.setFont(undefined, 'normal');
+      pdf.text("Your Health, Our Priority • Open 24/7 • Emergency Services Available", pageWidth / 2, yPos + 5, { align: 'center' });
 
       // Save PDF
       const fileName = `MediTatva_Invoice_${invoiceNumber}_${patientName.replace(/\s+/g, '_')}.pdf`;
