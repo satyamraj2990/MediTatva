@@ -14,6 +14,7 @@ import { AppointmentsSection } from "@/components/AppointmentsSection";
 import { MedicineOrders } from "@/components/MedicineOrders";
 import { HealthReminders } from "@/components/HealthReminders";
 import { Chatbot } from "@/components/Chatbot";
+import { VoiceChatSaarthi } from "@/components/VoiceChatSaarthi";
 import { NearbyMedicalStoresPage } from "@/pages/NearbyMedicalStoresPage";
 import { FindMedicineEnhanced } from "@/pages/FindMedicineEnhanced";
 import { MyMedicineCabinetPage } from "@/pages/MyMedicineCabinetPage";
@@ -23,7 +24,7 @@ import {
   Home, Calendar, ShoppingCart, Bell, FolderOpen,
   MapPin, MessageCircle, LogOut, Menu, X,
   Pill, Camera, Search, Activity, Heart, ChevronRight,
-  Scan, Zap, TrendingUp, Sparkles, Settings, MessageSquare
+  Scan, Zap, TrendingUp, Sparkles, Settings, MessageSquare, Mic, Bot
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,6 +42,8 @@ const PremiumPatientDashboardInner = () => {
   });
   const [showScanner, setShowScanner] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showChatbot, setShowChatbot] = useState(false);
+  const [showVoiceChat, setShowVoiceChat] = useState(false);
 
   // Ensure demo auth for patient
   useEffect(() => {
@@ -826,32 +829,110 @@ const PremiumPatientDashboardInner = () => {
                 >
                   <div className="space-y-4">
                     <div>
-                      <h2 className="text-3xl font-bold text-[rgb(var(--text-primary))] mb-2">AI Health Assistant</h2>
+                      <h2 className="text-3xl font-bold text-[rgb(var(--text-primary))] mb-2">AI Saarthi Assistant</h2>
                       <p className="text-[rgb(var(--text-secondary))]">
-                        Get instant health advice, medicine substitutes, and personalized wellness recommendations
+                        Chat with your AI Saarthi in 10+ languages • Voice & Text Support
                       </p>
                     </div>
-                    <Card 
-                      onClick={() => navigate('/ai-assistant')}
-                      className="p-8 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-pink-900/20 backdrop-blur-sm border-2 border-purple-200 dark:border-purple-700/20 shadow-xl cursor-pointer hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
-                    >
-                      <div className="text-center space-y-4">
-                        <div className="flex justify-center">
-                          <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-4 rounded-2xl shadow-lg">
-                            <MessageSquare className="h-12 w-12 text-white" />
+
+                    {/* AI Saarthi Options */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Text Chat with Multi-Language */}
+                      <Card 
+                        onClick={() => setShowChatbot(true)}
+                        className="p-8 bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50 dark:from-cyan-900/20 dark:via-blue-900/20 dark:to-indigo-900/20 backdrop-blur-sm border-2 border-cyan-200 dark:border-cyan-700/20 shadow-xl cursor-pointer hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
+                      >
+                        <div className="text-center space-y-4">
+                          <div className="flex justify-center">
+                            <div className="bg-gradient-to-br from-cyan-500 to-blue-600 p-4 rounded-2xl shadow-lg">
+                              <MessageSquare className="h-12 w-12 text-white" />
+                            </div>
+                          </div>
+                          <div>
+                            <h3 className="text-2xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+                              💬 Text Chat Assistant
+                            </h3>
+                            <p className="text-[rgb(var(--text-secondary))] mt-2 text-sm">
+                              Chat in 10+ Indian languages<br/>
+                              Auto-detection • Medicine substitutes • Symptom analysis
+                            </p>
+                          </div>
+                          <Badge className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-4 py-1">
+                            🌐 Multilingual Support
+                          </Badge>
+                        </div>
+                      </Card>
+
+                      {/* Voice Chat with AI Saarthi */}
+                      <Card 
+                        onClick={() => setShowVoiceChat(true)}
+                        className="p-8 bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 dark:from-purple-900/20 dark:via-pink-900/20 dark:to-rose-900/20 backdrop-blur-sm border-2 border-purple-200 dark:border-purple-700/20 shadow-xl cursor-pointer hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
+                      >
+                        <div className="text-center space-y-4">
+                          <div className="flex justify-center">
+                            <div className="bg-gradient-to-br from-purple-500 to-pink-600 p-4 rounded-2xl shadow-lg">
+                              <Mic className="h-12 w-12 text-white" />
+                            </div>
+                          </div>
+                          <div>
+                            <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                              🎙️ Voice Chat Saarthi
+                            </h3>
+                            <p className="text-[rgb(var(--text-secondary))] mt-2 text-sm">
+                              Talk with your calm wellness guide<br/>
+                              Voice-based chat • Meditation-friendly • 100% Free
+                            </p>
+                          </div>
+                          <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1">
+                            🎯 Voice-First Experience
+                          </Badge>
+                        </div>
+                      </Card>
+                    </div>
+
+                    {/* Features Overview */}
+                    <Card className="p-6 bg-gradient-to-br from-white/80 to-white/60 dark:from-slate-900/90 dark:to-slate-950/95 backdrop-blur-sm border-2 border-white/20 dark:border-indigo-500/20 shadow-xl">
+                      <h3 className="text-xl font-bold text-[rgb(var(--text-primary))] mb-4 flex items-center gap-2">
+                        <Bot className="h-6 w-6 text-indigo-500" />
+                        AI Saarthi Features
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-start gap-3">
+                          <div className="h-8 w-8 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center flex-shrink-0">
+                            <span className="text-lg">🌐</span>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-[rgb(var(--text-primary))]">10+ Languages</p>
+                            <p className="text-sm text-[rgb(var(--text-secondary))]">English, Hindi, Tamil, Telugu, Bengali & more</p>
                           </div>
                         </div>
-                        <div>
-                          <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                            Open AI Health Assistant
-                          </h3>
-                          <p className="text-[rgb(var(--text-secondary))] mt-2">
-                            Click here to chat with our AI assistant for health advice and medicine alternatives
-                          </p>
+                        <div className="flex items-start gap-3">
+                          <div className="h-8 w-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                            <span className="text-lg">🎙️</span>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-[rgb(var(--text-primary))]">Voice Chat</p>
+                            <p className="text-sm text-[rgb(var(--text-secondary))]">Talk naturally with AI Saarthi</p>
+                          </div>
                         </div>
-                        <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg">
-                          Start Chatting →
-                        </Button>
+                        <div className="flex items-start gap-3">
+                          <div className="h-8 w-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                            <span className="text-lg">💊</span>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-[rgb(var(--text-primary))]">Medicine Substitutes</p>
+                            <p className="text-sm text-[rgb(var(--text-secondary))]">Find affordable alternatives instantly</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="h-8 w-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
+                            <span className="text-lg">🩺</span>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-[rgb(var(--text-primary))]">Symptom Analysis</p>
+                            <p className="text-sm text-[rgb(var(--text-secondary))]">Get AI-powered health insights</p>
+                          </div>
+                        </div>
                       </div>
                     </Card>
                   </div>
@@ -939,6 +1020,18 @@ const PremiumPatientDashboardInner = () => {
         isOpen={showScanner} 
         onClose={() => setShowScanner(false)} 
       />
+
+      {/* AI Chatbot Modal */}
+      {showChatbot && (
+        <Chatbot onClose={() => setShowChatbot(false)} />
+      )}
+
+      {/* Voice Chat Saarthi Modal */}
+      <AnimatePresence>
+        {showVoiceChat && (
+          <VoiceChatSaarthi onClose={() => setShowVoiceChat(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

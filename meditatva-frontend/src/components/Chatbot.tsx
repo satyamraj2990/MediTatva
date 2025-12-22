@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Send, Sparkles, AlertCircle } from "lucide-react";
-import { motion } from "framer-motion";
+import { X, Send, Sparkles, AlertCircle, Mic, Languages } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { toast } from "sonner";
+import { VoiceChatSaarthi } from "./VoiceChatSaarthi";
+import { getLanguageConfig, getLanguageList, detectLanguage, type LanguageConfig } from "@/utils/languageSupport";
 
 interface Message {
   text: string;
@@ -144,8 +146,14 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [chatSession, setChatSession] = useState<any>(null);
+  const [showVoiceChat, setShowVoiceChat] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState<string>('hi');
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  const langConfig = getLanguageConfig(currentLanguage);
+  const availableLanguages = getLanguageList();
 
   const handleClose = () => {
     if (onClose) {
@@ -173,6 +181,21 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
     }
   }, [isOpen]);
 
+  // Close language menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (showLanguageMenu) {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.language-menu-container')) {
+          setShowLanguageMenu(false);
+        }
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showLanguageMenu]);
+
   // Initialize chat session when chatbot opens
   useEffect(() => {
     if (isOpen && !chatSession) {
@@ -183,6 +206,7 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
   const initializeChatSession = async () => {
     try {
       if (!genAI) {
+        console.error("Gemini AI not available - API key missing");
         // API key not configured - show informational message
         setMessages([{
           text: "👋 **Hello! I'm MediTatva, your AI Health Assistant.**\n\nHow are you feeling today? Please describe your symptoms or health concerns, and I'll provide helpful medical guidance. 😊\n\n⚠️ *Note: AI features require API configuration. Please contact support for assistance.*",
@@ -192,9 +216,9 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
         return;
       }
 
+      console.log("Initializing Gemini chat session...");
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
-        systemInstruction: SYSTEM_PROMPT
+        model: "gemini-2.5-flash"
       });
 
       const chat = model.startChat({
@@ -204,13 +228,24 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
           topK: 40,
           maxOutputTokens: 2048,
         },
+        history: [
+          {
+            role: "user",
+            parts: [{ text: "You are MediTatva AI Health Assistant. Follow these rules: " + SYSTEM_PROMPT }],
+          },
+          {
+            role: "model",
+            parts: [{ text: "नमस्ते! मैं मेडिटत्व हूं, आपका AI स्वास्थ्य सहायक। आज आप कैसा महसूस कर रहे हैं? मैं किसी भी भाषा में आपकी मदद कर सकता हूं।" }],
+          },
+        ],
       });
 
       setChatSession(chat);
+      console.log("Chat session initialized successfully");
 
-      // Simple, clean English greeting with substitute feature mention
+      // Greeting in selected language with substitute feature mention
       setMessages([{
-        text: "👋 **Hello! I'm MediTatva, your AI Health Assistant.**\n\nHow are you feeling today? I can help you with:\n\n💊 **Medicine Substitutes** - Ask about affordable alternatives\n🩺 **Symptom Analysis** - Describe your symptoms for advice\n🏥 **Health Guidance** - Get medical recommendations\n\nJust type your question or symptoms! 😊",
+        text: langConfig.greeting,
         isBot: true,
         timestamp: new Date(),
       }]);
@@ -227,6 +262,16 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
 
   const handleSend = async () => {
     if (!inputValue.trim()) return;
+    
+    // Auto-detect language from user input BEFORE sending
+    const detectedLang = detectLanguage(inputValue);
+    console.log("Detected language:", detectedLang, "for input:", inputValue.substring(0, 20));
+    
+    if (detectedLang !== currentLanguage) {
+      console.log("Switching language from", currentLanguage, "to", detectedLang);
+      setCurrentLanguage(detectedLang);
+      toast.success(`Language detected: ${getLanguageConfig(detectedLang).nativeName}`);
+    }
     
     const userMessage: Message = {
       text: inputValue,
@@ -252,9 +297,28 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
         return;
       }
 
-      // Send message to Gemini AI
-      const result = await chatSession.sendMessage(currentInput);
+      // Send message to Gemini AI with better error handling
+      console.log("📤 Sending message to Gemini:", currentInput.substring(0, 30));
+      
+      const result = await Promise.race([
+        chatSession.sendMessage(currentInput),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Request timeout - please try again")), 30000)
+        )
+      ]) as any;
+
+      console.log("✅ Received response from Gemini");
+      
+      if (!result || !result.response) {
+        throw new Error("Invalid response structure from AI");
+      }
+      
       const response = result.response.text();
+      console.log("📝 Response text length:", response?.length || 0);
+
+      if (!response || response.trim().length === 0) {
+        throw new Error("Empty response from AI");
+      }
 
       const botResponse: Message = {
         text: response,
@@ -263,9 +327,32 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
       };
       setMessages((prev) => [...prev, botResponse]);
     } catch (error) {
-      console.error("Error getting AI response:", error);
+      console.error("❌ Error getting AI response:", error);
+      console.error("Error details:", error instanceof Error ? error.message : String(error));
+      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      
+      // Provide helpful, language-appropriate error message
+      let errorText: string;
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      
+      // Check for quota exceeded error
+      if (errorMsg.includes("quota") || errorMsg.includes("429") || errorMsg.includes("RESOURCE_EXHAUSTED")) {
+        errorText = currentLanguage === 'hi'
+          ? "⚠️ **सेवा व्यस्त है**\n\nअभी बहुत सारे लोग मुझसे बात कर रहे हैं। कृपया 1-2 मिनट में फिर से कोशिश करें।\n\n**आपातकाल में:**\n• तुरंत 108/102 पर कॉल करें\n• नजदीकी अस्पताल जाएं\n\nधन्यवाद! 🙏"
+          : "⚠️ **Service Busy**\n\nMany people are talking to me right now. Please try again in 1-2 minutes.\n\n**In emergencies:**\n• Call 108/102 immediately\n• Visit nearest hospital\n\nThank you! 🙏";
+        toast.error("API quota exceeded. Please wait 1-2 minutes.", { duration: 5000 });
+      } else if (errorMsg.includes("timeout")) {
+        errorText = currentLanguage === 'hi'
+          ? "⚠️ **कनेक्शन में देरी**\n\nकृपया थोड़ा इंतजार करें और फिर से कोशिश करें। अगर समस्या बनी रहे तो:\n\n• अपना इंटरनेट कनेक्शन जांचें\n• कुछ समय बाद पुनः प्रयास करें\n\nमैं आपकी मदद के लिए यहाँ हूं! 😊"
+          : "⚠️ **Connection Timeout**\n\nPlease wait a moment and try again. If the issue persists:\n\n• Check your internet connection\n• Try again in a few moments\n\nI'm here to help! 😊";
+      } else {
+        errorText = currentLanguage === 'hi'
+          ? "⚠️ **सेवा में देरी**\n\nमैं अभी उपलब्ध नहीं हूं, लेकिन जल्द ही वापस आऊंगा। इस बीच:\n\n• आपातकालीन स्थिति में: 108/102 पर कॉल करें\n• नजदीकी फार्मेसी या डॉक्टर से संपर्क करें\n• कुछ देर बाद फिर से कोशिश करें\n\nधन्यवाद! 🙏"
+          : "⚠️ **Service Temporarily Unavailable**\n\nI'm not available right now, but I'll be back soon. Meanwhile:\n\n• For emergencies: Call 108/102\n• Visit a nearby pharmacy or doctor\n• Try again in a few moments\n\nThank you! 🙏";
+      }
+      
       const errorMessage: Message = {
-        text: "⚠️ **Connection Error**\n\nI'm having trouble connecting to the AI service right now. Please:\n\n• Check your internet connection\n• Try again in a moment\n• If symptoms are urgent, consult a doctor immediately\n\n*For persistent issues, please contact MediTatva support.*",
+        text: errorText,
         isBot: true,
         timestamp: new Date(),
       };
@@ -279,6 +366,23 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  // Handle language change
+  const handleLanguageChange = (langCode: string) => {
+    setCurrentLanguage(langCode);
+    setShowLanguageMenu(false);
+    const newLangConfig = getLanguageConfig(langCode);
+    toast.success(`Language changed to ${newLangConfig.nativeName}`);
+    
+    // Update greeting message
+    if (messages.length > 0 && messages[0].isBot) {
+      setMessages([{
+        text: newLangConfig.greeting,
+        isBot: true,
+        timestamp: new Date(),
+      }]);
     }
   };
 
@@ -489,8 +593,70 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
                 </h3>
                 <p className="text-white/90 text-sm flex items-center gap-1">
                   <span className="h-2 w-2 bg-green-400 rounded-full animate-pulse"></span>
-                  Multilingual Health Assistant
+                  {langConfig.healthAssistant}
                 </p>
+              </div>
+              <div className="flex gap-2">
+                {/* Language Selector */}
+                <div className="relative language-menu-container">
+                  <Button
+                    onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                    size="sm"
+                    className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm"
+                    title="Change Language"
+                  >
+                    <Languages className="h-4 w-4" />
+                    <span className="ml-1 text-lg">{langConfig.flag}</span>
+                  </Button>
+                  
+                  {/* Language Dropdown Menu */}
+                  <AnimatePresence>
+                    {showLanguageMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 z-50 max-h-96 overflow-y-auto"
+                      >
+                        <div className="p-2">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2 font-semibold">
+                            Select Language
+                          </p>
+                          {availableLanguages.map((lang) => (
+                            <button
+                              key={lang.code}
+                              onClick={() => handleLanguageChange(lang.code)}
+                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors ${
+                                currentLanguage === lang.code
+                                  ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-900 dark:text-cyan-100'
+                                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                              }`}
+                            >
+                              <span className="text-2xl">{lang.flag}</span>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">{lang.nativeName}</p>
+                                <p className="text-xs opacity-70">{lang.name}</p>
+                              </div>
+                              {currentLanguage === lang.code && (
+                                <span className="text-cyan-600 dark:text-cyan-400">✓</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                
+                {/* Voice Chat Button */}
+                <Button
+                  onClick={() => setShowVoiceChat(true)}
+                  size="sm"
+                  className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm"
+                  title="Voice Chat"
+                >
+                  <Mic className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </div>
@@ -584,7 +750,7 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
                   setInputValue(e.target.value);
                 }}
                 onKeyDown={handleKeyPress}
-                placeholder="Describe your symptoms... (Any language supported)"
+                placeholder={langConfig.placeholder}
                 className="flex h-10 w-full rounded-md border border-[#1B6CA8]/30 px-3 py-2 text-base focus:border-[#1B6CA8] focus:ring-2 focus:ring-[#1B6CA8]/20 focus-visible:outline-none md:text-sm"
                 autoComplete="off"
                 readOnly={false}
@@ -605,16 +771,22 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
                 style={{
                   background: 'linear-gradient(135deg, #1B6CA8 0%, #4FC3F7 100%)',
                 }}
+                title={langConfig.send}
               >
                 <Send className="h-4 w-4 text-white" />
               </Button>
             </form>
             <p className="text-xs text-gray-400 mt-2 text-center">
-              💡 Powered by MediTatva AI • Multilingual Support
+              {langConfig.powered}
             </p>
           </div>
         </Card>
       )}
+
+      {/* Voice Chat Modal */}
+      <AnimatePresence>
+        {showVoiceChat && <VoiceChatSaarthi onClose={() => setShowVoiceChat(false)} />}
+      </AnimatePresence>
     </>
   );
 };

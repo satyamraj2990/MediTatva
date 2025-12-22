@@ -46,7 +46,7 @@ const Login = () => {
       localStorage.setItem("isAuthenticated", "true");
       
       setTimeout(() => {
-        navigate(role === "patient" ? "/patient/modern" : "/pharmacy/dashboard");
+        navigate(role === "patient" ? "/patient/premium" : "/pharmacy/dashboard");
       }, 500);
     } else {
       toast.error("Invalid credentials. Use demo credentials below.");

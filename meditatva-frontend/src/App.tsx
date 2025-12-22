@@ -8,7 +8,6 @@ import { Suspense, lazy } from "react";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import PatientDashboard from "./pages/PatientDashboard";
-import PatientDashboardPremium from "./pages/PatientDashboardPremium";
 import PremiumPatientDashboard from "./pages/PremiumPatientDashboard";
 import AIHealthAssistantPage from "./pages/AIHealthAssistantPage";
 import NotFound from "./pages/NotFound";
@@ -21,7 +20,6 @@ const ChatTab = lazy(() => import("./pages/pharmacy-tabs/ChatTab").then(m => ({ 
 const AIInsightsTab = lazy(() => import("./pages/pharmacy-tabs/AIInsightsTab").then(m => ({ default: m.AIInsightsTab })));
 const BillingTab = lazy(() => import("./pages/pharmacy-tabs/BillingTab").then(m => ({ default: m.BillingTab })));
 const OrderRequestsTab = lazy(() => import("./pages/pharmacy-tabs/OrderRequestsTab").then(m => ({ default: m.OrderRequestsTab })));
-const PatientDashboardResponsive = lazy(() => import("./pages/PatientDashboardResponsive"));
 
 const queryClient = new QueryClient();
 
@@ -47,9 +45,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/patient/dashboard" element={<PatientDashboard />} />
-              <Route path="/patient/responsive" element={<PatientDashboardResponsive />} />
-              <Route path="/patient/premium" element={<PatientDashboardPremium />} />
-              <Route path="/patient/modern" element={<PremiumPatientDashboard />} />
+              <Route path="/patient/premium" element={<PremiumPatientDashboard />} />
               <Route path="/ai-assistant" element={<AIHealthAssistantPage />} />
               
               {/* Pharmacy Dashboard with Nested Routes */}

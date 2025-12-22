@@ -535,7 +535,7 @@ export const FindMedicineAdvanced = memo(() => {
             onClose={() => setShowSuccessModal(false)}
             onViewOrders={() => {
               setShowSuccessModal(false);
-              navigate("/patient/modern?section=orders");
+              navigate("/patient/premium?section=orders");
             }}
           />
         )}

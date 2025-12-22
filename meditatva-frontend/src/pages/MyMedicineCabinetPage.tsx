@@ -282,7 +282,7 @@ export const MyMedicineCabinetPage = memo(() => {
   const handleFindNearby = (medicineName: string) => {
     toast.info(`Searching for ${medicineName} near you...`);
     // TODO: Integrate with Find Medicine feature
-    navigate("/patient/modern?section=find-medicine");
+    navigate("/patient/premium?section=find-medicine");
   };
 
   const handleRequestRefill = (medicine: Medicine) => {
