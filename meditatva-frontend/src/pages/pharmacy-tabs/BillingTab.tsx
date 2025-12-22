@@ -14,6 +14,8 @@ import jsPDF from "jspdf";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
+console.log('🔧 BillingTab API_URL:', API_URL); // Debug log
+
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.3 } },
@@ -48,86 +50,12 @@ interface InvoiceHistory {
   paymentMethod: string;
 }
 
-// Local inventory medicines (same as InventoryTab)
-const inventoryMedicines: Medicine[] = [
-  {
-    _id: "1",
-    name: "Paracetamol 500mg",
-    brand: "PharmaCo Ltd",
-    price: 2.50,
-    current_stock: 450,
-    inStock: true,
-    requiresPrescription: false,
-  },
-  {
-    _id: "2",
-    name: "Cetirizine 10mg",
-    brand: "AllergyMed",
-    price: 4.75,
-    current_stock: 28,
-    inStock: true,
-    requiresPrescription: false,
-  },
-  {
-    _id: "3",
-    name: "Ibuprofen 400mg",
-    brand: "PainFree Corp",
-    price: 3.20,
-    current_stock: 185,
-    inStock: true,
-    requiresPrescription: false,
-  },
-  {
-    _id: "4",
-    name: "Amoxicillin 500mg",
-    brand: "AntiBio Pharma",
-    price: 8.50,
-    current_stock: 0,
-    inStock: false,
-    requiresPrescription: true,
-  },
-  {
-    _id: "5",
-    name: "Omeprazole 20mg",
-    brand: "DigestiCare",
-    price: 5.25,
-    current_stock: 320,
-    inStock: true,
-    requiresPrescription: false,
-  },
-  {
-    _id: "6",
-    name: "Metformin 500mg",
-    brand: "DiabetesControl",
-    price: 6.90,
-    current_stock: 140,
-    inStock: true,
-    requiresPrescription: true,
-  },
-  {
-    _id: "7",
-    name: "Aspirin 75mg",
-    brand: "CardioHealth",
-    price: 1.80,
-    current_stock: 95,
-    inStock: true,
-    requiresPrescription: false,
-  },
-  {
-    _id: "8",
-    name: "Atorvastatin 10mg",
-    brand: "CardioMed",
-    price: 9.80,
-    current_stock: 210,
-    inStock: true,
-    requiresPrescription: true,
-  },
-];
-
 export const BillingTab = memo(() => {
   const [searchQuery, setSearchQuery] = useState("");
   const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [availableMedicines, setAvailableMedicines] = useState<Medicine[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingAvailable, setIsLoadingAvailable] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showBillingModal, setShowBillingModal] = useState(false);
@@ -139,6 +67,41 @@ export const BillingTab = memo(() => {
   const [invoiceHistory, setInvoiceHistory] = useState<InvoiceHistory[]>([]);
   const [showInventoryMedicines, setShowInventoryMedicines] = useState(true);
 
+  // Fetch available medicines from backend (in-stock, non-expired)
+  const fetchAvailableMedicines = async () => {
+    console.log('📦 Fetching available medicines from:', `${API_URL}/invoices/available-medicines`);
+    setIsLoadingAvailable(true);
+    try {
+      const response = await fetch(`${API_URL}/invoices/available-medicines`);
+      console.log('📦 Response status:', response.status, response.statusText);
+      const data = await response.json();
+      console.log('📦 Response data:', data);
+      
+      if (data.success) {
+        setAvailableMedicines(data.data || []);
+        console.log('✅ Loaded', data.data?.length || 0, 'medicines');
+      } else {
+        console.error('❌ Failed to fetch available medicines:', data.message);
+        toast.error('Failed to load medicines');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching available medicines:', error);
+      console.error('❌ Error details:', {
+        name: (error as Error).name,
+        message: (error as Error).message,
+        stack: (error as Error).stack
+      });
+      toast.error('Failed to connect to server');
+    } finally {
+      setIsLoadingAvailable(false);
+    }
+  };
+
+  // Load available medicines on mount
+  useEffect(() => {
+    fetchAvailableMedicines();
+  }, []);
+
   // Search medicines from API
   useEffect(() => {
     const searchMedicines = async () => {
@@ -147,21 +110,32 @@ export const BillingTab = memo(() => {
         return;
       }
 
+      console.log('🔍 Searching medicines:', searchQuery);
       setIsSearching(true);
       try {
         setSearchError(null);
-        const response = await fetch(`${API_URL}/medicines/search?q=${encodeURIComponent(searchQuery)}`);
+        const url = `${API_URL}/medicines/search?q=${encodeURIComponent(searchQuery)}`;
+        console.log('🔍 Search URL:', url);
+        const response = await fetch(url);
+        console.log('🔍 Search response:', response.status);
         const data = await response.json();
         
         if (data.success) {
           setMedicines(data.data || []);
+          console.log('✅ Found', data.data?.length || 0, 'medicines');
         } else {
           setMedicines([]);
           setSearchError(data.message || 'Failed to search medicines');
           toast.error(data.message || 'Failed to search medicines');
+          console.error('❌ Search failed:', data.message);
         }
       } catch (error: any) {
-        console.error('Search error:', error);
+        console.error('❌ Search error:', error);
+        console.error('❌ Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
         setMedicines([]);
         setSearchError('Failed to connect to server');
         toast.error('Failed to connect to server');
@@ -176,15 +150,24 @@ export const BillingTab = memo(() => {
 
   // Fetch invoice history
   const fetchInvoiceHistory = async () => {
+    console.log('📋 Fetching invoice history from:', `${API_URL}/invoices`);
     try {
       const response = await fetch(`${API_URL}/invoices`);
+      console.log('📋 Invoice history response:', response.status);
       const data = await response.json();
       
       if (data.success) {
         setInvoiceHistory(data.data || []);
+        console.log('✅ Loaded', data.data?.length || 0, 'invoices');
+      } else {
+        console.error('❌ Failed to fetch invoice history:', data.message);
       }
     } catch (error) {
-      console.error('Failed to fetch invoice history:', error);
+      console.error('❌ Failed to fetch invoice history:', error);
+      console.error('❌ Error details:', {
+        name: (error as Error).name,
+        message: (error as Error).message
+      });
     }
   };
 
@@ -317,6 +300,8 @@ export const BillingTab = memo(() => {
 
       // Try to save to backend (if available)
       let backendSaved = false;
+      let savedInvoiceNumber = invoiceNumber;
+      
       try {
         const invoiceData = {
           customerName: patientName,
@@ -330,6 +315,8 @@ export const BillingTab = memo(() => {
           notes: email ? `Customer email: ${email}` : undefined
         };
 
+        console.log('Sending invoice data:', invoiceData);
+
         const response = await fetch(`${API_URL}/invoices/finalize`, {
           method: 'POST',
           headers: {
@@ -339,13 +326,22 @@ export const BillingTab = memo(() => {
         });
 
         const result = await response.json();
+        
         if (result.success) {
           backendSaved = true;
+          savedInvoiceNumber = result.data.invoiceNumber;
           toast.success("✅ Invoice saved to database!");
+          console.log('Invoice saved successfully:', result.data);
+        } else {
+          console.error('Backend save failed:', result);
+          toast.error(`Failed to save invoice: ${result.message || 'Unknown error'}`);
+          throw new Error(result.message || 'Failed to save invoice');
         }
-      } catch (error) {
-        console.log("Backend not available, generating invoice locally");
-        toast.info("📄 Generating invoice locally");
+      } catch (error: any) {
+        console.error("Backend save error:", error);
+        toast.error(`Invoice creation failed: ${error.message}`);
+        setIsProcessing(false);
+        return; // Don't generate PDF if backend fails
       }
 
       // ==================== PROFESSIONAL INVOICE GENERATION ====================
@@ -444,7 +440,7 @@ export const BillingTab = memo(() => {
       pdf.setFont('helvetica', 'bold');
       pdf.text("Invoice No:", margin + boxPadding, yPos + 12);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(invoiceNumber, margin + 26, yPos + 12);
+      pdf.text(savedInvoiceNumber, margin + 26, yPos + 12);
       
       pdf.setFont('helvetica', 'bold');
       pdf.text("Date:", margin + boxPadding, yPos + 17);
@@ -731,7 +727,7 @@ export const BillingTab = memo(() => {
       
       if (backendSaved) {
         pdf.setTextColor(34, 197, 94);
-        pdf.text("✓ Invoice successfully saved to database. Reference ID: " + invoiceNumber, margin + 2, yPos);
+        pdf.text("✓ Invoice successfully saved to database. Reference ID: " + savedInvoiceNumber, margin + 2, yPos);
       } else {
         pdf.setTextColor(234, 88, 12);
         pdf.text("⚠ Generated in offline mode. Please ensure proper record maintenance.", margin + 2, yPos);
@@ -775,22 +771,12 @@ export const BillingTab = memo(() => {
       pdf.setTextColor(120, 120, 120);
       pdf.text(`Generated on ${currentDate.toLocaleString('en-IN')}  |  Page 1 of 1`, pageWidth / 2, yPos + 19, { align: 'center' });
 
+      
       // ==================== SAVE PDF ====================
-      const fileName = `MediTatva_Invoice_${invoiceNumber}_${patientName.replace(/\s+/g, '_')}.pdf`;
+      const fileName = `MediTatva_Invoice_${savedInvoiceNumber}_${patientName.replace(/\s+/g, '_')}.pdf`;
       pdf.save(fileName);
       
-      toast.success(`✅ Invoice ${invoiceNumber} downloaded successfully!`);
-      
-      // Store invoice in history
-      const newInvoice = {
-        _id: invoiceNumber,
-        invoiceNumber,
-        patientName,
-        createdAt: currentDate.toISOString(),
-        total: calculateTotal(),
-        paymentMethod: paymentType
-      };
-      setInvoiceHistory([newInvoice, ...invoiceHistory]);
+      toast.success(`✅ Invoice ${savedInvoiceNumber} downloaded successfully!`);
       
       // Reset form
       setShowBillingModal(false);
@@ -800,11 +786,14 @@ export const BillingTab = memo(() => {
       setEmail("");
       setPaymentType("cash");
       
-      // Refresh invoice history
+      // Refresh data from backend
       await fetchInvoiceHistory();
-    } catch (error) {
+      await fetchAvailableMedicines(); // Refresh medicine list with updated stock
+      
+      toast.success("🔄 Inventory updated successfully!");
+    } catch (error: any) {
       console.error("Invoice generation error:", error);
-      toast.error("Failed to generate invoice. Please try again.");
+      toast.error(`Failed to generate invoice: ${error.message || 'Unknown error'}`);
     } finally {
       setIsProcessing(false);
     }
@@ -916,12 +905,20 @@ export const BillingTab = memo(() => {
               {/* Scrollable Medicine List */}
               <div className="space-y-3 max-h-[calc(100vh-380px)] overflow-y-auto pr-2 custom-scrollbar">
             {showInventoryMedicines ? (
-              // Show inventory medicines
+              // Show inventory medicines from backend
               <>
-                {inventoryMedicines
+                {isLoadingAvailable && (
+                  <div className="text-center py-12">
+                    <div className="animate-spin h-8 w-8 border-4 border-[#1B6CA8] border-t-transparent rounded-full mx-auto mb-3"></div>
+                    <p className="text-[#5A6A85]">Loading medicines...</p>
+                  </div>
+                )}
+                
+                {!isLoadingAvailable && availableMedicines
                   .filter(med => 
                     searchQuery.length === 0 || 
                     med.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    med.genericName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     med.brand?.toLowerCase().includes(searchQuery.toLowerCase())
                   )
                   .map((medicine) => (
@@ -938,7 +935,7 @@ export const BillingTab = memo(() => {
                       <div className="flex-1">
                         <p className="font-bold text-[#0A2342] text-base mb-1">{medicine.name}</p>
                         <p className="text-sm text-[#5A6A85] mb-2">
-                          {medicine.brand}
+                          {medicine.brand || medicine.genericName}
                         </p>
                         <div className="flex items-center gap-3">
                           <span className="text-lg font-bold text-[#1B6CA8]">
@@ -964,22 +961,23 @@ export const BillingTab = memo(() => {
                       </div>
                       <Button
                         onClick={() => addToCart(medicine)}
-                        disabled={!medicine.inStock}
+                        disabled={medicine.current_stock === 0}
                         size="lg"
                         className={
-                          medicine.inStock
+                          medicine.current_stock > 0
                             ? "bg-gradient-to-r from-[#1B6CA8] to-[#4FC3F7] hover:from-[#4FC3F7] hover:to-[#1B6CA8] text-white font-semibold shadow-md hover:shadow-lg transition-all px-6"
                             : "bg-gray-300 text-gray-500 cursor-not-allowed"
                         }
                       >
                         <Plus className="h-5 w-5 mr-2" />
-                        {medicine.inStock ? "Add to Cart" : "Out of Stock"}
+                        {medicine.current_stock > 0 ? "Add to Cart" : "Out of Stock"}
                       </Button>
                     </motion.div>
                   ))}
-                {inventoryMedicines.filter(med => 
+                {!isLoadingAvailable && availableMedicines.filter(med => 
                   searchQuery.length === 0 || 
                   med.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  med.genericName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                   med.brand?.toLowerCase().includes(searchQuery.toLowerCase())
                 ).length === 0 && (
                   <div className="text-center py-12">

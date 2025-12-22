@@ -1,4 +1,4 @@
-import { memo, useState, useMemo } from "react";
+import { memo, useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,10 @@ import { toast } from "sonner";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+console.log('🔧 InventoryTab API_URL:', API_URL); // Debug log
+
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.3, staggerChildren: 0.05 } },
@@ -52,7 +56,26 @@ const cardVariants = {
 };
 
 interface Medicine {
-  id: number;
+  _id: string;
+  medicine: {
+    _id: string;
+    name: string;
+    genericName?: string;
+    brand?: string;
+    category?: string;
+    manufacturer?: string;
+    price: number;
+  };
+  current_stock: number;
+  reorderLevel: number;
+  batchNumber?: string;
+  expiryDate?: string;
+  location?: string;
+  lastRestocked?: string;
+}
+
+interface FlatMedicine {
+  id: string;
   name: string;
   batchNumber: string;
   manufacturer: string;
@@ -166,7 +189,8 @@ const initialInventory: Medicine[] = [
 const categories = ["All Categories", "Pain Relief", "Allergy", "Antibiotic", "Digestive", "Diabetes", "Cardiovascular"];
 
 export const InventoryTab = memo(() => {
-  const [inventory, setInventory] = useState<Medicine[]>(initialInventory);
+  const [inventory, setInventory] = useState<FlatMedicine[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
   const [stockFilter, setStockFilter] = useState("All Stock");
@@ -174,8 +198,60 @@ export const InventoryTab = memo(() => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
-  const [formData, setFormData] = useState<Partial<Medicine>>({});
+  const [selectedMedicine, setSelectedMedicine] = useState<FlatMedicine | null>(null);
+  const [formData, setFormData] = useState<Partial<FlatMedicine>>({});
+
+  // Fetch inventory from backend
+  const fetchInventory = async () => {
+    console.log('📦 Fetching inventory from:', `${API_URL}/inventory`);
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/inventory?limit=1000`);
+      console.log('📦 Inventory response status:', response.status);
+      const result = await response.json();
+      console.log('📦 Inventory response data:', result);
+      
+      if (result.success) {
+        // Transform backend data to match UI format
+        const transformedData: FlatMedicine[] = result.data.map((item: Medicine) => ({
+          id: item._id,
+          name: item.medicine?.name || 'Unknown',
+          batchNumber: item.batchNumber || 'N/A',
+          manufacturer: item.medicine?.manufacturer || 'N/A',
+          quantity: item.current_stock,
+          price: item.medicine?.price || 0,
+          expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString().split('T')[0] : '2026-12-31',
+          supplier: item.location || 'Main Store',
+          category: item.medicine?.category || 'General',
+          barcode: `BAR${item._id.slice(-8)}`
+        }));
+        setInventory(transformedData);
+        console.log('✅ Loaded', transformedData.length, 'inventory items');
+      } else {
+        console.error('❌ Failed to fetch inventory:', result.message);
+        toast.error('Failed to load inventory');
+        // Fallback to initial inventory
+        setInventory(initialInventory);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching inventory:', error);
+      console.error('❌ Error details:', {
+        name: (error as Error).name,
+        message: (error as Error).message,
+        stack: (error as Error).stack
+      });
+      toast.error('Failed to connect to server');
+      // Fallback to initial inventory
+      setInventory(initialInventory);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load inventory on mount
+  useEffect(() => {
+    fetchInventory();
+  }, []);
 
   // Calculate stock status
   const getStockStatus = (quantity: number): { status: string; color: string; icon: any } => {
