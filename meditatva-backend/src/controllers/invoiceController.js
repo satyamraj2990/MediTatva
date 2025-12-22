@@ -4,15 +4,230 @@ const Inventory = require('../models/Inventory');
 const Medicine = require('../models/Medicine');
 
 /**
- * Finalize invoice and update inventory (with transaction)
+ * Get all available medicines for billing
+ * GET /api/invoices/available-medicines
+ * Returns only in-stock, non-expired medicines
+ */
+exports.getAvailableMedicines = async (req, res) => {
+  try {
+    const { search = '' } = req.query;
+    
+    // Get all inventory items with stock > 0
+    const inventoryQuery = { current_stock: { $gt: 0 } };
+    
+    const inventoryItems = await Inventory.find(inventoryQuery)
+      .populate('medicine')
+      .lean();
+    
+    // Filter out expired medicines and apply search
+    const now = new Date();
+    let availableMedicines = inventoryItems.filter(inv => {
+      // Filter expired
+      if (inv.expiryDate && inv.expiryDate < now) return false;
+      
+      // Filter inactive medicines
+      if (inv.medicine && !inv.medicine.isActive) return false;
+      
+      return true;
+    });
+    
+    // Apply search filter if provided
+    if (search) {
+      const searchLower = search.toLowerCase();
+      availableMedicines = availableMedicines.filter(inv => {
+        const med = inv.medicine;
+        return (
+          med.name.toLowerCase().includes(searchLower) ||
+          (med.genericName && med.genericName.toLowerCase().includes(searchLower)) ||
+          (med.brand && med.brand.toLowerCase().includes(searchLower))
+        );
+      });
+    }
+    
+    // Transform to billing-friendly format
+    const results = availableMedicines.map(inv => ({
+      medicineId: inv.medicine._id,
+      name: inv.medicine.name,
+      genericName: inv.medicine.genericName,
+      brand: inv.medicine.brand,
+      dosage: inv.medicine.dosage,
+      form: inv.medicine.form,
+      price: inv.medicine.price,
+      availableStock: inv.current_stock,
+      batchNumber: inv.batchNumber,
+      expiryDate: inv.expiryDate,
+      requiresPrescription: inv.medicine.requiresPrescription,
+      category: inv.medicine.category
+    }));
+    
+    res.json({
+      success: true,
+      count: results.length,
+      data: results
+    });
+  } catch (error) {
+    console.error('Get available medicines error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get available medicines',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Preview invoice (validate without creating)
+ * POST /api/invoices/preview
+ * Body: { items: [{ medicineId, quantity }] }
+ * Returns: validation results, calculations, stock warnings
+ */
+exports.previewInvoice = async (req, res) => {
+  try {
+    const { items = [] } = req.body;
+    
+    if (!items || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No items provided for preview'
+      });
+    }
+    
+    const validationResults = [];
+    const previewItems = [];
+    let subtotal = 0;
+    let hasErrors = false;
+    
+    for (const item of items) {
+      const { medicineId, quantity } = item;
+      
+      if (!medicineId || !quantity || quantity <= 0) {
+        validationResults.push({
+          medicineId,
+          valid: false,
+          error: 'Invalid medicine ID or quantity'
+        });
+        hasErrors = true;
+        continue;
+      }
+      
+      // Get medicine and inventory
+      const medicine = await Medicine.findById(medicineId);
+      if (!medicine) {
+        validationResults.push({
+          medicineId,
+          valid: false,
+          error: 'Medicine not found'
+        });
+        hasErrors = true;
+        continue;
+      }
+      
+      const inventory = await Inventory.findOne({ medicine: medicineId });
+      if (!inventory) {
+        validationResults.push({
+          medicineId,
+          medicineName: medicine.name,
+          valid: false,
+          error: 'No inventory record found'
+        });
+        hasErrors = true;
+        continue;
+      }
+      
+      // Check expiry
+      if (inventory.expiryDate && inventory.expiryDate < new Date()) {
+        validationResults.push({
+          medicineId,
+          medicineName: medicine.name,
+          valid: false,
+          error: 'Medicine has expired',
+          expiryDate: inventory.expiryDate
+        });
+        hasErrors = true;
+        continue;
+      }
+      
+      // Check stock availability
+      if (inventory.current_stock < quantity) {
+        validationResults.push({
+          medicineId,
+          medicineName: medicine.name,
+          valid: false,
+          error: 'Insufficient stock',
+          requestedQuantity: quantity,
+          availableStock: inventory.current_stock
+        });
+        hasErrors = true;
+        continue;
+      }
+      
+      // Valid item
+      const lineTotal = medicine.price * quantity;
+      subtotal += lineTotal;
+      
+      validationResults.push({
+        medicineId,
+        medicineName: medicine.name,
+        valid: true,
+        quantity,
+        unitPrice: medicine.price,
+        lineTotal,
+        availableStock: inventory.current_stock,
+        stockAfterSale: inventory.current_stock - quantity
+      });
+      
+      previewItems.push({
+        medicine: medicineId,
+        medicineName: medicine.name,
+        quantity,
+        unitPrice: medicine.price,
+        lineTotal
+      });
+    }
+    
+    // Calculate totals
+    const tax = subtotal * 0; // Configure tax rate as needed
+    const discount = 0;
+    const total = subtotal + tax - discount;
+    
+    res.json({
+      success: !hasErrors,
+      valid: !hasErrors,
+      validationResults,
+      preview: hasErrors ? null : {
+        items: previewItems,
+        subtotal,
+        tax,
+        discount,
+        total
+      },
+      message: hasErrors 
+        ? 'Validation failed for one or more items' 
+        : 'Invoice preview generated successfully'
+    });
+    
+  } catch (error) {
+    console.error('Preview invoice error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to preview invoice',
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Finalize invoice and update inventory (atomic operation)
  * POST /api/invoices/finalize
  * Body: {
  *   customerName, customerPhone, pharmacistId, paymentMethod,
  *   items: [{ medicineId, quantity, unitPrice }]
  * }
+ * 
+ * NOTE: Uses atomic findOneAndUpdate for concurrent safety
+ * Works with standalone MongoDB (no replica set required)
  */
 exports.finalizeInvoice = async (req, res) => {
-  const session = await mongoose.startSession();
   
   try {
     const { 
@@ -43,99 +258,123 @@ exports.finalizeInvoice = async (req, res) => {
       }
     }
 
-    let invoice;
+    // Process each item and update inventory atomically
+    const processedItems = [];
+    let subtotal = 0;
 
-    // Use transaction for atomic inventory update
-    await session.withTransaction(async () => {
-      // Process each item and update inventory
-      const processedItems = [];
-      let subtotal = 0;
-
-      for (const item of items) {
-        const quantity = parseInt(item.quantity, 10);
-        
-        // Get medicine details
-        const medicine = await Medicine.findById(item.medicineId).session(session);
-        if (!medicine) {
-          throw new Error(`Medicine not found: ${item.medicineId}`);
-        }
-
-        // Atomic stock deduction with validation
-        // This ensures stock is checked and decremented in a single atomic operation
-        const updatedInventory = await Inventory.findOneAndUpdate(
-          { 
-            medicine: item.medicineId,
-            current_stock: { $gte: quantity } // Only update if enough stock exists
-          },
-          { 
-            $inc: { current_stock: -quantity } // Atomically decrement stock
-          },
-          { 
-            session,
-            new: true // Return updated document
-          }
-        );
-
-        // If update failed, stock was insufficient
-        if (!updatedInventory) {
-          // Get current stock for error message
-          const currentInventory = await Inventory.findOne({ 
-            medicine: item.medicineId 
-          }).session(session);
-          
-          const available = currentInventory ? currentInventory.current_stock : 0;
-          throw new Error(
-            `Insufficient stock for ${medicine.name}. ` +
-            `Available: ${available}, Requested: ${quantity}`
-          );
-        }
-
-        // Calculate line total
-        const unitPrice = item.unitPrice || medicine.price;
-        const lineTotal = unitPrice * quantity;
-        subtotal += lineTotal;
-
-        processedItems.push({
-          medicine: medicine._id,
-          medicineName: medicine.name,
-          quantity,
-          unitPrice,
-          lineTotal
-        });
+    for (const item of items) {
+      const quantity = parseInt(item.quantity, 10);
+      
+      // Get medicine details
+      const medicine = await Medicine.findById(item.medicineId);
+      if (!medicine) {
+        throw new Error(`Medicine not found: ${item.medicineId}`);
       }
 
-      // Calculate totals
-      const tax = subtotal * 0; // Configure tax rate as needed
-      const discount = 0; // Apply discount logic if needed
-      const total = subtotal + tax - discount;
+      // Check if medicine is active
+      if (!medicine.isActive) {
+        throw new Error(`Medicine is inactive: ${medicine.name}`);
+      }
 
-      // Generate invoice number
-      const invoiceCount = await Invoice.countDocuments().session(session);
-      const date = new Date();
-      const invoiceNumber = `INV-${date.getFullYear()}-${String(invoiceCount + 1).padStart(5, '0')}`;
+      // Atomic stock deduction with validation
+      // This ensures stock is checked and decremented in a single atomic operation
+      const updatedInventory = await Inventory.findOneAndUpdate(
+        { 
+          medicine: item.medicineId,
+          current_stock: { $gte: quantity } // Only update if enough stock exists
+        },
+        { 
+          $inc: { current_stock: -quantity } // Atomically decrement stock
+        },
+        { 
+          new: true // Return updated document
+        }
+      );
 
-      // Create invoice
-      invoice = new Invoice({
-        invoiceNumber,
-        pharmacist: pharmacistId,
-        customerName,
-        customerPhone,
-        items: processedItems,
-        subtotal,
-        tax,
-        discount,
-        total,
-        paymentMethod,
-        paymentStatus: 'paid',
-        notes,
-        prescriptionUrl
+      // If update failed, stock was insufficient
+      if (!updatedInventory) {
+        // Get current stock for error message
+        const currentInventory = await Inventory.findOne({ 
+          medicine: item.medicineId 
+        });
+        
+        const available = currentInventory ? currentInventory.current_stock : 0;
+        
+        // Rollback: restore stock for previously processed items
+        for (const processedItem of processedItems) {
+          await Inventory.findOneAndUpdate(
+            { medicine: processedItem.medicine },
+            { $inc: { current_stock: processedItem.quantity } }
+          );
+        }
+        
+        throw new Error(
+          `Insufficient stock for ${medicine.name}. ` +
+          `Available: ${available}, Requested: ${quantity}`
+        );
+      }
+
+      // Check expiry date
+      if (updatedInventory.expiryDate && updatedInventory.expiryDate < new Date()) {
+        // Rollback stock
+        await Inventory.findOneAndUpdate(
+          { medicine: item.medicineId },
+          { $inc: { current_stock: quantity } }
+        );
+        
+        // Rollback other items
+        for (const processedItem of processedItems) {
+          await Inventory.findOneAndUpdate(
+            { medicine: processedItem.medicine },
+            { $inc: { current_stock: processedItem.quantity } }
+          );
+        }
+        
+        throw new Error(`Medicine has expired: ${medicine.name}`);
+      }
+
+      // Calculate line total
+      const unitPrice = item.unitPrice || medicine.price;
+      const lineTotal = unitPrice * quantity;
+      subtotal += lineTotal;
+
+      processedItems.push({
+        medicine: medicine._id,
+        medicineName: medicine.name,
+        quantity,
+        unitPrice,
+        lineTotal
       });
+    }
 
-      await invoice.save({ session });
+    // Calculate totals
+    const tax = subtotal * 0; // Configure tax rate as needed
+    const discount = 0; // Apply discount logic if needed
+    const total = subtotal + tax - discount;
+
+    // Generate invoice number
+    const invoiceCount = await Invoice.countDocuments();
+    const date = new Date();
+    const invoiceNumber = `INV-${date.getFullYear()}-${String(invoiceCount + 1).padStart(5, '0')}`;
+
+    // Create invoice
+    const invoice = new Invoice({
+      invoiceNumber,
+      pharmacist: pharmacistId,
+      customerName,
+      customerPhone,
+      items: processedItems,
+      subtotal,
+      tax,
+      discount,
+      total,
+      paymentMethod,
+      paymentStatus: 'paid',
+      notes,
+      prescriptionUrl
     });
 
-    // Transaction successful
-    session.endSession();
+    await invoice.save();
 
     // Populate invoice with medicine details
     const populatedInvoice = await Invoice.findById(invoice._id)
@@ -149,7 +388,6 @@ exports.finalizeInvoice = async (req, res) => {
     });
 
   } catch (error) {
-    session.endSession();
     console.error('Finalize invoice error:', error);
 
     // Check for specific error types
@@ -161,7 +399,15 @@ exports.finalizeInvoice = async (req, res) => {
       });
     }
 
-    if (error.message.includes('not found')) {
+    if (error.message.includes('expired')) {
+      return res.status(409).json({
+        success: false,
+        error: 'Medicine expired',
+        message: error.message
+      });
+    }
+
+    if (error.message.includes('not found') || error.message.includes('inactive')) {
       return res.status(404).json({
         success: false,
         error: 'Resource not found',

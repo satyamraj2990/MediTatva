@@ -13,6 +13,13 @@ const InventorySchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  batchNumber: {
+    type: String,
+    trim: true
+  },
+  expiryDate: {
+    type: Date
+  },
   reorderLevel: { 
     type: Number, 
     default: 10 
@@ -34,5 +41,22 @@ InventorySchema.index({ medicine: 1 });
 InventorySchema.virtual('needsReorder').get(function() {
   return this.current_stock <= this.reorderLevel;
 });
+
+// Virtual to check if expired
+InventorySchema.virtual('isExpired').get(function() {
+  if (!this.expiryDate) return false;
+  return new Date() > this.expiryDate;
+});
+
+// Method to check if available for billing
+InventorySchema.methods.isAvailableForBilling = function() {
+  // Not available if no stock
+  if (this.current_stock <= 0) return false;
+  
+  // Not available if expired
+  if (this.expiryDate && new Date() > this.expiryDate) return false;
+  
+  return true;
+};
 
 module.exports = mongoose.model('Inventory', InventorySchema);
