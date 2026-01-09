@@ -19,6 +19,11 @@ const allowedOrigins = [
   'http://localhost:8080'
 ];
 
+// Add all .vercel.app domains in production
+const isVercelDomain = (origin) => {
+  return origin && (origin.endsWith('.vercel.app') || origin.endsWith('.vercel.com'));
+};
+
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps, Postman, etc.)
@@ -29,10 +34,11 @@ app.use(cors({
       return callback(null, true);
     }
     
-    // In production, check whitelist
-    if (allowedOrigins.includes(origin)) {
+    // In production, check whitelist or Vercel domains
+    if (allowedOrigins.includes(origin) || isVercelDomain(origin)) {
       callback(null, true);
     } else {
+      console.warn('⚠️ CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
