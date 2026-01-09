@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Invoice = require('../models/Invoice');
 const Inventory = require('../models/Inventory');
 const Medicine = require('../models/Medicine');
+const realtimeService = require('../services/realtimeService');
 
 /**
  * Get all available medicines for billing
@@ -380,6 +381,17 @@ exports.finalizeInvoice = async (req, res) => {
     const populatedInvoice = await Invoice.findById(invoice._id)
       .populate('items.medicine', 'name genericName brand')
       .populate('pharmacist', 'name email');
+
+    // Broadcast realtime inventory update
+    realtimeService.broadcastInventoryUpdate({
+      action: 'sale',
+      invoice: populatedInvoice,
+      affectedMedicines: processedItems.map(item => ({
+        medicineId: item.medicine,
+        medicineName: item.medicineName,
+        quantitySold: item.quantity
+      }))
+    });
 
     res.status(201).json({
       success: true,

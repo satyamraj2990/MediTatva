@@ -94,15 +94,15 @@ export const VoiceChatSaarthi = ({ onClose }: VoiceChatSaarthiProps) => {
 
       const chat = model.startChat({
         generationConfig: {
-          temperature: 0.7,
+          temperature: 0.9,
           topP: 0.95,
-          topK: 40,
-          maxOutputTokens: 800,
+          topK: 64,
+          maxOutputTokens: 4096,
         },
         history: [
           {
             role: "user",
-            parts: [{ text: "You are AI Saarthi. " + VOICE_SAARTHI_PROMPT }],
+            parts: [{ text: VOICE_SAARTHI_PROMPT }],
           },
           {
             role: "model",

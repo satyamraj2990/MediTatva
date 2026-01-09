@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediTatva Connection Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 MediTatva Backend Connection Test</h1>
+    
+    <div class="test-box">
+        <h2>Configuration</h2>
+        <div id="config"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>Connection Tests</h2>
+        <button onclick="testAll()">🧪 Run All Tests</button>
+        <button onclick="testHealth()">❤️ Test Health</button>
+        <button onclick="testAPI()">🔌 Test API</button>
+        <button onclick="testSearch()">🔍 Test Search</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+        const API_BASE = 'http://localhost:3000/api';
+
+        // Display configuration
+        document.getElementById('config').innerHTML = `
+            <div class="status info">
+                <strong>Frontend URL:</strong> ${window.location.origin}<br>
+                <strong>Backend URL:</strong> ${API_URL}<br>
+                <strong>API Base:</strong> ${API_BASE}<br>
+                <strong>User Agent:</strong> ${navigator.userAgent.substring(0, 80)}...
+            </div>
+        `;
+
+        async function testHealth() {
+            const results = document.getElementById('results');
+            results.innerHTML += '<div class="status info">Testing /health endpoint...</div>';
+            
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+                
+                if (data.status === 'ok' && data.ready) {
+                    results.innerHTML += `
+                        <div class="status success">
+                            ✅ Health Check PASSED<br>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    results.innerHTML += `
+                        <div class="status error">
+                            ❌ Health Check returned unexpected data<br>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                results.innerHTML += `
+                    <div class="status error">
+                        ❌ Health Check FAILED: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testAPI() {
+            const results = document.getElementById('results');
+            results.innerHTML += '<div class="status info">Testing /api/test endpoint...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/test`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    results.innerHTML += `
+                        <div class="status success">
+                            ✅ API Test PASSED<br>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    results.innerHTML += `
+                        <div class="status error">
+                            ❌ API Test returned success=false<br>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                results.innerHTML += `
+                    <div class="status error">
+                        ❌ API Test FAILED: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testSearch() {
+            const results = document.getElementById('results');
+            results.innerHTML += '<div class="status info">Testing /api/medicines/search endpoint...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/medicines/search?q=para`);
+                const data = await response.json();
+                
+                if (data.success !== undefined) {
+                    results.innerHTML += `
+                        <div class="status success">
+                            ✅ Search Endpoint PASSED<br>
+                            Found ${data.count || 0} medicines<br>
+                            <pre>${JSON.stringify(data, null, 2).substring(0, 500)}...</pre>
+                        </div>
+                    `;
+                } else {
+                    results.innerHTML += `
+                        <div class="status error">
+                            ❌ Search returned unexpected format<br>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                results.innerHTML += `
+                    <div class="status error">
+                        ❌ Search FAILED: ${error.message}<br>
+                        This is the error users are seeing!
+                    </div>
+                `;
+            }
+        }
+
+        async function testAll() {
+            document.getElementById('results').innerHTML = '<h3>Running Tests...</h3>';
+            await testHealth();
+            await testAPI();
+            await testSearch();
+            document.getElementById('results').innerHTML += '<div class="status success"><strong>✅ All tests completed!</strong></div>';
+        }
+
+        // Auto-run on page load
+        window.addEventListener('load', () => {
+            setTimeout(testAll, 500);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediTatva API Connectivity Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .test-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .test-url {
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 13px;
+            word-break: break-all;
+        }
+        .test-result {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .test-result.error {
+            border-left-color: #dc3545;
+        }
+        .test-result.success {
+            border-left-color: #28a745;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .summary h1 {
+            margin: 0 0 10px 0;
+        }
+        .summary p {
+            margin: 5px 0;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="summary">
+        <h1>🏥 MediTatva API Connectivity Test</h1>
+        <p>Testing all critical endpoints used by the frontend</p>
+        <p id="api-url">API URL: http://localhost:3000/api</p>
+    </div>
+
+    <div style="text-align: center; margin: 20px 0;">
+        <button onclick="runAllTests()" id="runBtn">🚀 Run All Tests</button>
+        <button onclick="clearResults()">🗑️ Clear Results</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        document.getElementById('api-url').textContent = `API URL: ${API_URL}`;
+
+        const tests = [
+            {
+                name: 'Health Check',
+                url: 'http://localhost:3000/health',
+                method: 'GET',
+                description: 'Verify backend server is running'
+            },
+            {
+                name: 'Get All Inventory',
+                url: `${API_URL}/inventory`,
+                method: 'GET',
+                description: 'Fetch all inventory items (InventoryTab)'
+            },
+            {
+                name: 'Get Available Medicines for Billing',
+                url: `${API_URL}/invoices/available-medicines`,
+                method: 'GET',
+                description: 'Fetch in-stock medicines (BillingTab)'
+            },
+            {
+                name: 'Search Medicines - "para"',
+                url: `${API_URL}/medicines/search?q=para`,
+                method: 'GET',
+                description: 'Search medicines by name (BillingTab search)'
+            },
+            {
+                name: 'Search Medicines - Empty Query',
+                url: `${API_URL}/medicines/search?q=`,
+                method: 'GET',
+                description: 'Test empty search (should not crash)'
+            },
+            {
+                name: 'Get All Medicines',
+                url: `${API_URL}/medicines`,
+                method: 'GET',
+                description: 'Fetch all medicines'
+            }
+        ];
+
+        async function runTest(test, index) {
+            const resultDiv = document.getElementById(`test-${index}`);
+            const statusSpan = document.getElementById(`status-${index}`);
+            const resultContent = document.getElementById(`result-${index}`);
+
+            statusSpan.textContent = 'RUNNING...';
+            statusSpan.className = 'status pending';
+
+            try {
+                console.log(`[TEST ${index + 1}] Starting: ${test.name}`);
+                console.log(`[TEST ${index + 1}] URL: ${test.url}`);
+
+                const startTime = Date.now();
+                const response = await fetch(test.url, {
+                    method: test.method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+
+                const contentType = response.headers.get('content-type');
+                let data;
+                
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    data = await response.text();
+                }
+
+                console.log(`[TEST ${index + 1}] Response:`, data);
+
+                if (response.ok) {
+                    statusSpan.textContent = `✓ SUCCESS (${duration}ms)`;
+                    statusSpan.className = 'status success';
+                    resultContent.className = 'test-result success';
+                    resultContent.textContent = `HTTP ${response.status} ${response.statusText}\nDuration: ${duration}ms\n\nResponse:\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    statusSpan.textContent = `✗ FAILED (HTTP ${response.status})`;
+                    statusSpan.className = 'status error';
+                    resultContent.className = 'test-result error';
+                    resultContent.textContent = `HTTP ${response.status} ${response.statusText}\nDuration: ${duration}ms\n\nResponse:\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                console.error(`[TEST ${index + 1}] Error:`, error);
+                statusSpan.textContent = '✗ ERROR';
+                statusSpan.className = 'status error';
+                resultContent.className = 'test-result error';
+                resultContent.textContent = `ERROR: ${error.message}\n\nThis usually means:\n- Backend server is not running\n- Wrong API URL\n- CORS issue\n- Network connection problem\n\nFull error:\n${error.stack || error}`;
+            }
+        }
+
+        function createTestCard(test, index) {
+            return `
+                <div class="test-card" id="test-${index}">
+                    <div class="test-header">
+                        <div class="test-title">${index + 1}. ${test.name}</div>
+                        <span class="status pending" id="status-${index}">PENDING</span>
+                    </div>
+                    <div style="color: #6c757d; margin-bottom: 10px;">${test.description}</div>
+                    <div class="test-url">${test.method} ${test.url}</div>
+                    <div class="test-result" id="result-${index}">Click "Run All Tests" to start...</div>
+                </div>
+            `;
+        }
+
+        async function runAllTests() {
+            const btn = document.getElementById('runBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Testing...';
+
+            console.log('='.repeat(80));
+            console.log('STARTING API CONNECTIVITY TESTS');
+            console.log('='.repeat(80));
+
+            for (let i = 0; i < tests.length; i++) {
+                await runTest(tests[i], i);
+                await new Promise(resolve => setTimeout(resolve, 500)); // Delay between tests
+            }
+
+            btn.disabled = false;
+            btn.textContent = '🚀 Run All Tests';
+
+            console.log('='.repeat(80));
+            console.log('ALL TESTS COMPLETED');
+            console.log('='.repeat(80));
+        }
+
+        function clearResults() {
+            tests.forEach((_, index) => {
+                const statusSpan = document.getElementById(`status-${index}`);
+                const resultContent = document.getElementById(`result-${index}`);
+                
+                statusSpan.textContent = 'PENDING';
+                statusSpan.className = 'status pending';
+                resultContent.className = 'test-result';
+                resultContent.textContent = 'Click "Run All Tests" to start...';
+            });
+            console.clear();
+        }
+
+        // Initialize test cards
+        window.onload = function() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = tests.map((test, index) => createTestCard(test, index)).join('');
+        };
+    </script>
+</body>
+</html>

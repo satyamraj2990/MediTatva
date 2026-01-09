@@ -1,13 +1,16 @@
 const Inventory = require('../models/Inventory');
 const Medicine = require('../models/Medicine');
+const realtimeService = require('../services/realtimeService');
 
 /**
  * Get all inventory items with medicine details
  * GET /api/inventory
  */
 exports.getAllInventory = async (req, res) => {
+  console.log('📦 GET /api/inventory - Request received');
   try {
     const { page = 1, limit = 50, lowStock } = req.query;
+    console.log('📦 Query params:', { page, limit, lowStock });
     
     let query = {};
     if (lowStock === 'true') {
@@ -27,6 +30,7 @@ exports.getAllInventory = async (req, res) => {
       .lean();
 
     const total = await Inventory.countDocuments(query);
+    console.log(`✅ Found ${inventory.length} inventory items (total: ${total})`);
 
     res.json({
       success: true,
@@ -37,7 +41,8 @@ exports.getAllInventory = async (req, res) => {
       data: inventory
     });
   } catch (error) {
-    console.error('Get inventory error:', error);
+    console.error('❌ Get inventory error:', error);
+    console.error('❌ Stack trace:', error.stack);
     res.status(500).json({
       success: false,
       error: 'Failed to get inventory',
@@ -112,6 +117,12 @@ exports.restockInventory = async (req, res) => {
     const updated = await Inventory.findById(inventory._id)
       .populate('medicine', 'name genericName brand');
 
+    // Broadcast realtime update
+    realtimeService.broadcastInventoryUpdate({
+      action: 'restock',
+      inventory: updated
+    });
+
     res.json({
       success: true,
       message: `Added ${quantity} units to inventory`,
@@ -160,6 +171,12 @@ exports.adjustInventory = async (req, res) => {
 
     const updated = await Inventory.findById(inventory._id)
       .populate('medicine', 'name genericName brand');
+
+    // Broadcast realtime update
+    realtimeService.broadcastInventoryUpdate({
+      action: 'adjust',
+      inventory: updated
+    });
 
     res.json({
       success: true,
@@ -210,12 +227,16 @@ exports.getLowStockAlerts = async (req, res) => {
  * POST /api/inventory
  */
 exports.createInventory = async (req, res) => {
+  console.log('📝 POST /api/inventory - Create inventory request');
+  console.log('📦 Request body:', req.body);
+  
   try {
     const { medicineId, initialStock = 0, reorderLevel = 10, location } = req.body;
 
     // Check if medicine exists
     const medicine = await Medicine.findById(medicineId);
     if (!medicine) {
+      console.error('❌ Medicine not found:', medicineId);
       return res.status(404).json({
         success: false,
         error: 'Medicine not found'
@@ -225,6 +246,7 @@ exports.createInventory = async (req, res) => {
     // Check if inventory already exists
     const existing = await Inventory.findOne({ medicine: medicineId });
     if (existing) {
+      console.warn('⚠️ Inventory already exists for medicine:', medicineId);
       return res.status(409).json({
         success: false,
         error: 'Inventory record already exists for this medicine'
@@ -240,16 +262,24 @@ exports.createInventory = async (req, res) => {
     });
 
     await inventory.save();
+    console.log('✅ Inventory created:', inventory._id);
 
     const created = await Inventory.findById(inventory._id)
       .populate('medicine', 'name genericName brand');
+
+    // Broadcast realtime update
+    realtimeService.broadcastInventoryUpdate({
+      action: 'create',
+      inventory: created
+    });
 
     res.status(201).json({
       success: true,
       data: created
     });
   } catch (error) {
-    console.error('Create inventory error:', error);
+    console.error('❌ Create inventory error:', error);
+    console.error('❌ Error stack:', error.stack);
     res.status(400).json({
       success: false,
       error: 'Failed to create inventory record',

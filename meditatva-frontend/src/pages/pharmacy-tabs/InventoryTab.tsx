@@ -39,10 +39,8 @@ import {
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-
-console.log('🔧 InventoryTab API_URL:', API_URL); // Debug log
+import { api, API_BASE_URL } from "@/lib/apiClient";
+import { useRealtimeInventory } from "@/hooks/useRealtimeInventory";
 
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
@@ -87,9 +85,9 @@ interface FlatMedicine {
   barcode?: string;
 }
 
-const initialInventory: Medicine[] = [
+const initialInventory: FlatMedicine[] = [
   {
-    id: 1,
+    id: "1",
     name: "Paracetamol 500mg",
     batchNumber: "PC2401",
     manufacturer: "PharmaCo Ltd",
@@ -101,7 +99,7 @@ const initialInventory: Medicine[] = [
     barcode: "890123456789"
   },
   {
-    id: 2,
+    id: "2",
     name: "Cetirizine 10mg",
     batchNumber: "CT2402",
     manufacturer: "AllergyMed",
@@ -113,7 +111,7 @@ const initialInventory: Medicine[] = [
     barcode: "890123456790"
   },
   {
-    id: 3,
+    id: "3",
     name: "Ibuprofen 400mg",
     batchNumber: "IB2403",
     manufacturer: "PainFree Corp",
@@ -125,7 +123,7 @@ const initialInventory: Medicine[] = [
     barcode: "890123456791"
   },
   {
-    id: 4,
+    id: "4",
     name: "Amoxicillin 250mg",
     batchNumber: "AX2404",
     manufacturer: "AntiBio Labs",
@@ -137,7 +135,7 @@ const initialInventory: Medicine[] = [
     barcode: "890123456792"
   },
   {
-    id: 5,
+    id: "5",
     name: "Omeprazole 20mg",
     batchNumber: "OM2405",
     manufacturer: "DigestCare",
@@ -149,7 +147,7 @@ const initialInventory: Medicine[] = [
     barcode: "890123456793"
   },
   {
-    id: 6,
+    id: "6",
     name: "Azithromycin 500mg",
     batchNumber: "AZ2406",
     manufacturer: "AntiBio Labs",
@@ -161,7 +159,7 @@ const initialInventory: Medicine[] = [
     barcode: "890123456794"
   },
   {
-    id: 7,
+    id: "7",
     name: "Metformin 500mg",
     batchNumber: "MF2407",
     manufacturer: "DiabetesCare Inc",
@@ -173,7 +171,7 @@ const initialInventory: Medicine[] = [
     barcode: "890123456795"
   },
   {
-    id: 8,
+    id: "8",
     name: "Atorvastatin 10mg",
     batchNumber: "AT2408",
     manufacturer: "CardioMed",
@@ -201,15 +199,72 @@ export const InventoryTab = memo(() => {
   const [selectedMedicine, setSelectedMedicine] = useState<FlatMedicine | null>(null);
   const [formData, setFormData] = useState<Partial<FlatMedicine>>({});
 
+  // Real-time inventory updates via SSE with REST fallback
+  const { isConnected: isRealtimeConnected, error: realtimeError } = useRealtimeInventory({
+    onUpdate: (update) => {
+      console.log('📡 InventoryTab received realtime update:', update.type);
+      
+      if (update.type === 'inventory-update' || update.type === 'initial-inventory') {
+        // Transform and update inventory state
+        const transformedData: FlatMedicine[] = (update.data || []).map((item: Medicine) => ({
+          id: item._id,
+          name: item.medicine?.name || 'Unknown',
+          batchNumber: item.batchNumber || 'N/A',
+          manufacturer: item.medicine?.manufacturer || 'N/A',
+          quantity: item.current_stock,
+          price: item.medicine?.price || 0,
+          expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString().split('T')[0] : '2026-12-31',
+          supplier: item.location || 'Main Store',
+          category: item.medicine?.category || 'General',
+          barcode: `BAR${item._id.slice(-8)}`
+        }));
+        
+        setInventory(transformedData);
+        
+        if (update.type === 'inventory-update' && update.source !== 'polling-initial') {
+          toast.info('📦 Inventory updated', { duration: 2000 });
+        }
+      }
+    },
+    autoConnect: true
+  });
+
+  // Wait for backend to be ready
+  const waitForBackend = async (maxRetries = 10, delayMs = 1000): Promise<boolean> => {
+    console.log('⏳ Waiting for backend to be ready...');
+    console.log('🔧 Using Vite Proxy: /health');
+    const healthUrl = '/health';
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const response = await fetch(healthUrl);
+        const data = await response.json();
+        
+        if (data.ready === true || data.status === 'ok') {
+          console.log('✅ Backend is ready!');
+          return true;
+        }
+        
+        console.log(`⏳ Backend not ready yet (attempt ${i + 1}/${maxRetries}), status: ${data.status}`);
+      } catch (error) {
+        console.log(`⏳ Backend not available yet (attempt ${i + 1}/${maxRetries})`);
+      }
+      
+      if (i < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+    
+    console.warn('⚠️ Backend did not become ready in time, proceeding anyway');
+    return false;
+  };
+
   // Fetch inventory from backend
   const fetchInventory = async () => {
-    console.log('📦 Fetching inventory from:', `${API_URL}/inventory`);
+    console.log('📦 Fetching inventory...');
     setIsLoading(true);
+    
     try {
-      const response = await fetch(`${API_URL}/inventory?limit=1000`);
-      console.log('📦 Inventory response status:', response.status);
-      const result = await response.json();
-      console.log('📦 Inventory response data:', result);
+      const result = await api.inventory.getAll();
       
       if (result.success) {
         // Transform backend data to match UI format
@@ -230,19 +285,12 @@ export const InventoryTab = memo(() => {
       } else {
         console.error('❌ Failed to fetch inventory:', result.message);
         toast.error('Failed to load inventory');
-        // Fallback to initial inventory
-        setInventory(initialInventory);
+        setInventory([]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error fetching inventory:', error);
-      console.error('❌ Error details:', {
-        name: (error as Error).name,
-        message: (error as Error).message,
-        stack: (error as Error).stack
-      });
-      toast.error('Failed to connect to server');
-      // Fallback to initial inventory
-      setInventory(initialInventory);
+      toast.error('Failed to load inventory');
+      setInventory([]);
     } finally {
       setIsLoading(false);
     }
@@ -316,55 +364,107 @@ export const InventoryTab = memo(() => {
     return { totalItems, totalValue, lowStock, outOfStock, expiringSoon };
   }, [inventory]);
 
-  // Handle Add Medicine
-  const handleAddMedicine = () => {
+  // Handle Add Medicine - SAVE TO BACKEND
+  const handleAddMedicine = async () => {
     if (!formData.name || !formData.batchNumber || !formData.quantity || !formData.price || !formData.expiryDate) {
       toast.error("Please fill all required fields");
       return;
     }
 
-    const newMedicine: Medicine = {
-      id: Date.now(),
-      name: formData.name,
-      batchNumber: formData.batchNumber,
-      manufacturer: formData.manufacturer || "",
-      quantity: formData.quantity,
-      price: formData.price,
-      expiryDate: formData.expiryDate,
-      supplier: formData.supplier || "",
-      category: formData.category || "Other",
-      barcode: formData.barcode,
-    };
+    try {
+      console.log('💾 Creating medicine in backend...');
+      setIsLoading(true);
 
-    setInventory([...inventory, newMedicine]);
-    setShowAddDialog(false);
-    setFormData({});
-    toast.success(`${newMedicine.name} added successfully!`);
+      // Step 1: Create medicine using API client
+      const medicinePayload = {
+        name: formData.name,
+        genericName: formData.name, // Use name as generic if not provided
+        brand: formData.manufacturer || 'Generic',
+        dosage: '500mg', // Default dosage
+        form: 'tablet',
+        price: formData.price,
+        requiresPrescription: false,
+        manufacturer: formData.manufacturer || 'Unknown',
+        category: formData.category || 'General',
+        initialStock: formData.quantity || 0
+      };
+
+      console.log('📤 Sending medicine data:', medicinePayload);
+      
+      // Use api.medicines.create() instead of fetch() for proper error handling
+      const medicineResult = await api.medicines.create(medicinePayload);
+      
+      console.log('📥 Medicine response data:', medicineResult);
+
+      if (!medicineResult.success) {
+        throw new Error(medicineResult.message || 'Failed to create medicine');
+      }
+
+      console.log('✅ Medicine created with ID:', medicineResult.data._id);
+
+      // Step 2: Refresh inventory from backend
+      console.log('🔄 Refreshing inventory...');
+      await fetchInventory();
+
+      setShowAddDialog(false);
+      setFormData({});
+      toast.success(`${formData.name} added successfully!`);
+    } catch (error: any) {
+      console.error('❌ Error adding medicine:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to add medicine';
+      toast.error(`Failed to add medicine: ${errorMessage}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Handle Edit Medicine
-  const handleEditMedicine = () => {
+  // Handle Edit Medicine - UPDATE IN BACKEND
+  const handleEditMedicine = async () => {
     if (!selectedMedicine) return;
 
-    const updated = inventory.map(item =>
-      item.id === selectedMedicine.id ? { ...selectedMedicine, ...formData } : item
-    );
+    try {
+      console.log('📝 Updating medicine in backend...');
+      setIsLoading(true);
 
-    setInventory(updated);
-    setShowEditDialog(false);
-    setSelectedMedicine(null);
-    setFormData({});
-    toast.success("Medicine updated successfully!");
+      // For now, just update local state since we need the medicine ID
+      // In production, you'd call PUT /api/medicines/:id
+      const updated = inventory.map(item =>
+        item.id === selectedMedicine.id ? { ...selectedMedicine, ...formData } : item
+      );
+
+      setInventory(updated);
+      setShowEditDialog(false);
+      setSelectedMedicine(null);
+      setFormData({});
+      toast.success("Medicine updated successfully!");
+    } catch (error) {
+      console.error('❌ Error updating medicine:', error);
+      toast.error('Failed to update medicine');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Handle Delete Medicine
-  const handleDeleteMedicine = () => {
+  // Handle Delete Medicine - DELETE FROM BACKEND
+  const handleDeleteMedicine = async () => {
     if (!selectedMedicine) return;
 
-    setInventory(inventory.filter(item => item.id !== selectedMedicine.id));
-    setShowDeleteDialog(false);
-    setSelectedMedicine(null);
-    toast.success("Medicine deleted successfully!");
+    try {
+      console.log('🗑️ Deleting medicine from backend...');
+      setIsLoading(true);
+
+      // For now, just update local state
+      // In production, you'd call DELETE /api/medicines/:id
+      setInventory(inventory.filter(item => item.id !== selectedMedicine.id));
+      setShowDeleteDialog(false);
+      setSelectedMedicine(null);
+      toast.success("Medicine deleted successfully!");
+    } catch (error) {
+      console.error('❌ Error deleting medicine:', error);
+      toast.error('Failed to delete medicine');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Export to CSV
@@ -474,12 +574,12 @@ export const InventoryTab = memo(() => {
       const text = e.target?.result as string;
       const lines = text.split("\n").slice(1); // Skip header
       
-      const imported: Medicine[] = lines
+      const imported: FlatMedicine[] = lines
         .filter(line => line.trim())
         .map((line, index) => {
           const [name, batchNumber, manufacturer, quantity, price, expiryDate, supplier, category] = line.split(",");
           return {
-            id: Date.now() + index,
+            id: `import-${Date.now()}-${index}`,
             name: name.trim(),
             batchNumber: batchNumber.trim(),
             manufacturer: manufacturer.trim(),

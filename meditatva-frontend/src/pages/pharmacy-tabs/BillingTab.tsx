@@ -11,10 +11,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-
-console.log('🔧 BillingTab API_URL:', API_URL); // Debug log
+import { useRealtimeInventory } from "@/hooks/useRealtimeInventory";
+import { api, API_BASE_URL } from "@/lib/apiClient";
 
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
@@ -67,31 +65,79 @@ export const BillingTab = memo(() => {
   const [invoiceHistory, setInvoiceHistory] = useState<InvoiceHistory[]>([]);
   const [showInventoryMedicines, setShowInventoryMedicines] = useState(true);
 
+  // Real-time inventory updates via SSE
+  const { isConnected: isRealtimeConnected, error: realtimeError } = useRealtimeInventory({
+    onUpdate: (update) => {
+      console.log('📡 Realtime inventory update:', update);
+      
+      if (update.type === 'inventory-update' || update.type === 'initial-inventory') {
+        // Refresh available medicines when inventory changes
+        fetchAvailableMedicines();
+      }
+    },
+    autoConnect: true
+  });
+
+  // Wait for backend to be ready
+  const waitForBackend = async (maxRetries = 10, delayMs = 1000): Promise<boolean> => {
+    console.log('⏳ Waiting for backend to be ready...');
+    console.log('🔧 Using API Base URL:', API_BASE_URL);
+    const healthUrl = API_BASE_URL.replace('/api', '/health');
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const response = await fetch(healthUrl);
+        const data = await response.json();
+        
+        if (data.ready === true || data.status === 'ok') {
+          console.log('✅ Backend is ready!');
+          return true;
+        }
+        
+        console.log(`⏳ Backend not ready yet (attempt ${i + 1}/${maxRetries})`);
+      } catch (error) {
+        console.log(`⏳ Backend not available yet (attempt ${i + 1}/${maxRetries})`);
+      }
+      
+      if (i < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+    
+    console.warn('⚠️ Backend did not become ready in time');
+    return false;
+  };
+
   // Fetch available medicines from backend (in-stock, non-expired)
   const fetchAvailableMedicines = async () => {
-    console.log('📦 Fetching available medicines from:', `${API_URL}/invoices/available-medicines`);
+    console.log('📦 Fetching available medicines...');
     setIsLoadingAvailable(true);
+    
     try {
-      const response = await fetch(`${API_URL}/invoices/available-medicines`);
-      console.log('📦 Response status:', response.status, response.statusText);
-      const data = await response.json();
-      console.log('📦 Response data:', data);
+      const response = await api.invoices.getAvailableMedicines();
       
-      if (data.success) {
-        setAvailableMedicines(data.data || []);
-        console.log('✅ Loaded', data.data?.length || 0, 'medicines');
+      if (response.success) {
+        // Transform backend format to frontend format
+        const transformedMedicines = (response.data || []).map((med: any) => ({
+          _id: med.medicineId || med._id,
+          name: med.name,
+          genericName: med.genericName,
+          brand: med.brand,
+          price: med.price,
+          current_stock: med.availableStock || med.current_stock,
+          inStock: (med.availableStock || med.current_stock) > 0,
+          requiresPrescription: med.requiresPrescription || false
+        }));
+        
+        setAvailableMedicines(transformedMedicines);
+        console.log('✅ Loaded', transformedMedicines.length, 'medicines');
       } else {
-        console.error('❌ Failed to fetch available medicines:', data.message);
-        toast.error('Failed to load medicines');
+        console.error('❌ Failed to fetch available medicines:', response.message);
+        setAvailableMedicines([]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error fetching available medicines:', error);
-      console.error('❌ Error details:', {
-        name: (error as Error).name,
-        message: (error as Error).message,
-        stack: (error as Error).stack
-      });
-      toast.error('Failed to connect to server');
+      setAvailableMedicines([]);
+      // Error already handled by API client
     } finally {
       setIsLoadingAvailable(false);
     }
@@ -107,38 +153,56 @@ export const BillingTab = memo(() => {
     const searchMedicines = async () => {
       if (searchQuery.length < 2) {
         setMedicines([]);
+        setSearchError(null);
         return;
       }
 
       console.log('🔍 Searching medicines:', searchQuery);
       setIsSearching(true);
+      setSearchError(null);
+      
       try {
-        setSearchError(null);
-        const url = `${API_URL}/medicines/search?q=${encodeURIComponent(searchQuery)}`;
-        console.log('🔍 Search URL:', url);
-        const response = await fetch(url);
-        console.log('🔍 Search response:', response.status);
-        const data = await response.json();
+        // First check if backend is healthy
+        const healthCheck = await api.healthCheck();
+        if (!healthCheck.ready && healthCheck.status !== 'ok') {
+          console.warn('⚠️ Backend not ready, attempting search anyway...');
+          setSearchError('Backend may not be ready. Results might be incomplete.');
+        }
         
-        if (data.success) {
-          setMedicines(data.data || []);
-          console.log('✅ Found', data.data?.length || 0, 'medicines');
+        const response = await api.medicines.search(searchQuery);
+        
+        if (response.success) {
+          const results = response.data || [];
+          setMedicines(results);
+          console.log('✅ Found', results.length, 'medicines');
+          
+          if (results.length === 0) {
+            setSearchError(`No medicines found matching "${searchQuery}"`);
+          }
         } else {
           setMedicines([]);
-          setSearchError(data.message || 'Failed to search medicines');
-          toast.error(data.message || 'Failed to search medicines');
-          console.error('❌ Search failed:', data.message);
+          setSearchError(response.message || 'Search failed');
+          console.error('❌ Search failed:', response.message);
         }
       } catch (error: any) {
         console.error('❌ Search error:', error);
-        console.error('❌ Error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack
-        });
         setMedicines([]);
-        setSearchError('Failed to connect to server');
-        toast.error('Failed to connect to server');
+        
+        // Provide specific error messages
+        if (error.code === 'ERR_NETWORK' || error.message?.includes('connect')) {
+          setSearchError('Cannot connect to server. Is the backend running?');
+          toast.error('Backend connection failed', {
+            description: 'Click retry or check if backend is running',
+            action: {
+              label: 'Retry',
+              onClick: () => setSearchQuery(searchQuery + ' ') // Trigger re-search
+            }
+          });
+        } else if (error.code === 'ECONNABORTED') {
+          setSearchError('Search timed out. Server is slow or unreachable.');
+        } else {
+          setSearchError(error.response?.data?.message || 'Search failed');
+        }
       } finally {
         setIsSearching(false);
       }
@@ -150,11 +214,9 @@ export const BillingTab = memo(() => {
 
   // Fetch invoice history
   const fetchInvoiceHistory = async () => {
-    console.log('📋 Fetching invoice history from:', `${API_URL}/invoices`);
+    console.log('📋 Fetching invoice history...');
     try {
-      const response = await fetch(`${API_URL}/invoices`);
-      console.log('📋 Invoice history response:', response.status);
-      const data = await response.json();
+      const data = await api.invoices.getAll();
       
       if (data.success) {
         setInvoiceHistory(data.data || []);
@@ -317,15 +379,7 @@ export const BillingTab = memo(() => {
 
         console.log('Sending invoice data:', invoiceData);
 
-        const response = await fetch(`${API_URL}/invoices/finalize`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(invoiceData)
-        });
-
-        const result = await response.json();
+        const result = await api.invoices.finalize(invoiceData);
         
         if (result.success) {
           backendSaved = true;
@@ -334,7 +388,6 @@ export const BillingTab = memo(() => {
           console.log('Invoice saved successfully:', result.data);
         } else {
           console.error('Backend save failed:', result);
-          toast.error(`Failed to save invoice: ${result.message || 'Unknown error'}`);
           throw new Error(result.message || 'Failed to save invoice');
         }
       } catch (error: any) {

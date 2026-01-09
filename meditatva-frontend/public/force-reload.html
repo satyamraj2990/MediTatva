@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Force Reload - MediTatva</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 600px;
+      text-align: center;
+    }
+    h1 { color: #667eea; margin-bottom: 20px; }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .status { 
+      font-size: 18px; 
+      margin: 20px 0;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    .success { background: #d4edda; color: #155724; border: 2px solid #c3e6cb; }
+    .error { background: #f8d7da; color: #721c24; border: 2px solid #f5c6cb; }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 10px;
+      font-weight: bold;
+    }
+    button:hover { opacity: 0.9; }
+    pre {
+      background: #2d3748;
+      color: #48bb78;
+      padding: 15px;
+      border-radius: 6px;
+      text-align: left;
+      overflow-x: auto;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔄 Force Cache Clear & Reload</h1>
+    <div class="spinner"></div>
+    <div id="status" class="status">
+      Checking backend connection...
+    </div>
+    <div id="instructions" style="display: none;">
+      <h2>✅ Backend is Ready!</h2>
+      <p>Click below to open the app with fresh code:</p>
+      <button onclick="forceReload()">🚀 Open App (Fresh)</button>
+      <hr style="margin: 30px 0;">
+      <h3>Alternative Methods:</h3>
+      <button onclick="openIncognito()">🕵️ Instructions for Incognito</button>
+    </div>
+    <div id="error-instructions" style="display: none;">
+      <h2>❌ Backend Not Responding</h2>
+      <p>Run this command in terminal:</p>
+      <pre>cd /workspaces/MediTatva && ./start-all.sh</pre>
+      <button onclick="location.reload()">🔄 Retry</button>
+    </div>
+  </div>
+
+  <script>
+    async function checkBackend() {
+      const statusDiv = document.getElementById('status');
+      const instructions = document.getElementById('instructions');
+      const errorInstructions = document.getElementById('error-instructions');
+      
+      try {
+        const response = await fetch('http://localhost:3000/health?nocache=' + Date.now());
+        const data = await response.json();
+        
+        if (data.ready) {
+          statusDiv.className = 'status success';
+          statusDiv.innerHTML = '✅ Backend Online & Ready!';
+          instructions.style.display = 'block';
+          document.querySelector('.spinner').style.display = 'none';
+          
+          // Auto-redirect after 2 seconds
+          setTimeout(() => {
+            forceReload();
+          }, 2000);
+        } else {
+          statusDiv.innerHTML = '⏳ Backend starting up... Retrying...';
+          setTimeout(checkBackend, 2000);
+        }
+      } catch (error) {
+        statusDiv.className = 'status error';
+        statusDiv.innerHTML = '❌ Cannot connect to backend';
+        errorInstructions.style.display = 'block';
+        document.querySelector('.spinner').style.display = 'none';
+      }
+    }
+
+    function forceReload() {
+      // Clear all storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Clear cookies
+      document.cookie.split(";").forEach(c => {
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+      
+      // Redirect with cache buster
+      window.location.href = '/?nocache=' + Date.now() + '&forceReload=true';
+    }
+
+    function openIncognito() {
+      alert('Open Incognito/Private Window:\n\n' +
+            'Chrome: Ctrl+Shift+N\n' +
+            'Firefox: Ctrl+Shift+P\n' +
+            'Edge: Ctrl+Shift+N\n\n' +
+            'Then visit: http://localhost:8080');
+    }
+
+    // Auto-check on load
+    window.addEventListener('load', checkBackend);
+  </script>
+</body>
+</html>

@@ -97,23 +97,32 @@ exports.getMedicine = async (req, res) => {
  * POST /api/medicines
  */
 exports.createMedicine = async (req, res) => {
+  console.log('📝 POST /api/medicines - Create medicine request');
+  console.log('📦 Request body:', req.body);
+  
   try {
     const medicine = new Medicine(req.body);
     await medicine.save();
+    console.log('✅ Medicine saved:', medicine._id);
 
     // Create initial inventory record
     const inventory = new Inventory({
       medicine: medicine._id,
-      current_stock: req.body.initialStock || 0
+      current_stock: req.body.initialStock || 0,
+      reorderLevel: Math.max(10, Math.floor((req.body.initialStock || 0) * 0.2)),
+      location: 'Main Store',
+      lastRestocked: req.body.initialStock > 0 ? new Date() : null
     });
     await inventory.save();
+    console.log('✅ Inventory created:', inventory._id);
 
     res.status(201).json({
       success: true,
       data: medicine
     });
   } catch (error) {
-    console.error('Create medicine error:', error);
+    console.error('❌ Create medicine error:', error);
+    console.error('❌ Error stack:', error.stack);
     res.status(400).json({
       success: false,
       error: 'Failed to create medicine',

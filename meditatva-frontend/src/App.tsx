@@ -11,6 +11,7 @@ import PatientDashboard from "./pages/PatientDashboard";
 import PremiumPatientDashboard from "./pages/PremiumPatientDashboard";
 import AIHealthAssistantPage from "./pages/AIHealthAssistantPage";
 import NotFound from "./pages/NotFound";
+import { ConnectionDiagnostics } from "./components/ConnectionDiagnostics";
 
 // Lazy load pharmacy dashboard components for better performance
 const PharmacyDashboard = lazy(() => import("./pages/PharmacyDashboardResponsive").then(m => ({ default: m.PharmacyDashboardResponsive })));
@@ -44,6 +45,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/diagnostics" element={<ConnectionDiagnostics />} />
               <Route path="/patient/dashboard" element={<PatientDashboard />} />
               <Route path="/patient/premium" element={<PremiumPatientDashboard />} />
               <Route path="/ai-assistant" element={<AIHealthAssistantPage />} />

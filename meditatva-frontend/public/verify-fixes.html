@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediTatva - Verify All Fixes</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .container {
+      background: white;
+      color: #333;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 { color: #667eea; margin-top: 0; }
+    h2 { color: #764ba2; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+    .test { 
+      background: #f8f9fa; 
+      padding: 15px; 
+      margin: 10px 0; 
+      border-radius: 8px;
+      border-left: 4px solid #ccc;
+    }
+    .test.pass { border-left-color: #28a745; }
+    .test.fail { border-left-color: #dc3545; }
+    .status { font-weight: bold; font-size: 18px; }
+    .pass .status { color: #28a745; }
+    .fail .status { color: #dc3545; }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    button:hover { opacity: 0.9; }
+    pre { 
+      background: #2d3748; 
+      color: #48bb78; 
+      padding: 15px; 
+      border-radius: 6px; 
+      overflow-x: auto;
+      font-size: 13px;
+    }
+    .success-banner {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      margin: 20px 0;
+      font-size: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 MediTatva System Verification</h1>
+    <p>This page tests all the fixes applied to resolve networking and API issues.</p>
+    
+    <button onclick="runAllTests()">▶️ Run All Tests</button>
+    <button onclick="testAddMedicine()">➕ Test Add Medicine</button>
+    <button onclick="location.href='/'">🏠 Go to App</button>
+    
+    <div id="results"></div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000';
+    const resultsDiv = document.getElementById('results');
+
+    function addResult(test, passed, details = '') {
+      const testDiv = document.createElement('div');
+      testDiv.className = `test ${passed ? 'pass' : 'fail'}`;
+      testDiv.innerHTML = `
+        <div class="status">${passed ? '✅ PASS' : '❌ FAIL'}: ${test}</div>
+        ${details ? `<pre>${details}</pre>` : ''}
+      `;
+      resultsDiv.appendChild(testDiv);
+      return passed;
+    }
+
+    async function runAllTests() {
+      resultsDiv.innerHTML = '<h2>🧪 Running Tests...</h2>';
+      let allPassed = true;
+
+      // Test 1: Backend Health
+      try {
+        const res = await fetch(`${API_BASE}/health`);
+        const data = await res.json();
+        const passed = data.ready === true;
+        allPassed = allPassed && addResult(
+          'Backend Health Check',
+          passed,
+          JSON.stringify(data, null, 2)
+        );
+      } catch (err) {
+        allPassed = false;
+        addResult('Backend Health Check', false, err.message);
+      }
+
+      // Test 2: Medicine Search
+      try {
+        const res = await fetch(`${API_BASE}/api/medicines/search?q=para`);
+        const data = await res.json();
+        const passed = data.success === true && data.data.length > 0;
+        allPassed = allPassed && addResult(
+          'Medicine Search API',
+          passed,
+          `Found ${data.data.length} medicine(s): ${data.data[0]?.name || 'N/A'}`
+        );
+      } catch (err) {
+        allPassed = false;
+        addResult('Medicine Search API', false, err.message);
+      }
+
+      // Test 3: Inventory
+      try {
+        const res = await fetch(`${API_BASE}/api/inventory`);
+        const data = await res.json();
+        const passed = data.success === true && data.data.length > 0;
+        allPassed = allPassed && addResult(
+          'Inventory API',
+          passed,
+          `${data.data.length} items in inventory`
+        );
+      } catch (err) {
+        allPassed = false;
+        addResult('Inventory API', false, err.message);
+      }
+
+      // Test 4: CORS
+      try {
+        const res = await fetch(`${API_BASE}/api/medicines/search?q=test`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const passed = res.ok;
+        allPassed = allPassed && addResult(
+          'CORS Configuration',
+          passed,
+          'Cross-origin requests working'
+        );
+      } catch (err) {
+        allPassed = false;
+        addResult('CORS Configuration', false, err.message);
+      }
+
+      // Show final result
+      if (allPassed) {
+        resultsDiv.innerHTML = `
+          <div class="success-banner">
+            🎉 ALL TESTS PASSED! 🎉<br>
+            Your MediTatva app is fully operational!
+          </div>
+        ` + resultsDiv.innerHTML;
+      }
+    }
+
+    async function testAddMedicine() {
+      resultsDiv.innerHTML = '<h2>➕ Testing Add Medicine...</h2>';
+      
+      const testMedicine = {
+        name: `Browser Test Medicine ${Date.now()}`,
+        genericName: 'Browser Test',
+        brand: 'Test Brand',
+        dosage: '500mg',
+        form: 'tablet',
+        price: 123.45,
+        requiresPrescription: false,
+        manufacturer: 'Test Manufacturer',
+        category: 'Testing',
+        initialStock: 99
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/api/medicines`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(testMedicine)
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          addResult(
+            'Add Medicine via Frontend',
+            true,
+            `✅ Created: ${data.data.name}\n📦 Medicine ID: ${data.data._id}\n🏥 Inventory ID: ${data.inventory?._id || 'N/A'}\n💰 Price: ₹${data.data.price}\n📊 Stock: ${data.inventory?.current_stock || 0}`
+          );
+
+          // Verify it appears in inventory
+          setTimeout(async () => {
+            const invRes = await fetch(`${API_BASE}/api/inventory`);
+            const invData = await invRes.json();
+            const found = invData.data.find(item => item.medicine._id === data.data._id);
+            
+            addResult(
+              'Medicine in Inventory',
+              !!found,
+              found ? `Found in inventory with ${found.current_stock} units` : 'Not found yet'
+            );
+          }, 2000);
+        } else {
+          addResult('Add Medicine via Frontend', false, data.message || 'Failed');
+        }
+      } catch (err) {
+        addResult('Add Medicine via Frontend', false, err.message);
+      }
+    }
+
+    // Auto-run tests on load
+    window.addEventListener('load', () => {
+      console.log('🔍 MediTatva Verification Page Loaded');
+      console.log('📍 API Base URL:', API_BASE);
+      console.log('Click "Run All Tests" to verify all fixes are working!');
+    });
+  </script>
+</body>
+</html>

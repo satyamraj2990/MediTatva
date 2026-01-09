@@ -223,19 +223,19 @@ export const Chatbot = ({ onClose }: ChatbotProps = {}) => {
 
       const chat = model.startChat({
         generationConfig: {
-          temperature: 0.7,
+          temperature: 0.9,
           topP: 0.95,
-          topK: 40,
-          maxOutputTokens: 2048,
+          topK: 64,
+          maxOutputTokens: 8192,
         },
         history: [
           {
             role: "user",
-            parts: [{ text: "You are MediTatva AI Health Assistant. Follow these rules: " + SYSTEM_PROMPT }],
+            parts: [{ text: SYSTEM_PROMPT }],
           },
           {
             role: "model",
-            parts: [{ text: "नमस्ते! मैं मेडिटत्व हूं, आपका AI स्वास्थ्य सहायक। आज आप कैसा महसूस कर रहे हैं? मैं किसी भी भाषा में आपकी मदद कर सकता हूं।" }],
+            parts: [{ text: "नमस्ते! मैं मेडिटत्व हूं, आपका AI स्वास्थ्य सहायक। मैं आपकी किसी भी भाषा में मदद कर सकता हूं। आज आप कैसा महसूस कर रहे हैं? आप मुझसे दवाओं के बारे में, उनके विकल्प के बारे में, या अपने लक्षणों के बारे में पूछ सकते हैं।" }],
           },
         ],
       });
