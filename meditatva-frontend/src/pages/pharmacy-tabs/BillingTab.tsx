@@ -63,7 +63,6 @@ export const BillingTab = memo(() => {
   const [paymentType, setPaymentType] = useState("cash");
   const [isProcessing, setIsProcessing] = useState(false);
   const [invoiceHistory, setInvoiceHistory] = useState<InvoiceHistory[]>([]);
-  const [showInventoryMedicines, setShowInventoryMedicines] = useState(true);
 
   // Real-time inventory updates via SSE
   const { isConnected: isRealtimeConnected, error: realtimeError } = useRealtimeInventory({
@@ -919,26 +918,12 @@ export const BillingTab = memo(() => {
               {/* Toggle between Search and Inventory */}
               <div className="flex gap-2 mb-4">
                 <Button
-                  variant={showInventoryMedicines ? "default" : "outline"}
-                  onClick={() => setShowInventoryMedicines(true)}
+                  variant="default"
                   size="default"
-                  className={showInventoryMedicines 
-                    ? "bg-gradient-to-r from-[#1B6CA8] to-[#4FC3F7] text-white shadow-md" 
-                    : "border-[#4FC3F7]/30 text-[#1B6CA8] hover:bg-[#E8F4F8]"}
+                  className="bg-gradient-to-r from-[#1B6CA8] to-[#4FC3F7] text-white shadow-md"
                 >
                   <Package className="h-4 w-4 mr-2" />
-                  Inventory
-                </Button>
-                <Button
-                  variant={!showInventoryMedicines ? "default" : "outline"}
-                  onClick={() => setShowInventoryMedicines(false)}
-                  size="default"
-                  className={!showInventoryMedicines 
-                    ? "bg-gradient-to-r from-[#1B6CA8] to-[#4FC3F7] text-white shadow-md" 
-                    : "border-[#4FC3F7]/30 text-[#1B6CA8] hover:bg-[#E8F4F8]"}
-                >
-                  <Search className="h-4 w-4 mr-2" />
-                  API Search
+                  Inventory Medicines
                 </Button>
               </div>
 
@@ -949,7 +934,7 @@ export const BillingTab = memo(() => {
                   <Input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={showInventoryMedicines ? "Search inventory by name or brand..." : "Search by medicine name..."}
+                    placeholder="Search inventory by name or brand..."
                     className="pl-12 h-12 text-base bg-white border-[#4FC3F7]/30 text-[#0A2342] placeholder:text-[#5A6A85] focus:border-[#1B6CA8] focus:ring-2 focus:ring-[#1B6CA8]/20"
                   />
                 </div>
@@ -957,9 +942,7 @@ export const BillingTab = memo(() => {
 
               {/* Scrollable Medicine List */}
               <div className="space-y-3 max-h-[calc(100vh-380px)] overflow-y-auto pr-2 custom-scrollbar">
-            {showInventoryMedicines ? (
-              // Show inventory medicines from backend
-              <>
+              {/* Show inventory medicines from backend */}
                 {isLoadingAvailable && (
                   <div className="text-center py-12">
                     <div className="animate-spin h-8 w-8 border-4 border-[#1B6CA8] border-t-transparent rounded-full mx-auto mb-3"></div>
@@ -1038,77 +1021,6 @@ export const BillingTab = memo(() => {
                     <p className="text-[#5A6A85] text-lg">No matching medicines in inventory</p>
                   </div>
                 )}
-              </>
-            ) : (
-              // Show API search results
-              <>
-            {isSearching && (
-              <div className="text-center py-12">
-                <div className="animate-spin h-8 w-8 border-4 border-[#1B6CA8] border-t-transparent rounded-full mx-auto mb-3"></div>
-                <p className="text-[#5A6A85]">Searching medicines...</p>
-              </div>
-            )}
-            
-            {!isSearching && searchQuery.length >= 2 && medicines.length === 0 && (
-              <div className="text-center py-12">
-                {searchError ? (
-                  <>
-                    <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-3" />
-                    <p className="text-red-600 text-lg">{searchError}</p>
-                  </>
-                ) : (
-                  <>
-                    <Search className="h-16 w-16 text-[#5A6A85]/50 mx-auto mb-3" />
-                    <p className="text-[#5A6A85] text-lg">No medicines found</p>
-                  </>
-                )}
-              </div>
-            )}
-            
-            {!isSearching && medicines.map((med) => (
-              <motion.div
-                key={med._id}
-                className="flex items-center justify-between p-4 rounded-lg bg-[#F7F9FC] border border-[#4FC3F7]/20 hover:shadow-md transition-all"
-                whileHover={{ scale: 1.01, backgroundColor: '#E8F4F8', y: -2 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-bold text-[#0A2342] text-base">{med.name}</p>
-                    {med.requiresPrescription && (
-                      <Badge className="bg-red-50 text-red-700 border-red-200">Rx Required</Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-[#5A6A85] mb-1">
-                    <span className="font-bold text-[#1B6CA8]">₹{med.price}</span>
-                    {" • "}
-                    {med.current_stock > 0 ? (
-                      <span className={med.current_stock <= 10 ? "text-orange-600 font-medium" : "text-green-600 font-medium"}>
-                        In Stock: {med.current_stock}
-                      </span>
-                    ) : (
-                      <span className="text-red-600 font-medium">Out of Stock</span>
-                    )}
-                  </p>
-                  {med.genericName && (
-                    <p className="text-xs text-[#5A6A85]">{med.genericName}</p>
-                  )}
-                </div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button
-                    size="lg"
-                    onClick={() => addToCart(med)}
-                    disabled={med.current_stock === 0}
-                    className="bg-gradient-to-r from-[#1B6CA8] to-[#4FC3F7] hover:from-[#4FC3F7] hover:to-[#1B6CA8] text-white font-semibold disabled:opacity-50 shadow-md hover:shadow-lg px-6"
-                  >
-                    <Plus className="h-5 w-5 mr-2" />
-                    Add to Cart
-                  </Button>
-                </motion.div>
-              </motion.div>
-            ))}
-              </>
-            )}
               </div>
             </Card>
           </div>

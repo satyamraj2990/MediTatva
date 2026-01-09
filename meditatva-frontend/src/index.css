@@ -64,54 +64,54 @@ All colors MUST be HSL.
   }
 
   .dark {
-    /* Deeper, richer dark background - True black with slight blue tint */
-    --background: 220 30% 6%; /* Almost black with deep blue undertone */
-    --foreground: 0 0% 100%; /* Pure white text */
+    /* Premium dark theme - Modern and vibrant */
+    --background: 220 26% 14%; /* Rich charcoal with blue tint */
+    --foreground: 0 0% 98%; /* Pure white text */
 
-    --card: 220 28% 10%; /* Dark card with blue tint */
+    --card: 220 22% 20%; /* Elevated cards with warmth */
     --card-foreground: 0 0% 98%;
 
-    --popover: 220 30% 8%;
+    --popover: 220 26% 14%;
     --popover-foreground: 0 0% 98%;
 
-    /* Much brighter, vivid medical colors for dark mode */
-    --primary: 199 100% 65%; /* Bright cyan-blue */
+    /* Electric medical blue - much more vibrant */
+    --primary: 199 95% 65%; /* Electric blue */
     --primary-light: 184 85% 70%; /* Bright turquoise */
-    --primary-foreground: 220 30% 6%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Neon-like teal colors */
-    --secondary: 174 80% 65%;
+    /* Vibrant teal */
+    --secondary: 174 78% 65%;
     --secondary-light: 189 90% 70%;
-    --secondary-foreground: 220 30% 6%;
+    --secondary-foreground: 0 0% 100%;
 
-    /* Vibrant accent colors */
-    --accent: 349 100% 75%;
-    --accent-light: 338 100% 78%;
-    --accent-foreground: 220 30% 6%;
+    /* Hot pink accent */
+    --accent: 330 85% 65%;
+    --accent-light: 320 80% 70%;
+    --accent-foreground: 0 0% 100%;
 
-    --muted: 220 20% 15%;
+    --muted: 220 20% 25%;
     --muted-foreground: 220 10% 70%;
 
-    --destructive: 0 85% 65%;
+    --destructive: 0 90% 65%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 25% 18%;
-    --input: 220 25% 14%;
-    --ring: 199 100% 65%;
+    --border: 220 18% 28%;
+    --input: 220 22% 22%;
+    --ring: 199 95% 65%;
 
     /* Enhanced glassmorphism for dark mode */
-    --glass-bg: rgba(15, 18, 28, 0.85);
-    --glass-border: rgba(99, 179, 237, 0.15);
+    --glass-bg: rgba(33, 41, 61, 0.85);
+    --glass-border: rgba(99, 179, 237, 0.2);
     
-    /* Dark mode shadows with vibrant glow */
-    --shadow-soft: 0 8px 40px rgba(0, 0, 0, 0.6);
-    --shadow-glow: 0 0 60px rgba(99, 179, 237, 0.4);
+    /* Dark mode shadows with glow */
+    --shadow-soft: 0 10px 40px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 40px rgba(99, 179, 237, 0.3);
     
     /* Custom RGB variables for dashboard */
-    --bg-primary: 15, 18, 28; /* Deep dark blue-black */
-    --text-primary: 255, 255, 255; /* Pure white */
-    --text-secondary: 156, 163, 175; /* Light gray */
-    --border-color: 45, 55, 72; /* Subtle border */
+    --bg-primary: 28, 37, 54; /* Rich dark blue-gray */
+    --text-primary: 248, 250, 252; /* Soft white */
+    --text-secondary: 203, 213, 225; /* Light gray-blue */
+    --border-color: 51, 65, 85; /* Visible dark border */
   }
 }
 
@@ -149,23 +149,30 @@ All colors MUST be HSL.
   
   /* Dark mode glass card enhancement */
   .dark .glass-card {
-    @apply bg-card/60 border-border/50;
+    background: rgba(35, 45, 65, 0.75);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(96, 165, 250, 0.15);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6),
+                0 0 0 1px rgba(96, 165, 250, 0.08) inset;
   }
 
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(263 85% 44%), hsl(217 97% 57%));
+    background: linear-gradient(135deg, hsl(199 89% 48%), hsl(184 77% 52%));
   }
   
   .dark .gradient-primary {
-    background: linear-gradient(135deg, hsl(263 90% 60%), hsl(217 100% 65%));
+    background: linear-gradient(135deg, hsl(199 95% 65%), hsl(184 85% 70%));
+    box-shadow: 0 4px 20px rgba(56, 189, 248, 0.3);
   }
 
   .gradient-secondary {
-    background: linear-gradient(135deg, hsl(146 78% 58%), hsl(169 92% 60%));
+    background: linear-gradient(135deg, hsl(174 72% 52%), hsl(189 85% 58%));
   }
   
   .dark .gradient-secondary {
-    background: linear-gradient(135deg, hsl(146 80% 55%), hsl(169 90% 58%));
+    background: linear-gradient(135deg, hsl(174 78% 65%), hsl(189 90% 70%));
+    box-shadow: 0 4px 20px rgba(45, 212, 191, 0.3);
   }
 
   .gradient-accent {
@@ -173,34 +180,36 @@ All colors MUST be HSL.
   }
   
   .dark .gradient-accent {
-    background: linear-gradient(135deg, hsl(349 100% 68%), hsl(338 100% 70%));
+    background: linear-gradient(135deg, hsl(330 85% 65%), hsl(320 80% 70%));
+    box-shadow: 0 4px 20px rgba(236, 72, 153, 0.3);
   }
 
   .gradient-text {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(263 85% 44%), hsl(217 97% 57%));
+    background-image: linear-gradient(135deg, hsl(199 89% 48%), hsl(184 77% 52%));
   }
   
   .dark .gradient-text {
-    background-image: linear-gradient(135deg, hsl(263 90% 65%), hsl(217 100% 70%));
+    background-image: linear-gradient(135deg, hsl(199 95% 70%), hsl(184 85% 75%));
   }
 
   /* Hero gradient background - theme aware */
   .hero-gradient {
-    background: linear-gradient(135deg, rgba(106, 17, 203, 0.9), rgba(37, 117, 252, 0.8));
+    background: linear-gradient(135deg, rgba(27, 108, 168, 0.9), rgba(30, 170, 231, 0.8));
   }
   
   .dark .hero-gradient {
-    background: linear-gradient(135deg, rgba(79, 70, 229, 0.95), rgba(59, 130, 246, 0.85));
+    background: linear-gradient(135deg, hsl(220 40% 12%), hsl(199 50% 18%));
+    box-shadow: 0 0 100px rgba(56, 189, 248, 0.1) inset;
   }
 
   /* Login page gradient - theme aware */
   .login-gradient {
-    background: linear-gradient(135deg, hsl(263 85% 44%), hsl(217 97% 57%));
+    background: linear-gradient(135deg, hsl(199 89% 48%), hsl(184 77% 52%));
   }
   
   .dark .login-gradient {
-    @apply bg-background;
+    background: linear-gradient(135deg, hsl(220 35% 15%), hsl(199 45% 20%));
   }
 
   /* Premium Login Page Styles */
@@ -211,7 +220,7 @@ All colors MUST be HSL.
   }
 
   .dark .premium-login-gradient {
-    background: linear-gradient(135deg, #1a1625 0%, #1e293b 50%, #0f172a 100%);
+    background: linear-gradient(135deg, #1e2530 0%, #2a3f5f 50%, #1a2332 100%);
     background-size: 400% 400%;
     animation: premium-gradient 15s ease infinite;
   }
@@ -232,10 +241,11 @@ All colors MUST be HSL.
   }
 
   .dark .premium-glass-card {
-    background: rgba(30, 41, 59, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
-                0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    background: rgba(35, 45, 65, 0.7);
+    border: 1px solid rgba(96, 165, 250, 0.2);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7),
+                0 0 0 1px rgba(96, 165, 250, 0.1) inset,
+                0 0 50px rgba(56, 189, 248, 0.05);
   }
 
   .premium-gradient-text {
@@ -277,13 +287,15 @@ All colors MUST be HSL.
   }
 
   .dark .premium-input {
-    background: rgba(30, 41, 59, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(35, 45, 65, 0.6);
+    border: 1px solid rgba(96, 165, 250, 0.2);
   }
 
   .dark .premium-input:focus {
-    background: rgba(51, 65, 85, 0.5);
-    border-color: rgba(167, 139, 250, 0.5);
+    background: rgba(45, 55, 75, 0.8);
+    border-color: rgba(96, 165, 250, 0.6);
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15),
+                0 0 20px rgba(56, 189, 248, 0.3);
   }
 
   .premium-button {
@@ -305,13 +317,14 @@ All colors MUST be HSL.
   }
 
   .dark .premium-button {
-    background: linear-gradient(135deg, #a78bfa, #60a5fa);
-    box-shadow: 0 10px 25px rgba(167, 139, 250, 0.3);
+    background: linear-gradient(135deg, #60a5fa, #38bdf8);
+    box-shadow: 0 10px 30px rgba(56, 189, 248, 0.4);
   }
 
   .dark .premium-button:hover {
-    box-shadow: 0 15px 35px rgba(167, 139, 250, 0.4),
-                0 5px 15px rgba(96, 165, 250, 0.3);
+    background: linear-gradient(135deg, #3b82f6, #0ea5e9);
+    box-shadow: 0 15px 40px rgba(56, 189, 248, 0.5),
+                0 5px 20px rgba(14, 165, 233, 0.4);
   }
 
   /* Responsive adjustments for landscape login */
@@ -340,11 +353,11 @@ All colors MUST be HSL.
 
   .dark .premium-hero-gradient {
     background: linear-gradient(135deg, 
-      hsl(220, 40%, 8%) 0%, 
-      hsl(210, 45%, 10%) 25%,
-      hsl(200, 40%, 12%) 50%,
-      hsl(210, 45%, 10%) 75%,
-      hsl(220, 40%, 8%) 100%);
+      hsl(220, 40%, 12%) 0%, 
+      hsl(210, 50%, 16%) 25%,
+      hsl(199, 45%, 18%) 50%,
+      hsl(210, 50%, 16%) 75%,
+      hsl(220, 40%, 12%) 100%);
     background-size: 400% 400%;
     animation: premium-gradient 20s ease infinite;
   }
