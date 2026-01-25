@@ -6,8 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Suspense, lazy } from "react";
 import Index from "./pages/Index";
+import CinematicLanding from "./pages/CinematicLanding";
 import Login from "./pages/Login";
-import PatientDashboard from "./pages/PatientDashboard";
 import PremiumPatientDashboard from "./pages/PremiumPatientDashboard";
 import AIHealthAssistantPage from "./pages/AIHealthAssistantPage";
 import NotFound from "./pages/NotFound";
@@ -43,13 +43,14 @@ const App = () => (
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/cinematic" element={<CinematicLanding />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/patient/dashboard" element={<PatientDashboard />} />
               <Route path="/patient/premium" element={<PremiumPatientDashboard />} />
               <Route path="/ai-assistant" element={<AIHealthAssistantPage />} />
               
               {/* Pharmacy Dashboard with Nested Routes */}
               <Route path="/pharmacy/dashboard" element={<PharmacyDashboard />}>
+                <Route index element={<OrderRequestsTab />} />
                 <Route path="order-requests" element={<OrderRequestsTab />} />
                 <Route path="billing" element={<BillingTab />} />
                 <Route path="inventory" element={<InventoryTab />} />

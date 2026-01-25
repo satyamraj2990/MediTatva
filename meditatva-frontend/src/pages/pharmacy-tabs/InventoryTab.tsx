@@ -187,8 +187,8 @@ const initialInventory: FlatMedicine[] = [
 const categories = ["All Categories", "Pain Relief", "Allergy", "Antibiotic", "Digestive", "Diabetes", "Cardiovascular"];
 
 export const InventoryTab = memo(() => {
-  const [inventory, setInventory] = useState<FlatMedicine[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [inventory, setInventory] = useState<FlatMedicine[]>(initialInventory);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
   const [stockFilter, setStockFilter] = useState("All Stock");
@@ -260,13 +260,13 @@ export const InventoryTab = memo(() => {
 
   // Fetch inventory from backend
   const fetchInventory = async () => {
-    console.log('📦 Fetching inventory...');
-    setIsLoading(true);
+    console.log('📦 Fetching inventory from backend...');
+    // Don't show loading since demo data is already visible
     
     try {
       const result = await api.inventory.getAll();
       
-      if (result.success) {
+      if (result.success && result.data && result.data.length > 0) {
         // Transform backend data to match UI format
         const transformedData: FlatMedicine[] = result.data.map((item: Medicine) => ({
           id: item._id,
@@ -281,23 +281,21 @@ export const InventoryTab = memo(() => {
           barcode: `BAR${item._id.slice(-8)}`
         }));
         setInventory(transformedData);
-        console.log('✅ Loaded', transformedData.length, 'inventory items');
+        console.log('✅ Loaded', transformedData.length, 'inventory items from backend');
+        toast.success('Inventory synced with server');
       } else {
-        console.error('❌ Failed to fetch inventory:', result.message);
-        toast.error('Failed to load inventory');
-        setInventory([]);
+        console.log('📦 Backend returned no data, keeping demo inventory');
       }
     } catch (error: any) {
-      console.error('❌ Error fetching inventory:', error);
-      toast.error('Failed to load inventory');
-      setInventory([]);
-    } finally {
-      setIsLoading(false);
+      console.log('📦 Backend unavailable, using demo inventory data');
+      // Keep demo data that's already showing
     }
   };
 
   // Load inventory on mount
   useEffect(() => {
+    // Try to fetch from backend in background
+    // Demo data is already showing, so no need to wait
     fetchInventory();
   }, []);
 
@@ -844,7 +842,12 @@ export const InventoryTab = memo(() => {
       {/* Inventory Table */}
       <motion.div variants={cardVariants}>
         <Card className="overflow-hidden border-[#4FC3F7]/20">
-          {filteredInventory.length === 0 ? (
+          {isLoading ? (
+            <div className="p-12 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1B6CA8] mx-auto mb-4"></div>
+              <p className="text-[#5A6A85]">Loading inventory...</p>
+            </div>
+          ) : filteredInventory.length === 0 ? (
             <div className="p-12 text-center">
               <PackageSearch className="h-20 w-20 text-[#4FC3F7] mx-auto mb-4 opacity-50" />
               <h3 className="text-xl font-bold text-[#0A2342] mb-2">No medicines found</h3>

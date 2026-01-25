@@ -1,5 +1,6 @@
 const Medicine = require('../models/Medicine');
 const Inventory = require('../models/Inventory');
+const realtimeService = require('../services/realtimeService');
 
 /**
  * Search medicines with stock information
@@ -115,6 +116,18 @@ exports.createMedicine = async (req, res) => {
     });
     await inventory.save();
     console.log('✅ Inventory created:', inventory._id);
+
+    // Populate medicine data for broadcast
+    const inventoryWithMedicine = await Inventory.findById(inventory._id)
+      .populate('medicine', 'name genericName brand price category')
+      .lean();
+
+    // Broadcast realtime update to all connected clients
+    realtimeService.broadcastInventoryUpdate({
+      action: 'create',
+      inventory: inventoryWithMedicine
+    });
+    console.log('📡 Broadcasted inventory creation to connected clients');
 
     res.status(201).json({
       success: true,

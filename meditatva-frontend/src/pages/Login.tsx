@@ -1,20 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "sonner";
 import { 
-  User, 
-  Building2, 
   Mail, 
-  Lock, 
-  Sparkles, 
+  Lock,
+  Eye,
+  EyeOff,
+  Sparkles,
+  Shield,
+  Zap,
   ChevronDown,
-  Heart
+  User,
+  Building2,
+  Activity
 } from "lucide-react";
 
 const Login = () => {
@@ -25,361 +27,485 @@ const Login = () => {
   const [role, setRole] = useState<"patient" | "pharmacy">(initialRole as "patient" | "pharmacy");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isSignup, setIsSignup] = useState(false);
-  const [showDemo, setShowDemo] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [showDemo, setShowDemo] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Mouse position for 3D tilt
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const smoothMouseX = useSpring(mouseX, { stiffness: 100, damping: 30 });
+  const smoothMouseY = useSpring(mouseY, { stiffness: 100, damping: 30 });
+  const rotateX = useTransform(smoothMouseY, [-0.5, 0.5], [3, -3]);
+  const rotateY = useTransform(smoothMouseX, [-0.5, 0.5], [-3, 3]);
+
+  // Page load animation
+  useEffect(() => {
+    setTimeout(() => setIsLoaded(true), 100);
+  }, []);
+
+  // Mouse move handler for 3D tilt
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left - rect.width / 2) / rect.width;
+    const y = (e.clientY - rect.top - rect.height / 2) / rect.height;
+    mouseX.set(x);
+    mouseY.set(y);
+  };
+
+  const handleMouseLeave = () => {
+    mouseX.set(0);
+    mouseY.set(0);
+  };
+
+  const validCredentials = {
+    patient: { email: "patient@meditatva.com", password: "patient123" },
+    pharmacy: { email: "pharmacy@meditatva.com", password: "pharmacy123" },
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    const validCredentials = {
-      patient: { email: "patient@meditatva.com", password: "patient123" },
-      pharmacy: { email: "pharmacy@meditatva.com", password: "pharmacy123" },
-    };
-
     if (
       email === validCredentials[role].email &&
       password === validCredentials[role].password
     ) {
-      toast.success(`Welcome back! Logging in as ${role}...`);
-      localStorage.setItem("userRole", role);
       localStorage.setItem("isAuthenticated", "true");
-      
-      setTimeout(() => {
-        navigate(role === "patient" ? "/patient/premium" : "/pharmacy/dashboard");
-      }, 500);
+      localStorage.setItem("userRole", role);
+      navigate(role === "patient" ? "/patient/premium" : "/pharmacy/dashboard/order-requests");
+      toast.success(`🎉 Welcome back!`);
     } else {
-      toast.error("Invalid credentials. Use demo credentials below.");
+      toast.error("Invalid credentials. Please try demo access!");
     }
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0, y: 50 },
-    visible: { opacity: 1, y: 0 }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
-  };
-
   return (
-    <div className="min-h-screen premium-login-gradient flex items-center justify-center p-2 sm:p-4 lg:p-6 overflow-hidden relative">
-      {/* Animated background orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute top-10 sm:top-20 left-5 sm:left-10 w-48 h-48 sm:w-72 sm:h-72 bg-purple-500/20 rounded-full blur-3xl"
-          animate={{ x: [0, 100, 0], y: [0, 50, 0], scale: [1, 1.2, 1] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute bottom-10 sm:bottom-20 right-5 sm:right-10 w-64 h-64 sm:w-96 sm:h-96 bg-cyan-500/20 rounded-full blur-3xl"
-          animate={{ x: [0, -100, 0], y: [0, -50, 0], scale: [1, 1.3, 1] }}
-          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute top-1/2 left-1/2 w-56 h-56 sm:w-80 sm:h-80 bg-blue-500/20 rounded-full blur-3xl"
-          animate={{ x: [-50, 50, -50], y: [-50, 50, -50], scale: [1, 1.1, 1] }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-        />
+    <div className="relative w-full h-screen overflow-hidden bg-slate-950">
+      {/* Animated Background with Gradient Waves */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-950"
+        animate={{
+          background: [
+            "radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)",
+            "radial-gradient(circle at 80% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)",
+            "radial-gradient(circle at 50% 80%, rgba(6, 182, 212, 0.1) 0%, transparent 50%)",
+            "radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)",
+          ],
+        }}
+        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+      />
+
+      {/* ECG Heartbeat Line Animation */}
+      <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+        <svg className="w-full h-32" viewBox="0 0 1000 100" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="ecgGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="rgba(6, 182, 212, 0)" />
+              <stop offset="50%" stopColor="rgba(6, 182, 212, 0.8)" />
+              <stop offset="100%" stopColor="rgba(6, 182, 212, 0)" />
+            </linearGradient>
+          </defs>
+          <motion.path
+            d="M0,50 L350,50 L370,20 L390,80 L410,50 L650,50"
+            fill="none"
+            stroke="url(#ecgGradient)"
+            strokeWidth="3"
+            initial={{ pathLength: 0, x: -1000 }}
+            animate={{ 
+              pathLength: 1,
+              x: [0, 2000],
+              opacity: [0.3, 1, 0.3]
+            }}
+            transition={{ 
+              pathLength: { duration: 2 },
+              x: { duration: 8, repeat: Infinity, ease: "linear" },
+              opacity: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+            }}
+          />
+        </svg>
       </div>
 
-      {/* Theme Toggle */}
-      <motion.div 
-        className="absolute top-3 right-3 sm:top-6 sm:right-6 z-20"
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.3 }}
-      >
-        <ThemeToggle />
-      </motion.div>
+      {/* Floating Particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(30)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-cyan-400/20 rounded-full"
+            initial={{
+              x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1920),
+              y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1080),
+            }}
+            animate={{
+              y: [null, Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1080)],
+              opacity: [0, 0.5, 0],
+            }}
+            transition={{
+              duration: 10 + Math.random() * 15,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+          />
+        ))}
+      </div>
 
-      {/* Main Login Card - Responsive Layout */}
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        variants={containerVariants}
-        transition={{ duration: 0.6, staggerChildren: 0.1 }}
-        className="w-full max-w-6xl relative z-10 mx-auto"
-      >
-        <Card className="premium-glass-card backdrop-blur-2xl border border-white/20 shadow-2xl overflow-hidden">
-          <div className="grid lg:grid-cols-2 min-h-[500px] sm:min-h-[600px]">
-            {/* Left Side - Branding & Info (Hidden on mobile, visible on desktop) */}
-            <motion.div 
-              className="hidden lg:flex p-8 xl:p-12 flex-col justify-center bg-gradient-to-br from-purple-600/20 via-blue-600/20 to-cyan-600/20 backdrop-blur-sm"
-              variants={itemVariants}
-            >
-              <div className="space-y-6">
-                {/* Logo and Title */}
-                <motion.div whileHover={{ scale: 1.02 }} className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <motion.div
-                      animate={{ rotate: [0, 14, -8, 14, -4, 10, 0] }}
-                      transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                      className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center shadow-lg"
-                    >
-                      <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-white fill-white" />
-                    </motion.div>
-                    <h1 className="text-3xl sm:text-4xl xl:text-5xl font-bold premium-gradient-text">
-                      MediTatva
-                    </h1>
-                  </div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
-                    {isSignup ? "Join Us Today" : "Welcome Back"}
-                  </h2>
-                  <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
-                    Your trusted medicine companion. Connect with nearby pharmacies and find medicines instantly.
-                  </p>
+      {/* Pulse Rings in Background */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+        {[0, 1, 2].map((i) => (
+          <motion.div
+            key={i}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-400/10"
+            initial={{ width: 0, height: 0, opacity: 0.6 }}
+            animate={{
+              width: [0, 1200],
+              height: [0, 1200],
+              opacity: [0.6, 0],
+            }}
+            transition={{
+              duration: 6,
+              repeat: Infinity,
+              delay: i * 2,
+              ease: "easeOut",
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Centered Login Container */}
+      <div className="relative h-full flex items-center justify-center p-6">
+        {/* Radial Glow Behind Container */}
+        <motion.div
+          className="absolute w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-3xl"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+
+        {/* Glassmorphic Toolbox Container with 3D Tilt */}
+        <motion.div
+          ref={containerRef}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          initial={{ opacity: 0, scale: 0.8, y: 50 }}
+          animate={{
+            opacity: isLoaded ? 1 : 0,
+            scale: isLoaded ? 1 : 0.8,
+            y: isLoaded ? 0 : 50,
+          }}
+          transition={{ delay: 0, duration: 0.5, type: "spring", stiffness: 100 }}
+          style={{
+            rotateX,
+            rotateY,
+            transformStyle: "preserve-3d",
+            perspective: 1000,
+          }}
+          className="relative w-full max-w-md"
+        >
+          {/* Container Glow */}
+          <motion.div
+            className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-violet-500 rounded-3xl blur-xl opacity-20"
+            animate={{
+              opacity: [0.2, 0.4, 0.2],
+            }}
+            transition={{ duration: 3, repeat: Infinity }}
+          />
+
+          {/* Floating Animation */}
+          <motion.div
+            animate={{
+              y: [0, -8, 0],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            {/* Glass Container */}
+            <div className="relative bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+              
+              {/* Brand Badge */}
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05, duration: 0.4 }}
+                className="text-center mb-6"
+              >
+                <motion.div
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 mb-4"
+                  animate={{
+                    boxShadow: ['0 0 20px rgba(6, 182, 212, 0.3)', '0 0 40px rgba(6, 182, 212, 0.6)', '0 0 20px rgba(6, 182, 212, 0.3)'],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                  }}
+                >
+                  <Activity className="w-4 h-4 text-cyan-400" />
+                  <span className="text-sm font-bold text-cyan-400 uppercase tracking-wider">
+                    MediTatva Healthcare
+                  </span>
                 </motion.div>
+              </motion.div>
 
-                {/* Features List */}
-                <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-6">
-                  <div className="flex items-center gap-3 text-foreground">
-                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0">
-                      <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-400" />
-                    </div>
-                    <span className="text-sm sm:text-base font-medium">AI-Powered Medicine Search</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-foreground">
-                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-purple-500/20 flex items-center justify-center shrink-0">
-                      <User className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
-                    </div>
-                    <span className="text-sm sm:text-base font-medium">Real-Time Pharmacy Network</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-foreground">
-                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-pink-500/20 flex items-center justify-center shrink-0">
-                      <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-pink-400" />
-                    </div>
-                    <span className="text-sm sm:text-base font-medium">Instant Medicine Availability</span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+              {/* Welcome Text */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.08, duration: 0.4 }}
+                className="text-center mb-6"
+              >
+                <h2 className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-white via-cyan-200 to-blue-300 bg-clip-text text-transparent mb-2">
+                  Welcome Back
+                </h2>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.1, duration: 0.4 }}
+                  className="text-slate-400 text-base"
+                >
+                  Enter the future of healthcare
+                </motion.p>
+              </motion.div>
 
-            {/* Right Side - Login Form */}
-            <div className="p-5 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-center">
-              <motion.div variants={itemVariants} className="space-y-3 sm:space-y-4 lg:space-y-6">
-                {/* Header */}
-                <div className="space-y-2">
-                  <h3 className="text-xl sm:text-2xl font-bold text-foreground">
-                    {isSignup ? "Create Account" : "Sign In"}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    {isSignup ? "Fill in your details to get started" : "Enter your credentials to continue"}
-                  </p>
-                </div>
-
-                {/* Role Selector - Clear Segmented Control */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-foreground">Select Your Role</Label>
-                  <div className="grid grid-cols-2 gap-2 p-1 bg-muted/30 rounded-lg border-2 border-border">
+              {/* Role Selector */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.12, duration: 0.4 }}
+                className="mb-6"
+              >
+                <div className="relative bg-slate-800/50 p-1 rounded-2xl backdrop-blur-sm">
+                  <motion.div
+                    className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl shadow-lg"
+                    animate={{
+                      x: role === "patient" ? 4 : "calc(100% + 4px)",
+                    }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                  <div className="relative grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setRole("patient")}
-                      className={`flex items-center justify-center gap-2 py-3 px-4 rounded-md font-semibold transition-all duration-200 ${
-                        role === "patient" 
-                          ? "bg-primary text-primary-foreground shadow-md" 
-                          : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      className={`relative z-10 py-3 px-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 ${
+                        role === "patient" ? "text-white" : "text-slate-400"
                       }`}
-                      aria-pressed={role === "patient"}
-                      aria-label="Login as Patient"
                     >
-                      <User className="h-4 w-4 shrink-0" />
-                      <span className="text-sm sm:text-base">Patient</span>
+                      <User className="w-5 h-5" />
+                      Patient
                     </button>
                     <button
                       type="button"
                       onClick={() => setRole("pharmacy")}
-                      className={`flex items-center justify-center gap-2 py-3 px-4 rounded-md font-semibold transition-all duration-200 ${
-                        role === "pharmacy" 
-                          ? "bg-primary text-primary-foreground shadow-md" 
-                          : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      className={`relative z-10 py-3 px-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 ${
+                        role === "pharmacy" ? "text-white" : "text-slate-400"
                       }`}
-                      aria-pressed={role === "pharmacy"}
-                      aria-label="Login as Pharmacy"
                     >
-                      <Building2 className="h-4 w-4 shrink-0" />
-                      <span className="text-sm sm:text-base">Pharmacy</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
-                  {/* Email Field */}
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-semibold text-foreground">
-                      Email Address
-                    </Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/70 z-10 pointer-events-none" />
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        onFocus={() => setFocusedField("email")}
-                        onBlur={() => setFocusedField(null)}
-                        className={`pl-11 sm:pl-12 h-12 text-base bg-card border-2 transition-all ${
-                          focusedField === "email" 
-                            ? "border-primary ring-4 ring-primary/20 bg-background" 
-                            : "border-input hover:border-primary/50"
-                        }`}
-                        required
-                        aria-label="Email Address"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Demo: {role === "patient" ? "patient@meditatva.com" : "pharmacy@meditatva.com"}
-                    </p>
-                  </div>
-
-                  {/* Password Field */}
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-semibold text-foreground">
-                      Password
-                    </Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/70 z-10 pointer-events-none" />
-                      <Input
-                        id="password"
-                        type="password"
-                        placeholder="Enter your password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        onFocus={() => setFocusedField("password")}
-                        onBlur={() => setFocusedField(null)}
-                        className={`pl-11 sm:pl-12 h-12 text-base bg-card border-2 transition-all ${
-                          focusedField === "password" 
-                            ? "border-primary ring-4 ring-primary/20 bg-background" 
-                            : "border-input hover:border-primary/50"
-                        }`}
-                        required
-                        aria-label="Password"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Demo: {role === "patient" ? "patient123" : "pharmacy123"}
-                    </p>
-                  </div>
-
-                  {/* Login Button - Primary Action */}
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/90"
-                  >
-                    {isSignup ? "Create Account" : "Login to Dashboard"}
-                  </Button>
-                </form>
-
-                {/* Demo Credentials - Secondary Action */}
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowDemo(!showDemo)}
-                    className="w-full flex items-center justify-between px-4 py-3 rounded-lg border-2 border-border hover:border-primary/50 bg-background/50 hover:bg-background/80 transition-all duration-200"
-                    aria-expanded={showDemo}
-                    aria-label="Toggle demo account credentials"
-                  >
-                    <span className="text-sm font-medium flex items-center gap-2 text-foreground">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      Load Demo Account
-                    </span>
-                    <motion.div
-                      animate={{ rotate: showDemo ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    </motion.div>
-                  </button>
-
-                  <AnimatePresence>
-                    {showDemo && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="mt-2 sm:mt-3 p-3 sm:p-4 rounded-lg bg-muted/30 backdrop-blur-sm space-y-2 sm:space-y-3 border border-border/50">
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
-                              <p className="font-semibold text-xs sm:text-sm text-foreground">Patient</p>
-                            </div>
-                            <div className="space-y-1 text-[10px] sm:text-xs text-muted-foreground pl-5 sm:pl-6">
-                              <p className="font-mono bg-background/50 px-2 py-1 rounded break-all">
-                                patient@meditatva.com
-                              </p>
-                              <p className="font-mono bg-background/50 px-2 py-1 rounded">
-                                patient123
-                              </p>
-                            </div>
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-secondary" />
-                              <p className="font-semibold text-xs sm:text-sm text-foreground">Pharmacy</p>
-                            </div>
-                            <div className="space-y-1 text-[10px] sm:text-xs text-muted-foreground pl-5 sm:pl-6">
-                              <p className="font-mono bg-background/50 px-2 py-1 rounded break-all">
-                                pharmacy@meditatva.com
-                              </p>
-                              <p className="font-mono bg-background/50 px-2 py-1 rounded">
-                                pharmacy123
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                {/* Signup Toggle & Back to Home - Tertiary Actions */}
-                <div className="space-y-3 pt-2">
-                  <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => setIsSignup(!isSignup)}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {isSignup ? "Already have an account? " : "Don't have an account? "}
-                      <span className="text-primary font-semibold hover:underline">
-                        {isSignup ? "Sign in" : "Sign up"}
-                      </span>
-                    </button>
-                  </div>
-
-                  <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => navigate("/")}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
-                    >
-                      ← Back to Home
+                      <Building2 className="w-5 h-5" />
+                      Pharmacy
                     </button>
                   </div>
                 </div>
               </motion.div>
-            </div>
-          </div>
-        </Card>
-      </motion.div>
 
-      {/* Footer */}
-      <motion.footer
-        className="absolute bottom-3 sm:bottom-6 left-0 right-0 text-center z-10 px-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-      >
-        <p className="text-[10px] sm:text-xs text-muted-foreground/70">
-          © {new Date().getFullYear()} MediTatva — Your Trusted Medicine Companion
-        </p>
-      </motion.footer>
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Email Input */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.14, duration: 0.4 }}
+                >
+                  <Label
+                    htmlFor="email"
+                    className={`text-xs uppercase tracking-wider font-bold mb-2 block transition-colors ${
+                      focusedField === "email" ? "text-cyan-400" : "text-slate-400"
+                    }`}
+                  >
+                    Email
+                  </Label>
+                  <div className="relative">
+                    <Mail
+                      className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-all duration-300 ${
+                        focusedField === "email" ? "text-cyan-400 scale-110" : "text-slate-500"
+                      }`}
+                    />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onFocus={() => setFocusedField("email")}
+                      onBlur={() => setFocusedField(null)}
+                      className={`pl-12 h-12 text-base rounded-xl bg-slate-800/50 border-2 text-white placeholder:text-slate-600 transition-all duration-300 ${
+                        focusedField === "email"
+                          ? "border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+                          : "border-slate-700 hover:border-slate-600"
+                      }`}
+                      required
+                    />
+                  </div>
+                </motion.div>
+
+                {/* Password Input */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.16, duration: 0.4 }}
+                >
+                  <Label
+                    htmlFor="password"
+                    className={`text-xs uppercase tracking-wider font-bold mb-2 block transition-colors ${
+                      focusedField === "password" ? "text-cyan-400" : "text-slate-400"
+                    }`}
+                  >
+                    Password
+                  </Label>
+                  <div className="relative">
+                    <Lock
+                      className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-all duration-300 ${
+                        focusedField === "password" ? "text-cyan-400 scale-110" : "text-slate-500"
+                      }`}
+                    />
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onFocus={() => setFocusedField("password")}
+                      onBlur={() => setFocusedField(null)}
+                      className={`pl-12 pr-12 h-12 text-base rounded-xl bg-slate-800/50 border-2 text-white placeholder:text-slate-600 transition-all duration-300 ${
+                        focusedField === "password"
+                          ? "border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+                          : "border-slate-700 hover:border-slate-600"
+                      }`}
+                      required
+                    />
+                    <motion.button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-cyan-400 transition-colors"
+                    >
+                      <motion.div
+                        initial={false}
+                        animate={{ rotate: showPassword ? 0 : 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </motion.div>
+                    </motion.button>
+                  </div>
+                </motion.div>
+
+                {/* Collapsible Demo Access */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.18, duration: 0.4 }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setShowDemo(!showDemo)}
+                    className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-800/30 border border-slate-700/50 hover:border-cyan-500/50 transition-all duration-300"
+                  >
+                    <div className="flex items-center gap-2">
+                      <motion.div
+                        animate={{
+                          scale: [1, 1.2, 1],
+                          opacity: [0.5, 1, 0.5],
+                        }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <Shield className="w-4 h-4 text-cyan-400" />
+                      </motion.div>
+                      <span className="text-xs font-bold text-cyan-400 uppercase">Demo Access</span>
+                    </div>
+                    <motion.div
+                      animate={{ rotate: showDemo ? 180 : 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    </motion.div>
+                  </button>
+                  <motion.div
+                    initial={false}
+                    animate={{
+                      height: showDemo ? "auto" : 0,
+                      opacity: showDemo ? 1 : 0,
+                    }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-3 mt-2 rounded-xl bg-slate-800/20 border border-slate-700/30 text-sm">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEmail(validCredentials[role].email);
+                          setPassword(validCredentials[role].password);
+                          toast.success("Demo credentials filled!");
+                        }}
+                        className="text-left w-full hover:text-cyan-400 transition-colors"
+                      >
+                        <p className="text-slate-500 mb-1">
+                          Email: <span className="text-cyan-400 font-mono text-xs">{validCredentials[role].email}</span>
+                        </p>
+                        <p className="text-slate-500">
+                          Password: <span className="text-cyan-400 font-mono text-xs">{validCredentials[role].password}</span>
+                        </p>
+                      </button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+
+                {/* Login Button */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.4 }}
+                >
+                  <Button
+                    type="submit"
+                    className="w-full h-14 rounded-xl bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 text-white font-semibold tracking-normal transition-colors duration-150 shadow-md border border-cyan-500/20 cursor-pointer"
+                  >
+                    <span className="flex items-center justify-center gap-2.5 text-base">
+                      <Activity className="w-5 h-5" />
+                      Sign In
+                    </span>
+                  </Button>
+                </motion.div>
+              </form>
+
+              {/* Back to Home */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.22, duration: 0.4 }}
+                className="text-center mt-6"
+              >
+                <button
+                  type="button"
+                  onClick={() => navigate("/")}
+                  className="text-sm text-slate-500 hover:text-cyan-400 transition-colors font-medium"
+                >
+                  ← Back to Home
+                </button>
+              </motion.div>
+            </div>
+          </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 };

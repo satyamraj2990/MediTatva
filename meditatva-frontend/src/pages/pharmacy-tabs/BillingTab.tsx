@@ -48,10 +48,84 @@ interface InvoiceHistory {
   paymentMethod: string;
 }
 
+// Demo medicines for when backend is unavailable
+const demoAvailableMedicines: Medicine[] = [
+  {
+    _id: "1",
+    name: "Paracetamol 500mg",
+    genericName: "Acetaminophen",
+    brand: "Crocin",
+    price: 2.50,
+    current_stock: 150,
+    inStock: true,
+    requiresPrescription: false
+  },
+  {
+    _id: "2",
+    name: "Cetirizine 10mg",
+    genericName: "Cetirizine Hydrochloride",
+    brand: "Cetrizet",
+    price: 4.75,
+    current_stock: 28,
+    inStock: true,
+    requiresPrescription: false
+  },
+  {
+    _id: "3",
+    name: "Ibuprofen 400mg",
+    genericName: "Ibuprofen",
+    brand: "Brufen",
+    price: 3.20,
+    current_stock: 185,
+    inStock: true,
+    requiresPrescription: false
+  },
+  {
+    _id: "4",
+    name: "Amoxicillin 250mg",
+    genericName: "Amoxicillin",
+    brand: "Amoxil",
+    price: 8.90,
+    current_stock: 8,
+    inStock: true,
+    requiresPrescription: true
+  },
+  {
+    _id: "5",
+    name: "Omeprazole 20mg",
+    genericName: "Omeprazole",
+    brand: "Omez",
+    price: 5.60,
+    current_stock: 320,
+    inStock: true,
+    requiresPrescription: false
+  },
+  {
+    _id: "6",
+    name: "Azithromycin 500mg",
+    genericName: "Azithromycin",
+    brand: "Azithral",
+    price: 12.50,
+    current_stock: 45,
+    inStock: true,
+    requiresPrescription: true
+  },
+  {
+    _id: "8",
+    name: "Atorvastatin 10mg",
+    genericName: "Atorvastatin",
+    brand: "Lipitor",
+    price: 9.80,
+    current_stock: 210,
+    inStock: true,
+    requiresPrescription: true
+  }
+];
+
 export const BillingTab = memo(() => {
   const [searchQuery, setSearchQuery] = useState("");
   const [medicines, setMedicines] = useState<Medicine[]>([]);
-  const [availableMedicines, setAvailableMedicines] = useState<Medicine[]>([]);
+  const [availableMedicines, setAvailableMedicines] = useState<Medicine[]>(demoAvailableMedicines);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingAvailable, setIsLoadingAvailable] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -114,7 +188,7 @@ export const BillingTab = memo(() => {
     try {
       const response = await api.invoices.getAvailableMedicines();
       
-      if (response.success) {
+      if (response.success && response.data && response.data.length > 0) {
         // Transform backend format to frontend format
         const transformedMedicines = (response.data || []).map((med: any) => ({
           _id: med.medicineId || med._id,
@@ -128,15 +202,14 @@ export const BillingTab = memo(() => {
         }));
         
         setAvailableMedicines(transformedMedicines);
-        console.log('✅ Loaded', transformedMedicines.length, 'medicines');
+        console.log('✅ Loaded', transformedMedicines.length, 'medicines from backend');
       } else {
-        console.error('❌ Failed to fetch available medicines:', response.message);
-        setAvailableMedicines([]);
+        console.log('📦 Backend returned no data, using demo medicines');
+        setAvailableMedicines(demoAvailableMedicines);
       }
     } catch (error: any) {
-      console.error('❌ Error fetching available medicines:', error);
-      setAvailableMedicines([]);
-      // Error already handled by API client
+      console.log('📦 Backend unavailable, using demo medicines');
+      setAvailableMedicines(demoAvailableMedicines);
     } finally {
       setIsLoadingAvailable(false);
     }
