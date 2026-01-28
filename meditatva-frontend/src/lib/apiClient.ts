@@ -98,25 +98,13 @@ const handleApiError = (error: AxiosError) => {
     console.error(`❌ Server Error (${status}):`, message);
     console.error('Response data:', error.response.data);
     
-    switch (status) {
-      case 400:
-        toast.error(`Bad Request: ${message}`);
-        break;
-      case 401:
-        toast.error('Unauthorized. Please login again.');
-        break;
-      case 403:
-        toast.error('Access Denied');
-        break;
-      case 404:
-        toast.error(`Not Found: ${message}`);
-        break;
-      case 500:
-        toast.error('Server Error. Please try again later.');
-        break;
-      default:
-        toast.error(`Error: ${message}`);
+    // Only show toast for critical errors (not for data fetching failures)
+    if (status === 401) {
+      toast.error('Unauthorized. Please login again.');
+    } else if (status === 403) {
+      toast.error('Access Denied');
     }
+    // Don't show toast for 400, 404, 500 - let components handle fallback silently
   } else if (error.request) {
     // Request was made but no response received
     console.error('❌ No response from server');
@@ -127,7 +115,7 @@ const handleApiError = (error: AxiosError) => {
     console.error('  3. CORS is blocking the request');
     console.error('  4. Network connectivity issue');
     console.error('XMLHttpRequest details:', error.request);
-    toast.error('Failed to connect to server. Please check if the backend is running.');
+    // Don't show toast - let components use demo data fallback
   } else {
     // Something else went wrong
     console.error('❌ Request setup error:', error.message);
@@ -270,13 +258,29 @@ export class RealtimeManager {
     console.log('🔌 Attempting SSE connection to:', this.endpoint);
     this.shouldReconnect = true;
     
+    // First, immediately start polling as backup
+    console.log('🔄 Starting polling immediately as backup');
+    this.startPolling(onUpdate);
+    
     try {
-      this.eventSource = new EventSource(this.endpoint);
+      // Build absolute URL for EventSource
+      const fullUrl = this.endpoint.startsWith('http') 
+        ? this.endpoint 
+        : `${window.location.origin}${this.endpoint}`;
+      
+      console.log('🔗 Full SSE URL:', fullUrl);
+      this.eventSource = new EventSource(fullUrl);
       
       this.eventSource.onopen = () => {
         console.log('✅ SSE Connected - realtime updates active');
         this.isUsingFallback = false;
         this.reconnectAttempts = 0;
+        // Stop polling since SSE is working
+        if (this.pollingInterval) {
+          console.log('🛑 Stopping polling - SSE is active');
+          clearInterval(this.pollingInterval);
+          this.pollingInterval = null;
+        }
         if (this.reconnectAttempts === 0) {
           toast.success('Real-time updates connected', { duration: 2000 });
         } else {
@@ -297,76 +301,75 @@ export class RealtimeManager {
       this.eventSource.onerror = (error) => {
         console.error('❌ SSE Error:', error);
         
+        // Restart polling if not already running
+        if (!this.pollingInterval) {
+          console.log('🔄 SSE error - ensuring polling is active');
+          this.startPolling(onUpdate);
+        }
+        
         // Only reconnect if we should (not manually disconnected)
         if (!this.shouldReconnect) {
           console.log('🛑 Manual disconnect - not reconnecting');
           return;
         }
         
-        // Infinite reconnection attempts with exponential backoff
+        // Reconnection attempts with exponential backoff
         this.reconnectAttempts++;
-        const backoffDelay = Math.min(this.reconnectDelay * this.reconnectAttempts, 30000); // Max 30s
-        console.log(`🔄 Will reconnect in ${backoffDelay/1000}s (attempt ${this.reconnectAttempts})...`);
+        const backoffDelay = Math.min(this.reconnectDelay * Math.min(this.reconnectAttempts, 5), 15000); // Max 15s
+        console.log(`🔄 Will reconnect SSE in ${backoffDelay/1000}s (attempt ${this.reconnectAttempts})...`);
         
         this.reconnectTimeout = setTimeout(() => {
           if (this.shouldReconnect) {
-            console.log(`🔄 Reconnecting now (attempt ${this.reconnectAttempts})...`);
-            this.disconnect(false); // Don't reset shouldReconnect
+            console.log(`🔄 Reconnecting SSE now (attempt ${this.reconnectAttempts})...`);
+            if (this.eventSource) {
+              this.eventSource.close();
+            }
             this.connect(onUpdate, onError);
           }
         }, backoffDelay);
-        
-        // After 5 failed attempts, also start polling as backup
-        if (this.reconnectAttempts === 5 && !this.isUsingFallback) {
-          console.log('⚠️ Multiple reconnection failures - starting polling backup...');
-          this.startPolling(onUpdate);
-          toast.warning('Connection unstable - using polling backup', { duration: 3000 });
-        }
         
         if (onError) onError(error);
       };
     } catch (error) {
       console.error('❌ Failed to create SSE connection:', error);
-      // Immediately fall back to polling
-      this.startPolling(onUpdate);
+      // Polling is already started above, so just log
+      console.log('📡 Continuing with polling fallback');
     }
   }
   
   private startPolling(onUpdate: (data: any) => void) {
-    if (this.pollingInterval) return; // Already polling
+    if (this.pollingInterval) {
+      console.log('🔄 Polling already active');
+      return; // Already polling
+    }
     
     this.isUsingFallback = true;
-    console.log('🔄 Starting REST polling (every 7 seconds)');
-    toast.info('Using polling for updates');
+    console.log('🔄 Starting REST polling (every 5 seconds)');
     
-    // Poll every 7 seconds as requested
-    this.pollingInterval = setInterval(async () => {
+    // Do initial fetch immediately
+    const fetchData = async () => {
       try {
+        console.log('📡 Polling: Fetching inventory data...');
         const response = await api.inventory.getAll();
-        if (response.success) {
+        if (response.success && response.data) {
+          console.log(`📡 Polling: Received ${response.data.length} items`);
           onUpdate({
             type: 'inventory-update',
             data: response.data,
-            source: 'polling'
+            source: 'polling',
+            timestamp: new Date().toISOString()
           });
         }
       } catch (error) {
         console.error('❌ Polling error:', error);
       }
-    }, 7000);
+    };
     
-    // Do initial fetch
-    api.inventory.getAll()
-      .then(response => {
-        if (response.success) {
-          onUpdate({
-            type: 'initial-inventory',
-            data: response.data,
-            source: 'polling-initial'
-          });
-        }
-      })
-      .catch(console.error);
+    // Initial fetch
+    fetchData();
+    
+    // Poll every 5 seconds
+    this.pollingInterval = setInterval(fetchData, 5000);
   }
   
   disconnect(resetFlag = true) {

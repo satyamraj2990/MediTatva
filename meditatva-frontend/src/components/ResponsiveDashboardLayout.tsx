@@ -146,7 +146,7 @@ export const ResponsiveDashboardLayout = memo(({
         )}
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.2 }}
       >
         <div className="px-4 sm:px-6 md:px-8 py-4 flex items-center justify-between gap-4">
           {/* Left: Sidebar Toggle */}
@@ -315,7 +315,7 @@ export const ResponsiveDashboardLayout = memo(({
                     className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full"
                     initial={{ width: 0 }}
                     animate={{ width: `${healthScore}%` }}
-                    transition={{ delay: 0.5, duration: 1 }}
+                    transition={{ delay: 0.1, duration: 0.3 }}
                   />
                 </div>
               </div>
@@ -342,7 +342,7 @@ export const ResponsiveDashboardLayout = memo(({
                 }}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
+                transition={{ delay: index * 0.02 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >

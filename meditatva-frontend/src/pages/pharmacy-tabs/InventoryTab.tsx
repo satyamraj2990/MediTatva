@@ -85,110 +85,13 @@ interface FlatMedicine {
   barcode?: string;
 }
 
-const initialInventory: FlatMedicine[] = [
-  {
-    id: "1",
-    name: "Paracetamol 500mg",
-    batchNumber: "PC2401",
-    manufacturer: "PharmaCo Ltd",
-    quantity: 450,
-    price: 2.50,
-    expiryDate: "2026-08-15",
-    supplier: "MediSupply Inc",
-    category: "Pain Relief",
-    barcode: "890123456789"
-  },
-  {
-    id: "2",
-    name: "Cetirizine 10mg",
-    batchNumber: "CT2402",
-    manufacturer: "AllergyMed",
-    quantity: 28,
-    price: 4.75,
-    expiryDate: "2025-11-25",
-    supplier: "Global Pharma",
-    category: "Allergy",
-    barcode: "890123456790"
-  },
-  {
-    id: "3",
-    name: "Ibuprofen 400mg",
-    batchNumber: "IB2403",
-    manufacturer: "PainFree Corp",
-    quantity: 185,
-    price: 3.20,
-    expiryDate: "2026-03-20",
-    supplier: "MediSupply Inc",
-    category: "Pain Relief",
-    barcode: "890123456791"
-  },
-  {
-    id: "4",
-    name: "Amoxicillin 250mg",
-    batchNumber: "AX2404",
-    manufacturer: "AntiBio Labs",
-    quantity: 8,
-    price: 8.90,
-    expiryDate: "2025-11-10",
-    supplier: "BioPharm Solutions",
-    category: "Antibiotic",
-    barcode: "890123456792"
-  },
-  {
-    id: "5",
-    name: "Omeprazole 20mg",
-    batchNumber: "OM2405",
-    manufacturer: "DigestCare",
-    quantity: 320,
-    price: 5.60,
-    expiryDate: "2026-06-30",
-    supplier: "Global Pharma",
-    category: "Digestive",
-    barcode: "890123456793"
-  },
-  {
-    id: "6",
-    name: "Azithromycin 500mg",
-    batchNumber: "AZ2406",
-    manufacturer: "AntiBio Labs",
-    quantity: 45,
-    price: 12.50,
-    expiryDate: "2025-11-15",
-    supplier: "BioPharm Solutions",
-    category: "Antibiotic",
-    barcode: "890123456794"
-  },
-  {
-    id: "7",
-    name: "Metformin 500mg",
-    batchNumber: "MF2407",
-    manufacturer: "DiabetesCare Inc",
-    quantity: 0,
-    price: 6.25,
-    expiryDate: "2026-09-10",
-    supplier: "MediSupply Inc",
-    category: "Diabetes",
-    barcode: "890123456795"
-  },
-  {
-    id: "8",
-    name: "Atorvastatin 10mg",
-    batchNumber: "AT2408",
-    manufacturer: "CardioMed",
-    quantity: 210,
-    price: 9.80,
-    expiryDate: "2026-05-22",
-    supplier: "Global Pharma",
-    category: "Cardiovascular",
-    barcode: "890123456796"
-  },
-];
+// No mock data - only real-time backend data will be shown
 
 const categories = ["All Categories", "Pain Relief", "Allergy", "Antibiotic", "Digestive", "Diabetes", "Cardiovascular"];
 
 export const InventoryTab = memo(() => {
-  const [inventory, setInventory] = useState<FlatMedicine[]>(initialInventory);
-  const [isLoading, setIsLoading] = useState(false);
+  const [inventory, setInventory] = useState<FlatMedicine[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
   const [stockFilter, setStockFilter] = useState("All Stock");
@@ -203,8 +106,11 @@ export const InventoryTab = memo(() => {
   const { isConnected: isRealtimeConnected, error: realtimeError } = useRealtimeInventory({
     onUpdate: (update) => {
       console.log('📡 InventoryTab received realtime update:', update.type);
+      console.log('📊 Update data:', update);
       
       if (update.type === 'inventory-update' || update.type === 'initial-inventory') {
+        console.log('🔄 Processing inventory update, data length:', update.data?.length);
+        
         // Transform and update inventory state
         const transformedData: FlatMedicine[] = (update.data || []).map((item: Medicine) => ({
           id: item._id,
@@ -213,61 +119,53 @@ export const InventoryTab = memo(() => {
           manufacturer: item.medicine?.manufacturer || 'N/A',
           quantity: item.current_stock,
           price: item.medicine?.price || 0,
-          expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString().split('T')[0] : '2026-12-31',
+          expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString().split('T')[0] : new Date(Date.now() + 365*24*60*60*1000).toISOString().split('T')[0],
           supplier: item.location || 'Main Store',
           category: item.medicine?.category || 'General',
           barcode: `BAR${item._id.slice(-8)}`
         }));
         
+        console.log('✅ Transformed', transformedData.length, 'items from realtime');
         setInventory(transformedData);
+        setIsLoading(false); // Stop loading when real data arrives
         
-        if (update.type === 'inventory-update' && update.source !== 'polling-initial') {
-          toast.info('📦 Inventory updated', { duration: 2000 });
+        if (update.type === 'inventory-update' && update.source !== 'polling' && update.source !== 'polling-initial') {
+          toast.info('📦 Inventory updated in real-time', { duration: 2000 });
         }
       }
     },
     autoConnect: true
   });
 
-  // Wait for backend to be ready
-  const waitForBackend = async (maxRetries = 10, delayMs = 1000): Promise<boolean> => {
-    console.log('⏳ Waiting for backend to be ready...');
-    console.log('🔧 Using Vite Proxy: /health');
-    const healthUrl = '/health';
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        const response = await fetch(healthUrl);
-        const data = await response.json();
-        
-        if (data.ready === true || data.status === 'ok') {
-          console.log('✅ Backend is ready!');
-          return true;
-        }
-        
-        console.log(`⏳ Backend not ready yet (attempt ${i + 1}/${maxRetries}), status: ${data.status}`);
-      } catch (error) {
-        console.log(`⏳ Backend not available yet (attempt ${i + 1}/${maxRetries})`);
+  // Fallback: If still loading after 2 seconds, force fetch
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isLoading) {
+        console.log('⏱️ Loading timeout - forcing data fetch');
+        fetchInventory();
       }
-      
-      if (i < maxRetries - 1) {
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
-    }
-    
-    console.warn('⚠️ Backend did not become ready in time, proceeding anyway');
-    return false;
-  };
+    }, 2000);
+
+    return () => clearTimeout(timeout);
+  }, [isLoading]);
+
+  // Mount: Fetch immediately as backup while realtime connects
+  useEffect(() => {
+    console.log('🚀 InventoryTab mounted - fetching initial data');
+    fetchInventory();
+  }, []);
 
   // Fetch inventory from backend
   const fetchInventory = async () => {
-    console.log('📦 Fetching inventory from backend...');
-    // Don't show loading since demo data is already visible
-    
     try {
+      console.log('🔍 Fetching inventory from API...');
       const result = await api.inventory.getAll();
+      console.log('📦 API Response:', result);
       
-      if (result.success && result.data && result.data.length > 0) {
-        // Transform backend data to match UI format
+      if (result.success && result.data) {
+        console.log('✅ Found', result.data.length, 'items');
+        console.log('📊 Sample item:', result.data[0]);
+        
         const transformedData: FlatMedicine[] = result.data.map((item: Medicine) => ({
           id: item._id,
           name: item.medicine?.name || 'Unknown',
@@ -275,29 +173,29 @@ export const InventoryTab = memo(() => {
           manufacturer: item.medicine?.manufacturer || 'N/A',
           quantity: item.current_stock,
           price: item.medicine?.price || 0,
-          expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString().split('T')[0] : '2026-12-31',
+          expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString().split('T')[0] : new Date(Date.now() + 365*24*60*60*1000).toISOString().split('T')[0],
           supplier: item.location || 'Main Store',
           category: item.medicine?.category || 'General',
           barcode: `BAR${item._id.slice(-8)}`
         }));
+        
+        console.log('🔄 Transformed data:', transformedData);
         setInventory(transformedData);
-        console.log('✅ Loaded', transformedData.length, 'inventory items from backend');
-        toast.success('Inventory synced with server');
+        setIsLoading(false);
       } else {
-        console.log('📦 Backend returned no data, keeping demo inventory');
+        console.warn('⚠️ No data in response:', result);
+        setInventory([]);
+        setIsLoading(false);
       }
     } catch (error: any) {
-      console.log('📦 Backend unavailable, using demo inventory data');
-      // Keep demo data that's already showing
+      console.error('❌ Fetch error:', error);
+      console.error('Error details:', error.response?.data || error.message);
+      setInventory([]);
+      setIsLoading(false);
     }
   };
 
-  // Load inventory on mount
-  useEffect(() => {
-    // Try to fetch from backend in background
-    // Demo data is already showing, so no need to wait
-    fetchInventory();
-  }, []);
+  // Note: No manual fetch needed - useRealtimeInventory hook handles initial load and updates automatically
 
   // Calculate stock status
   const getStockStatus = (quantity: number): { status: string; color: string; icon: any } => {
@@ -595,17 +493,22 @@ export const InventoryTab = memo(() => {
     reader.readAsText(file);
   };
 
+  // Loading state - only show when truly initializing (first 500ms)
+  if (isLoading && inventory.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mx-auto mb-3"></div>
+          <p className="text-gray-600 font-medium text-sm">Connecting to database...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <motion.div
-      variants={pageVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      className="space-y-6"
-      style={{ filter: 'none', WebkitFilter: 'none' }}
-    >
+    <div className="space-y-6" style={{ filter: 'none', WebkitFilter: 'none' }}>
       {/* Top Summary Banner */}
-      <motion.div variants={cardVariants}>
+      <div>
         <Card
           className="p-3 sm:p-4 lg:p-6 relative overflow-hidden"
           style={{
@@ -632,11 +535,11 @@ export const InventoryTab = memo(() => {
             </div>
           </div>
         </Card>
-      </motion.div>
+      </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <motion.div variants={cardVariants}>
+        <div>
           <Card className="p-5 bg-white border-[#4FC3F7]/20 hover:shadow-xl transition-all">
             <div className="flex items-center justify-between">
               <div>
@@ -648,9 +551,9 @@ export const InventoryTab = memo(() => {
               </div>
             </div>
           </Card>
-        </motion.div>
+        </div>
 
-        <motion.div variants={cardVariants}>
+        <div>
           <Card className="p-5 bg-white border-[#4FC3F7]/20 hover:shadow-xl transition-all">
             <div className="flex items-center justify-between">
               <div>
@@ -662,9 +565,9 @@ export const InventoryTab = memo(() => {
               </div>
             </div>
           </Card>
-        </motion.div>
+        </div>
 
-        <motion.div variants={cardVariants}>
+        <div>
           <Card className="p-5 bg-white border-[#4FC3F7]/20 hover:shadow-xl transition-all">
             <div className="flex items-center justify-between">
               <div>
@@ -676,9 +579,9 @@ export const InventoryTab = memo(() => {
               </div>
             </div>
           </Card>
-        </motion.div>
+        </div>
 
-        <motion.div variants={cardVariants}>
+        <div>
           <Card className="p-5 bg-white border-[#4FC3F7]/20 hover:shadow-xl transition-all">
             <div className="flex items-center justify-between">
               <div>
@@ -690,9 +593,9 @@ export const InventoryTab = memo(() => {
               </div>
             </div>
           </Card>
-        </motion.div>
+        </div>
 
-        <motion.div variants={cardVariants}>
+        <div>
           <Card className="p-5 bg-white border-[#4FC3F7]/20 hover:shadow-xl transition-all">
             <div className="flex items-center justify-between">
               <div>
@@ -704,12 +607,12 @@ export const InventoryTab = memo(() => {
               </div>
             </div>
           </Card>
-        </motion.div>
+        </div>
       </div>
 
       {/* Low Stock Recommendations */}
       {lowStockItems.length > 0 && (
-        <motion.div variants={cardVariants}>
+        <div>
           <Card className="p-6 bg-white border-[#F39C12]/20">
             <div className="flex items-center gap-3 mb-4">
               <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#F39C12] to-[#E67E22] flex items-center justify-center">
@@ -722,10 +625,9 @@ export const InventoryTab = memo(() => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
               {lowStockItems.map((item) => (
-                <motion.div
+                <div
                   key={item.id}
                   className="p-4 rounded-lg bg-[#FFF3E0] border-2 border-[#F39C12]/30"
-                  whileHover={{ scale: 1.05 }}
                 >
                   <p className="font-bold text-[#0A2342] text-sm mb-1">{item.name}</p>
                   <div className="flex items-center justify-between">
@@ -734,15 +636,15 @@ export const InventoryTab = memo(() => {
                       Low
                     </Badge>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           </Card>
-        </motion.div>
+        </div>
       )}
 
       {/* Search and Filters */}
-      <motion.div variants={cardVariants}>
+      <div>
         <Card className="p-6 bg-white border-[#4FC3F7]/20">
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-[300px]">
@@ -837,10 +739,10 @@ export const InventoryTab = memo(() => {
             />
           </div>
         </Card>
-      </motion.div>
+      </div>
 
       {/* Inventory Table */}
-      <motion.div variants={cardVariants}>
+      <div>
         <Card className="overflow-hidden border-[#4FC3F7]/20">
           {isLoading ? (
             <div className="p-12 text-center">
@@ -975,7 +877,7 @@ export const InventoryTab = memo(() => {
             </div>
           )}
         </Card>
-      </motion.div>
+      </div>
 
       {/* Add Medicine Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
@@ -1238,7 +1140,7 @@ export const InventoryTab = memo(() => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </motion.div>
+    </div>
   );
 });
 

@@ -19,7 +19,10 @@ import {
   Heart,
   Activity,
   Zap,
-  TrendingUp
+  TrendingUp,
+  Camera,
+  BarChart3,
+  Bell
 } from "lucide-react";
 
 const Index = () => {
@@ -86,13 +89,19 @@ const Index = () => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
+  // Enhanced scroll-replay animation variants
   const fadeInUp = {
-    hidden: { opacity: 0, y: 40 },
+    hidden: { 
+      opacity: 0, 
+      y: 16 
+    },
     visible: { 
       opacity: 1, 
       y: 0,
       transition: { 
-        duration: 0.5
+        duration: 0.6,
+        ease: "easeOut" as const,
+        delay: 0.08
       }
     }
   };
@@ -102,17 +111,184 @@ const Index = () => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.06,
-        delayChildren: 0.1
+        staggerChildren: 0.12,
+        delayChildren: 0
+      }
+    }
+  };
+
+  // Advanced 3D card entry variants - replays on each scroll
+  const cardVariants = {
+    leftEntry: {
+      hidden: { 
+        opacity: 0, 
+        x: -60,
+        rotateY: -4,
+        z: -28,
+        transition: {
+          duration: 0
+        }
+      },
+      visible: { 
+        opacity: 1, 
+        x: 0,
+        rotateY: 0,
+        z: 28,
+        transition: { 
+          duration: 0.9,
+          ease: "easeOut" as const
+        }
+      }
+    },
+    centerEntry: {
+      hidden: { 
+        opacity: 0, 
+        y: 20,
+        scale: 0.96,
+        z: -28
+      },
+      visible: { 
+        opacity: 1, 
+        y: 0,
+        scale: 1,
+        z: 28,
+        transition: { 
+          duration: 0.9,
+          ease: "easeOut" as const,
+          delay: 0.12
+        }
+      }
+    },
+    rightEntry: {
+      hidden: { 
+        opacity: 0, 
+        x: 60,
+        rotateY: 4,
+        z: -28
+      },
+      visible: { 
+        opacity: 1, 
+        x: 0,
+        rotateY: 0,
+        z: 28,
+        transition: { 
+          duration: 0.9,
+          ease: "easeOut" as const,
+          delay: 0.24
+        }
+      }
+    },
+    mobileEntry: {
+      hidden: { 
+        opacity: 0, 
+        y: 24
+      },
+      visible: { 
+        opacity: 1, 
+        y: 0,
+        transition: { 
+          duration: 0.6,
+          ease: "easeOut" as const
+        }
+      }
+    }
+  };
+
+  // Icon animation variant - plays after card settles
+  const iconVariant = {
+    hidden: {
+      opacity: 0,
+      scale: 0.85
+    },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: {
+        duration: 0.3,
+        ease: "easeOut" as const,
+        delay: 0.4
       }
     }
   };
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#0B1220]">
-      {/* Premium Background with Gradient Mesh */}
-      <div className="fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0B1220] via-[#111827] to-[#0B1220]" />
+    <div className="min-h-screen overflow-hidden relative bg-slate-950">
+      {/* Cosmic Mesh Gradient Background */}
+      <div className="fixed inset-0 z-0">
+        {/* Base gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+        
+        {/* Animated Aurora Blobs */}
+        <motion.div
+          className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full opacity-20 blur-[150px]"
+          style={{ background: 'radial-gradient(circle, #06b6d4 0%, transparent 70%)' }}
+          animate={{
+            x: [0, 100, 0],
+            y: [0, 50, 0],
+            scale: [1, 1.2, 1]
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute bottom-0 right-1/4 w-[700px] h-[700px] rounded-full opacity-20 blur-[150px]"
+          style={{ background: 'radial-gradient(circle, #7c3aed 0%, transparent 70%)' }}
+          animate={{
+            x: [0, -100, 0],
+            y: [0, -50, 0],
+            scale: [1, 1.3, 1]
+          }}
+          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute top-1/2 left-1/2 w-[500px] h-[500px] rounded-full opacity-15 blur-[150px]"
+          style={{ background: 'radial-gradient(circle, #ec4899 0%, transparent 70%)' }}
+          animate={{
+            x: [-50, 50, -50],
+            y: [-50, 50, -50],
+            scale: [1, 1.1, 1]
+          }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+        />
+        
+        {/* Subtle professional snow animation layer */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {Array.from({ length: 35 }).map((_, i) => {
+            const size = Math.random() * 3 + 2; // Smaller: 2-5px
+            const leftPos = Math.random() * 100;
+            const duration = Math.random() * 5 + 8; // Moderate: 8-13 seconds
+            const delay = Math.random() * -15;
+            const opacity = Math.random() * 0.2 + 0.15; // Very subtle: 0.15-0.35
+            const isBlue = Math.random() > 0.7;
+            
+            return (
+              <motion.div
+                key={i}
+                className="absolute rounded-full"
+                style={{
+                  left: `${leftPos}%`,
+                  top: '-10px',
+                  width: `${size}px`,
+                  height: `${size}px`,
+                  backgroundColor: isBlue ? 'rgba(179, 217, 255, 0.5)' : 'rgba(255, 255, 255, 0.6)',
+                  opacity: opacity,
+                  filter: 'blur(0.8px)',
+                  boxShadow: '0 0 4px rgba(255, 255, 255, 0.2)'
+                }}
+                animate={{
+                  y: ['0vh', '110vh'],
+                  x: [0, (Math.random() - 0.5) * 60],
+                  rotate: [0, Math.random() * 180]
+                }}
+                transition={{
+                  duration: duration,
+                  repeat: Infinity,
+                  ease: "linear",
+                  delay: delay
+                }}
+              />
+            );
+          })}
+        </div>
         
         {/* Animated Gradient Lines */}
         <motion.div
@@ -181,7 +357,7 @@ const Index = () => {
       </motion.nav>
 
       {/* Hero Section - Premium Enterprise Design */}
-      <section ref={heroRef} className="relative min-h-screen flex items-center justify-center px-4 pt-20">
+      <section ref={heroRef} className="relative min-h-screen flex items-center justify-center px-4 pt-20 z-10">
         {/* Rotating Ring Animation - Responsive */}
         <motion.div
           className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none"
@@ -197,6 +373,19 @@ const Index = () => {
           className="container mx-auto text-center relative z-10"
           style={{ opacity }}
         >
+          {/* AI-Powered Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/40 backdrop-blur-xl border border-white/10 mb-8"
+          >
+            <Sparkles className="h-4 w-4 text-cyan-400" />
+            <span className="text-sm font-medium bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+              AI-Powered Healthcare
+            </span>
+          </motion.div>
+
           {/* 3D Floating Bot Icon */}
           <motion.div
             className="flex justify-center mb-8"
@@ -275,10 +464,10 @@ const Index = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
           >
-            AI-powered platform connecting you with nearby pharmacies — anytime, anywhere
+            Connect with verified pharmacies, search medicines intelligently, and get AI-powered health assistance all in one platform
           </motion.p>
 
-          {/* Premium CTA Buttons - Mobile Optimized */}
+          {/* Premium CTA Buttons with Shimmer Effect */}
           <motion.div 
             className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center px-4"
             initial={{ opacity: 0, y: 30 }}
@@ -290,15 +479,21 @@ const Index = () => {
                 whileHover={{ scale: 1.03, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 transition={{ duration: 0.2 }}
-                className="w-full"
+                className="w-full group relative overflow-hidden rounded-xl"
               >
-                <Button className="group relative text-base sm:text-lg px-6 sm:px-10 py-5 sm:py-7 h-auto w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 border border-cyan-400/50 shadow-lg shadow-cyan-500/30">
+                <Button className="relative text-base sm:text-lg px-6 sm:px-10 py-5 sm:py-7 h-auto w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 border border-cyan-400/50 shadow-xl shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all duration-300">
+                  {/* Shimmer Effect */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                    initial={{ x: '-100%' }}
+                    whileHover={{ x: '200%' }}
+                    transition={{ duration: 0.6 }}
+                  />
                   <span className="relative z-10 flex items-center justify-center gap-2 font-semibold">
                     <Heart className="h-4 w-4 sm:h-5 sm:w-5" />
                     Login as Patient
                     <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-1 transition-transform" />
                   </span>
-                  <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-cyan-400 to-blue-500 opacity-0 group-hover:opacity-100 blur transition-opacity" />
                 </Button>
               </motion.div>
             </Link>
@@ -308,15 +503,21 @@ const Index = () => {
                 whileHover={{ scale: 1.03, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 transition={{ duration: 0.2 }}
-                className="w-full"
+                className="w-full group relative overflow-hidden rounded-xl"
               >
-                <Button className="group relative text-base sm:text-lg px-6 sm:px-10 py-5 sm:py-7 h-auto w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 border border-purple-400/50 shadow-lg shadow-purple-500/30">
+                <Button className="relative text-base sm:text-lg px-6 sm:px-10 py-5 sm:py-7 h-auto w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 border border-purple-400/50 shadow-xl shadow-purple-500/30 hover:shadow-purple-500/50 transition-all duration-300">
+                  {/* Shimmer Effect */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                    initial={{ x: '-100%' }}
+                    whileHover={{ x: '200%' }}
+                    transition={{ duration: 0.6 }}
+                  />
                   <span className="relative z-10 flex items-center justify-center gap-2 font-semibold">
                     <Activity className="h-4 w-4 sm:h-5 sm:w-5" />
                     Login as Pharmacy
                     <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-1 transition-transform" />
                   </span>
-                  <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-400 to-pink-500 opacity-0 group-hover:opacity-100 blur transition-opacity" />
                 </Button>
               </motion.div>
             </Link>
@@ -342,126 +543,208 @@ const Index = () => {
         </motion.div>
       </section>
 
-      {/* Features Section - Enterprise Grade Cards */}
-      <section className="py-32 relative">
+      {/* Trust Signals Strip */}
+      <section className="py-20 border-y border-white/[0.05] relative z-20 bg-slate-950">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {[
+              { value: "50K+", label: "Active Users", delay: 0 },
+              { value: "98%", label: "AI Accuracy", delay: 0.12 },
+              { value: "<2s", label: "Response Time", delay: 0.24 },
+              { value: "500+", label: "Partner Pharmacies", delay: 0.36 }
+            ].map((stat, index) => (
+              <motion.div
+                key={index}
+                className="text-center"
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: false, amount: 0.8, margin: "-50px" }}
+                transition={{ 
+                  duration: 0.6, 
+                  delay: stat.delay,
+                  ease: [0.22, 1, 0.36, 1]
+                }}
+              >
+                <div className="text-3xl md:text-4xl font-semibold text-white mb-2" style={{ textShadow: '0 0 20px rgba(6, 182, 212, 0.5), 0 2px 4px rgba(0,0,0,0.8)' }}>
+                  {stat.value}
+                </div>
+                <div className="text-sm text-gray-400 uppercase tracking-wider font-medium">
+                  {stat.label}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section - Premium Spotlight Cards */}
+      <section className="py-32 relative z-20 bg-slate-950">
         <div className="container mx-auto px-4">
           <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={fadeInUp}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: false, amount: 0.3 }}
+            transition={{ duration: 0.6 }}
             className="text-center mb-20"
           >
-            <h2 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
-              Powerful Features
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white tracking-tight">
+              Core Capabilities
             </h2>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Everything you need to find and manage medicines efficiently
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+              Clinical-grade tools for patients and healthcare providers
             </p>
           </motion.div>
 
-          <motion.div 
-            className="grid md:grid-cols-3 gap-6"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={staggerContainer}
-          >
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
             {[
               {
-                icon: Search,
-                title: "Smart AI Search",
-                description: "Find medicines instantly with AI-powered search across all nearby pharmacies with real-time availability.",
-                gradient: "from-cyan-500 to-blue-600",
-                borderGradient: "from-cyan-500/50 to-blue-600/50"
-              },
-              {
-                icon: MapPin,
-                title: "Live Location",
-                description: "Interactive map showing nearby pharmacies with distance, ratings, and opening hours in real-time.",
-                gradient: "from-purple-500 to-pink-600",
-                borderGradient: "from-purple-500/50 to-pink-600/50"
-              },
-              {
-                icon: MessageCircle,
-                title: "Direct Chat",
-                description: "Chat directly with pharmacies to check availability, reserve medicines, and get instant responses.",
-                gradient: "from-teal-500 to-emerald-600",
-                borderGradient: "from-teal-500/50 to-emerald-600/50"
-              },
-              {
+                title: "AI Health Assistant",
+                desc: "Get instant medical guidance anytime.",
+                tag: "AI-Assisted",
+                color: "from-blue-500 to-cyan-500",
                 icon: Bot,
-                title: "AI Assistant",
-                description: "24/7 AI-powered chatbot to help you find medicines, compare prices, and get health advice.",
-                gradient: "from-orange-500 to-red-600",
-                borderGradient: "from-orange-500/50 to-red-600/50"
+                img: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&auto=format&fit=crop"
               },
               {
-                icon: Shield,
-                title: "Verified Pharmacies",
-                description: "All pharmacies are verified and licensed. Your health and safety are our top priorities.",
-                gradient: "from-indigo-500 to-blue-600",
-                borderGradient: "from-indigo-500/50 to-blue-600/50"
+                title: "Medicine Search",
+                desc: "Find any medicine with live availability.",
+                tag: "Real-time",
+                color: "from-purple-500 to-pink-500",
+                icon: Search,
+                img: "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=800&auto=format&fit=crop"
               },
               {
-                icon: Clock,
-                title: "24/7 Availability",
-                description: "Access the platform anytime, anywhere. Emergency medicine searches available round the clock.",
-                gradient: "from-pink-500 to-rose-600",
-                borderGradient: "from-pink-500/50 to-rose-600/50"
+                title: "Pharmacy Locator",
+                desc: "Locate verified pharmacies near you.",
+                tag: "Verified",
+                color: "from-emerald-500 to-teal-500",
+                icon: MapPin,
+                img: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&auto=format&fit=crop"
+              },
+              {
+                title: "Prescription Scanner",
+                desc: "Scan prescriptions for instant analysis.",
+                tag: "98% Accuracy",
+                color: "from-orange-500 to-red-500",
+                icon: Camera,
+                img: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&auto=format&fit=crop"
+              },
+              {
+                title: "Business Analytics",
+                desc: "Track performance and inventory insights.",
+                tag: "Enterprise",
+                color: "from-indigo-500 to-purple-500",
+                icon: BarChart3,
+                img: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop"
+              },
+              {
+                title: "Smart Notifications",
+                desc: "Stay informed with health updates.",
+                tag: "Real-time",
+                color: "from-pink-500 to-rose-500",
+                icon: Bell,
+                img: "https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?w=800&auto=format&fit=crop"
               }
-            ].map((feature, index) => (
-              <motion.div
-                key={index}
-                variants={fadeInUp}
-                whileHover={{ y: -6, scale: 1.01 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-              >
-                <Card 
-                  className="h-full relative overflow-hidden group"
-                  style={{
-                    background: 'rgba(17, 24, 39, 0.8)',
-                    backdropFilter: 'blur(12px)',
-                    border: 'none',
-                  }}
-                >
-                  {/* Gradient Top Border */}
-                  <div className={`absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r ${feature.borderGradient}`} />
-                  
-                  <div className="p-8">
-                    {/* Icon with Reduced Glow */}
-                    <motion.div 
-                      className="relative inline-block mb-6"
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div className={`relative h-16 w-16 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center shadow-md`}>
-                        <feature.icon className="h-8 w-8 text-white relative z-10" />
-                      </div>
-                      <div className={`absolute inset-0 rounded-xl bg-gradient-to-br ${feature.gradient} blur-lg opacity-20 group-hover:opacity-30 transition-opacity`} />
-                    </motion.div>
+            ].map((feature, index) => {
+              const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+              const [isHovered, setIsHovered] = useState(false);
 
-                    <h3 className="text-xl font-bold mb-3 text-white group-hover:bg-gradient-to-r group-hover:from-cyan-400 group-hover:to-blue-500 group-hover:bg-clip-text group-hover:text-transparent transition-all">
-                      {feature.title}
-                    </h3>
-                    <p className="text-gray-400 leading-relaxed text-sm">
-                      {feature.description}
-                    </p>
-                  </div>
-                  
-                  {/* Gradient Border on Hover */}
-                  <div className={`absolute inset-0 rounded-lg bg-gradient-to-br ${feature.borderGradient} opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none`} style={{ padding: '1px', margin: '-1px' }}>
-                    <div className="w-full h-full rounded-lg" style={{ background: 'rgba(17, 24, 39, 0.8)' }} />
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </motion.div>
+              const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setMousePosition({
+                  x: e.clientX - rect.left,
+                  y: e.clientY - rect.top
+                });
+              };
+
+              return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: false, amount: 0.3 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className="group relative"
+                  onMouseMove={handleMouseMove}
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
+                >
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ duration: 0.2 }}
+                    className="relative h-full rounded-2xl overflow-hidden"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255,255,255,0.08)'
+                    }}
+                  >
+                    {/* Spotlight Effect */}
+                    {isHovered && (
+                      <motion.div
+                        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                        style={{
+                          background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(255,255,255,0.08), transparent 40%)`
+                        }}
+                      />
+                    )}
+
+                    {/* Image Container with Enhanced Vignette */}
+                    <div className="relative h-48 overflow-hidden">
+                      <motion.img
+                        src={feature.img}
+                        alt={feature.title}
+                        className="w-full h-full object-cover"
+                        whileHover={{ scale: 1.1 }}
+                        transition={{ duration: 0.4 }}
+                      />
+                      {/* Enhanced multi-layer vignette */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-6 relative z-10">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
+                        <span className="text-xs font-semibold text-cyan-400">
+                          {feature.tag}
+                        </span>
+                      </div>
+
+                      <h3 className="text-xl font-bold text-white mb-2 tracking-tight">
+                        {feature.title}
+                      </h3>
+
+                      <p className="text-sm text-slate-400 mb-4 leading-relaxed">
+                        {feature.desc}
+                      </p>
+
+                      <div className="flex items-center gap-2 text-sm font-medium text-cyan-400 group-hover:gap-3 transition-all">
+                        <span>Explore</span>
+                        <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+
+                    {/* Border Glow on Hover */}
+                    <motion.div
+                      className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                      style={{
+                        background: `linear-gradient(135deg, ${feature.color.replace('from-', 'rgba(').replace(' to-', ', 0.3), rgba(').replace('500', '128, 128, 128')} 0.2))`,
+                        filter: 'blur(20px)',
+                        transform: 'scale(1.05)'
+                      }}
+                    />
+                  </motion.div>
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
       {/* Testimonials Section - Premium Dark Design */}
-      <section className="py-32 relative overflow-hidden">
+      <section className="py-32 relative overflow-hidden z-20 bg-slate-950">
         {/* Deep Gradient Mesh Background with Slow Hue Shift */}
         <motion.div 
           className="absolute inset-0"
@@ -576,7 +859,7 @@ const Index = () => {
       </section>
 
       {/* CTA Section - Premium Glass + Neon Borders */}
-      <section className="py-16 sm:py-24 lg:py-32 relative overflow-hidden">
+      <section className="py-16 sm:py-24 lg:py-32 relative overflow-hidden z-20 bg-slate-950">
         {/* Rotating Ring Background - Responsive */}
         <motion.div 
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
@@ -675,7 +958,7 @@ const Index = () => {
       </section>
 
       {/* Footer - Premium Dark Navy with Gradient Accents */}
-      <footer className="relative py-16 bg-[#0B1220] border-t border-cyan-500/20">
+      <footer className="relative py-16 bg-[#0B1220] border-t border-cyan-500/20 z-20">
         {/* Slow Floating Icons Background - Subtle Parallax */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-5">
           <motion.div

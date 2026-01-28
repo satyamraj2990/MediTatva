@@ -370,8 +370,8 @@ sessionStorage.clear()
 
 ## 🎯 Success Criteria - All Met! ✅
 
-✅ **Pharmacy Dashboard** → Uses `AIzaSyCes8Tpt5kvG7b-D8C3eGw_5L0x8-v_dZA`  
-✅ **Patient Dashboard** → Uses `AIzaSyBNNB_456wwnLo57BSO89POATwS1FjsMjw`  
+✅ **Pharmacy Dashboard** → Uses environment variable `VITE_GOOGLE_MAPS_API_KEY_PHARMACY`  
+✅ **Patient Dashboard** → Uses environment variable `VITE_GOOGLE_MAPS_API_KEY_PATIENT`  
 ✅ **Both work simultaneously** without conflict  
 ✅ **Live updates** refresh automatically every 60 seconds  
 ✅ **Accurate display** of city, state, and PIN  

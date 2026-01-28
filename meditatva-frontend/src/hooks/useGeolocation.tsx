@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const GOOGLE_GEOCODING_API_KEY = "AIzaSyBNNB_456wwnLo57BSO89POATwS1FjsMjw";
+const GOOGLE_GEOCODING_API_KEY = "AIzaSyB5CdEsyYeUBa8QP9E0okX_e0yXDc0O2HM";
 
 // Debug utility - expose to window for console testing
 if (typeof window !== 'undefined') {

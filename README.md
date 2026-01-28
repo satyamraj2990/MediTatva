@@ -4,7 +4,21 @@ A modern, premium patient portal dashboard for MediTatva healthcare platform wit
 
 ---
 
-## 🚀 Quick Start
+## � Deploying to Vercel? Read This First!
+
+**Problem**: "No medicines found" on your Vercel deployment?
+
+**Reason**: Vercel only hosts the frontend. You need to deploy the backend separately.
+
+**Quick Fix**: See **[QUICK_FIX_VERCEL.md](QUICK_FIX_VERCEL.md)** for 3-step solution (takes 10 minutes)
+
+**Detailed Guide**: See **[VERCEL_BACKEND_FIX.md](VERCEL_BACKEND_FIX.md)** for complete deployment instructions
+
+**Architecture Explained**: See **[ARCHITECTURE_EXPLAINED.md](ARCHITECTURE_EXPLAINED.md)** to understand why
+
+---
+
+## �🚀 Quick Start
 
 ### ✅ Application is Running!
 

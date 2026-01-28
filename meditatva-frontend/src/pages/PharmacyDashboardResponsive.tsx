@@ -15,6 +15,15 @@ export const PharmacyDashboardResponsive = memo(() => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("order-requests");
 
+  // Auth check - run first and immediately
+  useEffect(() => {
+    const isAuth = localStorage.getItem("isAuthenticated");
+    const role = localStorage.getItem("userRole");
+    if (!isAuth || role !== "pharmacy") {
+      navigate("/login?role=pharmacy", { replace: true });
+    }
+  }, [navigate]);
+
   const menuItems: SidebarItem[] = [
     {
       id: "order-requests",
@@ -69,15 +78,6 @@ export const PharmacyDashboardResponsive = memo(() => {
       navigate("/pharmacy/dashboard/order-requests", { replace: true });
     }
   }, [location.pathname, navigate]);
-
-  // Auth check
-  useEffect(() => {
-    const isAuth = localStorage.getItem("isAuthenticated");
-    const role = localStorage.getItem("userRole");
-    if (!isAuth || role !== "pharmacy") {
-      navigate("/login?role=pharmacy");
-    }
-  }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated");

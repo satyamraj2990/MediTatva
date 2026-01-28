@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Package, Search, Filter, CheckCircle, XCircle, Eye, FileText,
   MapPin, Phone, Mail, Calendar, Clock, Truck, ShoppingBag,
-  AlertCircle, TrendingUp, Activity, DollarSign, Download
+  AlertCircle, TrendingUp, Activity, DollarSign, Download, ChevronDown,
+  ArrowUpRight, ArrowDownRight, Sparkles, RefreshCw, MoreVertical
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -121,135 +122,206 @@ export const OrderRequestsTab = () => {
   };
 
   return (
-    <div 
-      className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-3 sm:p-4 lg:p-6"
-      style={{ 
-        filter: 'none !important', 
-        WebkitFilter: 'none !important',
-        backdropFilter: 'none !important',
-        WebkitBackdropFilter: 'none !important'
-      } as React.CSSProperties}
-    >
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-4 sm:mb-6"
-      >
-        <div className="flex items-center gap-2 sm:gap-3 mb-2">
-          <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-lg sm:rounded-xl">
-            <Package className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+    <div className="min-h-screen">
+      {/* Modern Header with Breadcrumb */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <div
+              className="p-4 bg-gradient-to-br from-blue-500 via-blue-600 to-cyan-500 rounded-2xl shadow-xl"
+            >
+              <Package className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <h1
+                className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-700 bg-clip-text text-transparent"
+              >
+                Order Requests
+              </h1>
+              <p
+                className="text-sm text-muted-foreground mt-1"
+              >
+                Manage and track all pharmacy orders
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-              Order Requests
-            </h1>
-            <p className="text-gray-600 text-xs sm:text-sm lg:text-base">Manage incoming medicine orders from patients</p>
+
+          {/* Quick Action Buttons */}
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+            <Button size="sm" className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
+              <Sparkles className="h-4 w-4" />
+              New Order
+            </Button>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Stats Summary */}
+      {/* Premium KPI Dashboard */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: { staggerChildren: 0.03 }
+          }
+        }}
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8"
       >
-        <Card className="p-4 border-2 border-blue-100 bg-white hover:shadow-lg transition-all">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 font-medium">Total Orders</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-            </div>
-            <div className="p-3 bg-blue-100 rounded-xl">
-              <Activity className="h-5 w-5 text-blue-600" />
-            </div>
-          </div>
-        </Card>
+        {[
+          { icon: Activity, label: "Total Orders", value: stats.total, change: "+12%", trend: "up" as const, color: "from-blue-500 to-cyan-500" },
+          { icon: Clock, label: "Pending", value: stats.pending, change: "Action needed", trend: "neutral" as const, color: "from-amber-400 to-orange-500" },
+          { icon: CheckCircle, label: "Confirmed", value: stats.confirmed, change: "+8%", trend: "up" as const, color: "from-blue-500 to-indigo-500" },
+          { icon: TrendingUp, label: "Delivered", value: stats.delivered, change: "+15%", trend: "up" as const, color: "from-emerald-500 to-green-500" },
+          { icon: XCircle, label: "Cancelled", value: stats.cancelled, change: "-5%", trend: "down" as const, color: "from-red-400 to-rose-500" },
+        ].map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <motion.div
+              key={stat.label}
+              variants={{
+                hidden: { opacity: 0, y: 20, scale: 0.95 },
+                visible: {
+                  opacity: 1,
+                  y: 0,
+                  scale: 1,
+                  transition: { type: "spring", stiffness: 100, damping: 15 }
+                }
+              }}
+              whileHover={{ y: -4, scale: 1.02 }}
+              className="group relative"
+            >
+              <Card className="relative overflow-hidden border-0 shadow-lg bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl p-6 hover:shadow-2xl transition-all duration-300">
+                {/* Gradient Background on Hover */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+                
+                {/* Accent Border */}
+                <motion.div
+                  className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${stat.color}`}
+                  initial={{ scaleY: 0.3 }}
+                  whileHover={{ scaleY: 1 }}
+                  transition={{ duration: 0.15 }}
+                />
 
-        <Card className="p-4 border-2 border-yellow-100 bg-white hover:shadow-lg transition-all">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 font-medium">Pending</p>
-              <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
-            </div>
-            <div className="p-3 bg-yellow-100 rounded-xl">
-              <Clock className="h-5 w-5 text-yellow-600" />
-            </div>
-          </div>
-        </Card>
+                <div className="relative flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{stat.label}</p>
+                    <motion.p
+                      className="text-3xl font-bold text-gray-900 dark:text-white mb-1"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      {stat.value}
+                    </motion.p>
+                    <div className="flex items-center gap-1">
+                      {stat.trend === 'up' ? (
+                        <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                      ) : stat.trend === 'down' ? (
+                        <ArrowDownRight className="h-4 w-4 text-red-500" />
+                      ) : null}
+                      <span className={`text-sm font-semibold ${
+                        stat.trend === 'up' ? 'text-emerald-600' : 
+                        stat.trend === 'down' ? 'text-red-600' : 
+                        'text-gray-600 dark:text-gray-400'
+                      }`}>
+                        {stat.change}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Animated Icon */}
+                  <motion.div
+                    className={`p-3 rounded-2xl bg-gradient-to-br ${stat.color} shadow-lg`}
+                    whileHover={{
+                      rotate: [0, -10, 10, 0],
+                      scale: 1.1
+                    }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <Icon className="h-6 w-6 text-white" />
+                  </motion.div>
+                </div>
 
-        <Card className="p-4 border-2 border-blue-100 bg-white hover:shadow-lg transition-all">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 font-medium">Confirmed</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.confirmed}</p>
-            </div>
-            <div className="p-3 bg-blue-100 rounded-xl">
-              <CheckCircle className="h-5 w-5 text-blue-600" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 border-2 border-green-100 bg-white hover:shadow-lg transition-all">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 font-medium">Delivered</p>
-              <p className="text-2xl font-bold text-green-600">{stats.delivered}</p>
-            </div>
-            <div className="p-3 bg-green-100 rounded-xl">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 border-2 border-red-100 bg-white hover:shadow-lg transition-all">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 font-medium">Cancelled</p>
-              <p className="text-2xl font-bold text-red-600">{stats.cancelled}</p>
-            </div>
-            <div className="p-3 bg-red-100 rounded-xl">
-              <XCircle className="h-5 w-5 text-red-600" />
-            </div>
-          </div>
-        </Card>
+                {/* Hidden Sparkline */}
+                <div className="mt-4 h-12 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="flex items-end justify-between h-full gap-1">
+                    {[...Array(12)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        className={`flex-1 rounded-t bg-gradient-to-t ${stat.color} opacity-30`}
+                        initial={{ height: 0 }}
+                        whileHover={{ height: `${Math.random() * 100}%` }}
+                        transition={{ duration: 0.15 }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          );
+        })}
       </motion.div>
 
-      {/* Search and Filter Bar */}
+      {/* Premium Search & Filter Bar */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
+        transition={{ delay: 0.4 }}
         className="mb-6"
       >
-        <Card className="p-4 bg-white border-2 border-blue-100">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+        <Card className="border-0 shadow-xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl p-6">
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search Input */}
+            <div className="flex-1 relative group">
+              <div
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-10"
+              >
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
               <Input
-                placeholder="Search by patient name, order ID, or medicine..."
+                placeholder="Search by patient, order ID, or medicine..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 border-2 border-gray-200 focus:border-blue-400"
+                className="pl-12 h-12 border-2 border-gray-200 dark:border-gray-600 focus:border-blue-400 dark:focus:border-blue-500 rounded-xl text-base bg-white dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-800 transition-all shadow-sm focus:shadow-md"
               />
             </div>
-            <div className="flex gap-3">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px] border-2 border-gray-200">
-                  <Filter className="h-4 w-4 mr-2" />
+
+            {/* Filter Dropdown */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full lg:w-[240px] h-12 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                   <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Orders</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                </div>
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="all">All Orders</SelectItem>
+                <SelectItem value="pending">Pending Only</SelectItem>
+                <SelectItem value="confirmed">Confirmed Only</SelectItem>
+                <SelectItem value="delivered">Delivered Only</SelectItem>
+                <SelectItem value="cancelled">Cancelled Only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Results Count */}
+          <div
+            className="mt-4 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400"
+          >
+            <span>Showing <strong className="text-gray-900 dark:text-white">{filteredOrders.length}</strong> of <strong className="text-gray-900 dark:text-white">{orders.length}</strong> orders</span>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+              >
+                Clear search
+              </button>
+            )}
           </div>
         </Card>
       </motion.div>

@@ -1,5 +1,5 @@
-import { useEffect, useRef, memo } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useRef, memo, useState } from "react";
+import { Loader2, MapPin, AlertCircle } from "lucide-react";
 
 interface GoogleMapComponentProps {
   userLocation: {
@@ -28,34 +28,77 @@ export const GoogleMapComponent = memo(({
   const googleMapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const loadingRef = useRef(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!userLocation || !mapRef.current || loadingRef.current) return;
 
     loadingRef.current = true;
+    setIsLoading(true);
+    setError(null);
 
-    // Load Google Maps Script
+    // Set timeout to prevent infinite loading
+    timeoutRef.current = setTimeout(() => {
+      if (isLoading) {
+        console.error('⏱️ Map loading timeout - API might not be configured');
+        setError('Map loading timed out. Please check if Google Maps APIs are enabled and billing is active.');
+        setIsLoading(false);
+        loadingRef.current = false;
+      }
+    }, 10000); // 10 second timeout
+
+    // Load Google Maps Script with better error handling
     const loadGoogleMaps = () => {
       return new Promise<void>((resolve, reject) => {
+        // Check if already loaded
         if (window.google && window.google.maps) {
+          console.log('✅ Google Maps already loaded');
           resolve();
           return;
         }
 
         const existingScript = document.getElementById('google-maps-script');
         if (existingScript) {
-          existingScript.addEventListener('load', () => resolve());
-          existingScript.addEventListener('error', () => reject(new Error('Failed to load Google Maps')));
+          console.log('⏳ Google Maps script exists, waiting for load...');
+          
+          // Set timeout for existing script
+          const scriptTimeout = setTimeout(() => {
+            reject(new Error('Script loading timeout'));
+          }, 8000);
+          
+          existingScript.addEventListener('load', () => {
+            clearTimeout(scriptTimeout);
+            console.log('✅ Google Maps loaded from existing script');
+            resolve();
+          });
+          existingScript.addEventListener('error', (e) => {
+            clearTimeout(scriptTimeout);
+            console.error('❌ Google Maps script error:', e);
+            reject(new Error('Failed to load Google Maps. Please check your API key and billing status.'));
+          });
           return;
         }
 
+        console.log('📦 Loading Google Maps script with key:', apiKey.substring(0, 10) + '...');
         const script = document.createElement('script');
         script.id = 'google-maps-script';
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&callback=initMap`;
         script.async = true;
         script.defer = true;
-        script.addEventListener('load', () => resolve());
-        script.addEventListener('error', () => reject(new Error('Failed to load Google Maps')));
+        
+        // Create callback function
+        (window as any).initMap = () => {
+          console.log('✅ Google Maps initialized successfully');
+          resolve();
+        };
+
+        script.addEventListener('error', (e) => {
+          console.error('❌ Failed to load Google Maps script:', e);
+          reject(new Error('Failed to load Google Maps. Check: 1) API key is valid, 2) Maps JavaScript API is enabled, 3) Billing is active'));
+        });
+        
         document.head.appendChild(script);
       });
     };
@@ -64,7 +107,17 @@ export const GoogleMapComponent = memo(({
       try {
         await loadGoogleMaps();
 
-        if (!mapRef.current) return;
+        // Clear timeout on success
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+
+        if (!mapRef.current) {
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('🗺️ Initializing map...');
 
         // Initialize map
         const map = new google.maps.Map(mapRef.current, {
@@ -180,7 +233,7 @@ export const GoogleMapComponent = memo(({
           markersRef.current.push(marker);
         });
 
-        // Fit map to show all markers
+          // Fit map to show all markers
         if (stores.length > 0) {
           map.fitBounds(bounds);
           // Ensure minimum zoom level
@@ -190,33 +243,98 @@ export const GoogleMapComponent = memo(({
           });
         }
 
-      } catch (error) {
-        console.error("Error initializing Google Maps:", error);
+        console.log('✅ Map initialized successfully with', stores.length, 'stores');
+        setIsLoading(false);
+
+      } catch (error: any) {
+        console.error("❌ Error initializing Google Maps:", error);
+        setError(error.message || 'Failed to load map. Please check API key settings.');
+        setIsLoading(false);
       } finally {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
         loadingRef.current = false;
       }
     };
 
     initializeMap();
 
+    // Cleanup on unmount
     return () => {
-      // Cleanup markers
-      markersRef.current.forEach(marker => marker.setMap(null));
-      markersRef.current = [];
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
-  }, [userLocation, stores, apiKey, onStoreClick]);
+  }, [userLocation, stores, apiKey, onStoreClick, isLoading]);
 
-  return (
-    <div className="relative w-full h-[300px] sm:h-[400px] lg:h-[500px] rounded-xl overflow-hidden border-2 border-[#4FC3F7]/20 shadow-lg">
-      <div ref={mapRef} className="w-full h-full" />
-      {loadingRef.current && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/90 backdrop-blur-sm">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-[#1B6CA8] mx-auto mb-2" />
-            <p className="text-sm text-[#5A6A85]">Loading map...</p>
+  if (error) {
+    return (
+      <div className="relative w-full h-full min-h-[400px] flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border-2 border-red-200">
+        <div className="text-center p-8 max-w-2xl">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4 animate-pulse" />
+          <h3 className="text-xl font-bold text-slate-900 mb-3">Unable to Load Google Maps</h3>
+          <p className="text-sm text-slate-700 mb-6 leading-relaxed">{error}</p>
+          
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-6 text-left mb-4">
+            <p className="font-bold text-amber-900 mb-3 text-base">🔧 Quick Fix Checklist:</p>
+            <ul className="space-y-2 text-amber-900">
+              <li className="flex items-start gap-2">
+                <span className="text-lg">1️⃣</span>
+                <span><strong>Enable APIs:</strong> Maps JavaScript API, Geocoding API, Places API</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-lg">2️⃣</span>
+                <span><strong>Enable Billing:</strong> Google Cloud Console → Billing</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-lg">3️⃣</span>
+                <span><strong>Remove Restrictions:</strong> API Key → Application restrictions → None</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-lg">4️⃣</span>
+                <span><strong>Wait 2-5 minutes</strong> after making changes</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="flex gap-3 justify-center">
+            <a 
+              href="https://console.cloud.google.com/apis/dashboard" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Open Google Cloud Console
+            </a>
+            <a 
+              href="/GOOGLE_MAPS_SETUP.md" 
+              target="_blank"
+              className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Setup Guide
+            </a>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="relative w-full h-full min-h-[400px] flex items-center justify-center bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border-2 border-blue-200">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-base text-slate-700 font-semibold mb-1">Loading Interactive Map...</p>
+          <p className="text-sm text-slate-500">This may take a few seconds</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full h-full rounded-xl overflow-hidden border-2 border-slate-200 shadow-lg">
+      <div ref={mapRef} className="w-full h-full" />
     </div>
   );
 });

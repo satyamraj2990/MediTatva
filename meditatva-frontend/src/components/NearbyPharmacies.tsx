@@ -28,7 +28,7 @@ interface NearbyPharmaciesProps {
   variant?: "patient" | "pharmacy";
 }
 
-const GOOGLE_PLACES_API_KEY = "AIzaSyBNNB_456wwnLo57BSO89POATwS1FjsMjw";
+const GOOGLE_PLACES_API_KEY = "AIzaSyB5CdEsyYeUBa8QP9E0okX_e0yXDc0O2HM";
 
 export const NearbyPharmacies = ({ variant = "patient" }: NearbyPharmaciesProps) => {
   const [isOpen, setIsOpen] = useState(false);

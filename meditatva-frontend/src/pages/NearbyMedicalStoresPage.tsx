@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { GoogleMapComponent } from "@/components/GoogleMapComponent";
+import { OpenStreetMapComponent } from "@/components/OpenStreetMapComponent";
 
 interface UserLocation {
   latitude: number;
@@ -41,8 +41,6 @@ export const NearbyMedicalStoresPage = memo(() => {
   const [showMap, setShowMap] = useState(true);
   const [manualLocationSearch, setManualLocationSearch] = useState("");
   const [searchingManualLocation, setSearchingManualLocation] = useState(false);
-
-  const GOOGLE_MAPS_API_KEY = "AIzaSyBNNB_456wwnLo57BSO89POATwS1FjsMjw";
 
   const getCurrentLocation = async () => {
     setLocationLoading(true);
@@ -588,13 +586,13 @@ export const NearbyMedicalStoresPage = memo(() => {
         </div>
       </Card>
 
-      {/* Google Maps Integration */}
+      {/* Interactive Map View - Using OpenStreetMap (Free, No API Key Required) */}
       {userLocation && filteredStores.length > 0 && (
         <Card className="p-6 bg-white border-[#4FC3F7]/20 shadow-lg">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-[#0A2342] flex items-center gap-2">
               <Map className="h-5 w-5 text-[#1B6CA8]" />
-              Live Map View
+              Interactive Map View
             </h2>
             <Button
               onClick={() => setShowMap(!showMap)}
@@ -606,13 +604,12 @@ export const NearbyMedicalStoresPage = memo(() => {
             </Button>
           </div>
           {showMap && (
-            <GoogleMapComponent
+            <OpenStreetMapComponent
               userLocation={{
                 latitude: userLocation.latitude,
                 longitude: userLocation.longitude,
               }}
               stores={filteredStores}
-              apiKey={GOOGLE_MAPS_API_KEY}
             />
           )}
         </Card>

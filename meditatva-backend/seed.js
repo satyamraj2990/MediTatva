@@ -144,6 +144,13 @@ async function seedDatabase() {
 
     console.log('📦 Creating medicines and inventory records...');
     
+    // Helper function to generate expiry dates
+    const generateExpiryDate = (monthsFromNow) => {
+      const date = new Date();
+      date.setMonth(date.getMonth() + monthsFromNow);
+      return date;
+    };
+    
     for (const medData of sampleMedicines) {
       const { initialStock, ...medicineData } = medData;
       
@@ -152,16 +159,36 @@ async function seedDatabase() {
       await medicine.save();
       console.log(`  ✓ Created: ${medicine.name}`);
 
-      // Create inventory
+      // Create inventory with expiry date based on medicine category
+      let expiryMonths;
+      switch (medicine.category) {
+        case 'Antibiotic':
+          expiryMonths = 18; // 1.5 years
+          break;
+        case 'Vitamins':
+          expiryMonths = 24; // 2 years
+          break;
+        case 'Pain Relief':
+          expiryMonths = 30; // 2.5 years
+          break;
+        case 'Diabetes':
+          expiryMonths = 20; // ~1.7 years
+          break;
+        default:
+          expiryMonths = 24; // 2 years default
+      }
+      
       const inventory = new Inventory({
         medicine: medicine._id,
         current_stock: initialStock,
+        batchNumber: `BATCH${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100)}`,
+        expiryDate: generateExpiryDate(expiryMonths),
         reorderLevel: Math.floor(initialStock * 0.2), // 20% of initial stock
         location: 'Main Store',
         lastRestocked: new Date()
       });
       await inventory.save();
-      console.log(`    📊 Stock: ${initialStock} units`);
+      console.log(`    📊 Stock: ${initialStock} units | Expiry: ${inventory.expiryDate.toLocaleDateString()}`);
     }
 
     console.log('\n✨ Database seeded successfully!');
