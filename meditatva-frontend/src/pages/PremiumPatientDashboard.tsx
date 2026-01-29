@@ -15,6 +15,8 @@ import { MedicineOrders } from "@/components/MedicineOrders";
 import { HealthReminders } from "@/components/HealthReminders";
 import { Chatbot } from "@/components/Chatbot";
 import { VoiceChatSaarthi } from "@/components/VoiceChatSaarthi";
+import { MediCallSarthi } from "@/components/MediCallSarthi";
+import MediConferenceCall from "@/components/MediConferenceCall";
 import { NearbyMedicalStoresPage } from "@/pages/NearbyMedicalStoresPage";
 import { FindMedicineEnhanced } from "@/pages/FindMedicineEnhanced";
 import { MyMedicineCabinetPage } from "@/pages/MyMedicineCabinetPage";
@@ -24,7 +26,7 @@ import {
   Home, Calendar, ShoppingCart, Bell, FolderOpen,
   MapPin, MessageCircle, LogOut, Menu, X,
   Pill, Camera, Search, Activity, Heart, ChevronRight,
-  Scan, Zap, TrendingUp, Sparkles, Settings, MessageSquare, Mic, Bot
+  Scan, Zap, TrendingUp, Sparkles, Settings, MessageSquare, Mic, Bot, Phone
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +46,8 @@ const PremiumPatientDashboardInner = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showChatbot, setShowChatbot] = useState(false);
   const [showVoiceChat, setShowVoiceChat] = useState(false);
+  const [showMediCallSarthi, setShowMediCallSarthi] = useState(false);
+  const [showConferenceCall, setShowConferenceCall] = useState(false);
 
   // Ensure demo auth for patient
   useEffect(() => {
@@ -836,29 +840,57 @@ const PremiumPatientDashboardInner = () => {
                     </div>
 
                     {/* AI Saarthi Options */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Text Chat with Multi-Language */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Medi Call Sarthi - Phone Call Assistant */}
                       <Card 
-                        onClick={() => setShowChatbot(true)}
+                        onClick={() => setShowMediCallSarthi(true)}
                         className="p-8 bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50 dark:from-cyan-900/20 dark:via-blue-900/20 dark:to-indigo-900/20 backdrop-blur-sm border-2 border-cyan-200 dark:border-cyan-700/20 shadow-xl cursor-pointer hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
                       >
                         <div className="text-center space-y-4">
                           <div className="flex justify-center">
                             <div className="bg-gradient-to-br from-cyan-500 to-blue-600 p-4 rounded-2xl shadow-lg">
-                              <MessageSquare className="h-12 w-12 text-white" />
+                              <Phone className="h-12 w-12 text-white" />
                             </div>
                           </div>
                           <div>
                             <h3 className="text-2xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
-                              💬 Text Chat Assistant
+                              📞 Medi Call Sarthi
                             </h3>
                             <p className="text-[rgb(var(--text-secondary))] mt-2 text-sm">
-                              Chat in 10+ Indian languages<br/>
-                              Auto-detection • Medicine substitutes • Symptom analysis
+                              AI Voice Assistant for Phone Calls<br/>
+                              10+ Indian Languages • Symptom Analysis
                             </p>
                           </div>
                           <Badge className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-4 py-1">
-                            🌐 Multilingual Support
+                            🎙️ Voice Medical Care
+                          </Badge>
+                        </div>
+                      </Card>
+
+                      {/* Conference Call - NEW */}
+                      <Card 
+                        onClick={() => setShowConferenceCall(true)}
+                        className="p-8 bg-gradient-to-br from-indigo-50 via-purple-50 to-violet-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-violet-900/20 backdrop-blur-sm border-2 border-indigo-200 dark:border-indigo-700/20 shadow-xl cursor-pointer hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
+                      >
+                        <div className="text-center space-y-4">
+                          <div className="flex justify-center">
+                            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl shadow-lg">
+                              <svg className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                            </div>
+                          </div>
+                          <div>
+                            <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                              👥 Conference Call
+                            </h3>
+                            <p className="text-[rgb(var(--text-secondary))] mt-2 text-sm">
+                              Group Medical Consultation<br/>
+                              Multiple People • One AI Assistant
+                            </p>
+                          </div>
+                          <Badge className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-1">
+                            🆕 Family Health Together
                           </Badge>
                         </div>
                       </Card>
@@ -880,7 +912,7 @@ const PremiumPatientDashboardInner = () => {
                             </h3>
                             <p className="text-[rgb(var(--text-secondary))] mt-2 text-sm">
                               Talk with your calm wellness guide<br/>
-                              Voice-based chat • Meditation-friendly • 100% Free
+                              Voice-based chat • Meditation-friendly
                             </p>
                           </div>
                           <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1">
@@ -1026,10 +1058,47 @@ const PremiumPatientDashboardInner = () => {
         <Chatbot onClose={() => setShowChatbot(false)} />
       )}
 
+      {/* Voice Chat Modal */}
+      {showVoiceChat && (
+        <VoiceChatSaarthi onClose={() => setShowVoiceChat(false)} />
+      )}
+
+      {/* Medi Call Sarthi Modal */}
+      {showMediCallSarthi && (
+        <MediCallSarthi onClose={() => setShowMediCallSarthi(false)} />
+      )}
+
+      {/* Conference Call Modal - NEW */}
+      {showConferenceCall && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="relative max-w-3xl w-full"
+          >
+            <button
+              onClick={() => setShowConferenceCall(false)}
+              className="absolute -top-4 -right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors z-10"
+            >
+              <X className="w-6 h-6 text-gray-600" />
+            </button>
+            <MediConferenceCall />
+          </motion.div>
+        </div>
+      )}
+
       {/* Voice Chat Saarthi Modal */}
       <AnimatePresence>
         {showVoiceChat && (
           <VoiceChatSaarthi onClose={() => setShowVoiceChat(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Medi Call Sarthi Modal */}
+      <AnimatePresence>
+        {showMediCallSarthi && (
+          <MediCallSarthi onClose={() => setShowMediCallSarthi(false)} />
         )}
       </AnimatePresence>
     </div>

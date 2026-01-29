@@ -105,6 +105,7 @@ app.get('/api/test', (req, res) => {
 const medicineRoutes = require('./routes/medicine');
 const invoiceRoutes = require('./routes/invoice');
 const inventoryRoutes = require('./routes/inventory');
+const voiceCallRoutes = require('./routes/voiceCall');
 
 // Realtime Service
 const realtimeService = require('./services/realtimeService');
@@ -113,6 +114,7 @@ const realtimeService = require('./services/realtimeService');
 app.use('/api/medicines', medicineRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/voice-call', voiceCallRoutes);
 
 // SSE Endpoint for real-time inventory updates
 app.get('/api/realtime/inventory', (req, res) => {
@@ -198,6 +200,7 @@ mongoose.connect(MONGODB_URI)
   console.log('   - /api/medicines');
   console.log('   - /api/invoices');
   console.log('   - /api/inventory');
+  console.log('   - /api/voice-call');
   
   // Start server ONLY after DB is ready
   app.listen(PORT, HOST, () => {
