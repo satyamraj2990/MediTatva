@@ -38,3 +38,6 @@ meditatva-backend/.env
 backend.log
 frontend.log
 ngrok.log
+*.pid
+*.backup.tsx
+*.log

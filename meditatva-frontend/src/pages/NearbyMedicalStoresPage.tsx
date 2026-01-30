@@ -388,26 +388,20 @@ export const NearbyMedicalStoresPage = memo(() => {
   return (
     <div className="w-full space-y-6">
       {/* Premium Header Card */}
-      <Card 
-        className="p-8 bg-white border-2 shadow-2xl relative overflow-hidden"
-        style={{
-          borderColor: 'rgba(79, 195, 247, 0.3)',
-          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(232, 244, 248, 0.5) 100%)',
-        }}
-      >
+      <Card className="p-8 bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-700 shadow-2xl relative overflow-hidden">
         {/* Decorative Background Elements */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#4FC3F7]/10 to-transparent rounded-full -translate-y-32 translate-x-32" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-[#1B6CA8]/10 to-transparent rounded-full translate-y-24 -translate-x-24" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-400/10 dark:from-blue-500/20 to-transparent rounded-full -translate-y-32 translate-x-32" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-600/10 dark:from-blue-600/20 to-transparent rounded-full translate-y-24 -translate-x-24" />
         
         <div className="relative z-10">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="space-y-3 flex-1">
               {/* Title with Live Badge */}
               <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex items-center gap-2 bg-gradient-to-r from-[#1B6CA8] to-[#4FC3F7] p-3 rounded-xl shadow-lg">
+                <div className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-400 dark:from-blue-500 dark:to-blue-300 p-3 rounded-xl shadow-lg">
                   <MapPin className="h-7 w-7 text-white" />
                 </div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-[#0A2342] to-[#1B6CA8] bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                   Find Nearby Medical Stores
                 </h1>
                 <motion.div
@@ -420,14 +414,7 @@ export const NearbyMedicalStoresPage = memo(() => {
                     ease: "easeInOut",
                   }}
                 >
-                  <Badge 
-                    className="px-3 py-1 text-sm font-bold shadow-lg"
-                    style={{
-                      background: 'linear-gradient(135deg, #2ECC71 0%, #27AE60 100%)',
-                      color: 'white',
-                      border: 'none',
-                    }}
-                  >
+                  <Badge className="px-3 py-1 text-sm font-bold shadow-lg bg-gradient-to-r from-green-500 to-green-600 text-white border-none">
                     <span className="relative flex h-2.5 w-2.5 mr-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
@@ -439,34 +426,34 @@ export const NearbyMedicalStoresPage = memo(() => {
 
               {/* Location Display */}
               {locationLoading ? (
-                <div className="flex items-center gap-3 p-4 bg-[#E8F4F8] rounded-xl border border-[#4FC3F7]/30">
-                  <Loader2 className="h-5 w-5 animate-spin text-[#1B6CA8]" />
-                  <span className="text-[#5A6A85] font-medium">Detecting your location...</span>
+                <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl border border-blue-200 dark:border-blue-700">
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400" />
+                  <span className="text-gray-700 dark:text-gray-200 font-medium">Detecting your location...</span>
                 </div>
               ) : permissionDenied ? (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-4 bg-[#FFF3CD] rounded-xl border border-[#F39C12]/30">
-                    <AlertCircle className="h-5 w-5 text-[#F39C12]" />
-                    <span className="text-[#0A2342] font-medium">Location access denied. Enter your location manually below.</span>
+                  <div className="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/30 rounded-xl border border-yellow-300 dark:border-yellow-700">
+                    <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                    <span className="text-gray-900 dark:text-white font-medium">Location access denied. Enter your location manually below.</span>
                   </div>
                   
                   {/* Manual Location Search */}
-                  <div className="flex gap-2 p-4 bg-white rounded-xl border-2 border-[#4FC3F7]/30">
+                  <div className="flex gap-2 p-4 bg-white dark:bg-gray-700 rounded-xl border-2 border-blue-200 dark:border-blue-600">
                     <div className="relative flex-1">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#1B6CA8]" />
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-600 dark:text-blue-400" />
                       <Input
                         type="text"
                         placeholder="Enter city, area, or PIN code (e.g., Mumbai, 400001)"
                         value={manualLocationSearch}
                         onChange={(e) => setManualLocationSearch(e.target.value)}
                         onKeyPress={(e) => e.key === "Enter" && searchLocationManually()}
-                        className="pl-10 border-[#4FC3F7]/30 focus:border-[#1B6CA8]"
+                        className="pl-10 border-blue-200 dark:border-blue-600 focus:border-blue-600 dark:focus:border-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                       />
                     </div>
                     <Button
                       onClick={searchLocationManually}
                       disabled={searchingManualLocation || !manualLocationSearch.trim()}
-                      className="bg-[#1B6CA8] hover:bg-[#4FC3F7] text-white"
+                      className="bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-white"
                     >
                       {searchingManualLocation ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -477,23 +464,23 @@ export const NearbyMedicalStoresPage = memo(() => {
                   </div>
                 </div>
               ) : userLocation ? (
-                <div className="space-y-2 p-4 bg-gradient-to-r from-[#E8F4F8] to-[#F7F9FC] rounded-xl border border-[#4FC3F7]/30">
+                <div className="space-y-2 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-xl border border-blue-200 dark:border-blue-700">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-[#2ECC71] shadow-lg shadow-[#2ECC71]/50" />
-                    <p className="text-sm font-semibold text-[#5A6A85] uppercase tracking-wide">Your Current Location</p>
+                    <div className="h-2 w-2 rounded-full bg-green-500 shadow-lg shadow-green-500/50" />
+                    <p className="text-sm font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">Your Current Location</p>
                   </div>
-                  <p className="text-xl font-bold text-[#0A2342]">
+                  <p className="text-xl font-bold text-gray-900 dark:text-white">
                     {userLocation.city !== "Unknown City"
                       ? `${userLocation.city}, ${userLocation.state}`
                       : userLocation.formattedAddress}
                   </p>
                   {userLocation.postalCode && (
-                    <p className="text-sm text-[#1B6CA8] font-semibold">📍 PIN: {userLocation.postalCode}</p>
+                    <p className="text-sm text-blue-600 dark:text-blue-400 font-semibold">📍 PIN: {userLocation.postalCode}</p>
                   )}
                 </div>
               ) : (
-                <div className="p-4 bg-[#F7F9FC] rounded-xl border border-[#4FC3F7]/20">
-                  <p className="text-[#5A6A85] font-medium">Enable location to find nearby stores</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
+                  <p className="text-gray-700 dark:text-gray-300 font-medium">Enable location to find nearby stores</p>
                 </div>
               )}
             </div>
@@ -507,14 +494,11 @@ export const NearbyMedicalStoresPage = memo(() => {
                 onClick={getCurrentLocation}
                 disabled={locationLoading}
                 size="lg"
-                className="gap-2 shadow-xl"
-                style={{
-                  background: locationLoading 
-                    ? 'linear-gradient(135deg, #E8F4F8 0%, #F7F9FC 100%)'
-                    : 'linear-gradient(135deg, #1B6CA8 0%, #4FC3F7 100%)',
-                  color: locationLoading ? '#5A6A85' : 'white',
-                  border: '2px solid rgba(79, 195, 247, 0.3)',
-                }}
+                className={`gap-2 shadow-xl ${
+                  locationLoading
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-2 border-blue-200 dark:border-blue-700'
+                    : 'bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-500 hover:to-blue-300 dark:from-blue-500 dark:to-blue-300 dark:hover:from-blue-400 dark:hover:to-blue-200 text-white border-2 border-blue-300 dark:border-blue-600'
+                }`}
               >
                 {locationLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -528,11 +512,11 @@ export const NearbyMedicalStoresPage = memo(() => {
         </div>
       </Card>
 
-      <Card className="p-6 bg-white border-[#4FC3F7]/20 shadow-lg">
+      <Card className="p-6 bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 shadow-lg">
         <div className="space-y-4">
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-[#0A2342] mb-2">
+              <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                 Search Radius
               </label>
               <div className="flex gap-2 flex-wrap">
@@ -543,8 +527,8 @@ export const NearbyMedicalStoresPage = memo(() => {
                     variant={searchRadius === option.value ? "default" : "outline"}
                     size="sm"
                     className={searchRadius === option.value 
-                      ? "min-w-[70px] bg-[#1B6CA8] hover:bg-[#4FC3F7] text-white" 
-                      : "min-w-[70px] border-[#4FC3F7]/30 text-[#1B6CA8] hover:bg-[#E8F4F8]"}
+                      ? "min-w-[70px] bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-white" 
+                      : "min-w-[70px] border-blue-200 dark:border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"}
                   >
                     {option.label}
                   </Button>
@@ -556,7 +540,7 @@ export const NearbyMedicalStoresPage = memo(() => {
               <Button
                 onClick={searchNearbyStores}
                 disabled={!userLocation || loading}
-                className="gap-2 bg-[#1B6CA8] hover:bg-[#4FC3F7] text-white"
+                className="gap-2 bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-white"
               >
                 {loading ? (
                   <>
@@ -574,13 +558,13 @@ export const NearbyMedicalStoresPage = memo(() => {
           </div>
 
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#5A6A85]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
             <Input
               type="text"
               placeholder="Search by store name or address..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 border-[#4FC3F7]/30 focus:border-[#1B6CA8]"
+              className="pl-10 border-blue-200 dark:border-blue-600 focus:border-blue-600 dark:focus:border-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
         </div>
@@ -588,17 +572,17 @@ export const NearbyMedicalStoresPage = memo(() => {
 
       {/* Interactive Map View - Using OpenStreetMap (Free, No API Key Required) */}
       {userLocation && filteredStores.length > 0 && (
-        <Card className="p-6 bg-white border-[#4FC3F7]/20 shadow-lg">
+        <Card className="p-6 bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 shadow-lg">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-[#0A2342] flex items-center gap-2">
-              <Map className="h-5 w-5 text-[#1B6CA8]" />
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Map className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               Interactive Map View
             </h2>
             <Button
               onClick={() => setShowMap(!showMap)}
               variant="outline"
               size="sm"
-              className="border-[#4FC3F7]/30 text-[#1B6CA8] hover:bg-[#E8F4F8]"
+              className="border-blue-200 dark:border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
             >
               {showMap ? "Hide Map" : "Show Map"}
             </Button>
@@ -617,7 +601,7 @@ export const NearbyMedicalStoresPage = memo(() => {
 
       {filteredStores.length > 0 && (
         <div className="flex items-center justify-between px-2">
-          <p className="text-sm text-[#5A6A85]">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             Showing {filteredStores.length} of {stores.length} stores
           </p>
           {searchQuery && (
@@ -625,7 +609,7 @@ export const NearbyMedicalStoresPage = memo(() => {
               onClick={() => setSearchQuery("")}
               variant="ghost"
               size="sm"
-              className="text-[#1B6CA8] hover:text-[#4FC3F7] hover:bg-[#E8F4F8]"
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30"
             >
               Clear search
             </Button>
@@ -643,36 +627,36 @@ export const NearbyMedicalStoresPage = memo(() => {
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ delay: index * 0.05 }}
             >
-              <Card className="p-5 hover:shadow-xl transition-all duration-300 bg-white border-2 border-[#4FC3F7]/20 hover:border-[#4FC3F7]/60">
+              <Card className="p-5 hover:shadow-xl transition-all duration-300 bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-500">
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
-                      <h3 className="font-bold text-lg text-[#0A2342] line-clamp-2">
+                      <h3 className="font-bold text-lg text-gray-900 dark:text-white line-clamp-2">
                         {store.name}
                       </h3>
-                      <Badge variant="secondary" className="mt-1 text-xs bg-[#E8F4F8] text-[#1B6CA8] border-[#4FC3F7]/30">
+                      <Badge variant="secondary" className="mt-1 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-700">
                         {store.type || "pharmacy"}
                       </Badge>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-[#1B6CA8]">
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                         {store.distance}
                       </p>
-                      <p className="text-xs text-[#5A6A85]">km away</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300">km away</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2 text-sm text-[#5A6A85]">
-                    <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0 text-[#1B6CA8]" />
+                  <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
+                    <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
                     <p className="line-clamp-2">{store.address}</p>
                   </div>
 
                   {store.phone && (
-                    <div className="flex items-center gap-2 text-sm text-[#5A6A85]">
-                      <Phone className="h-4 w-4 flex-shrink-0 text-[#1B6CA8]" />
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                      <Phone className="h-4 w-4 flex-shrink-0 text-blue-600 dark:text-blue-400" />
                       <a
                         href={`tel:${store.phone}`}
-                        className="hover:text-[#4FC3F7] transition-colors"
+                        className="hover:text-blue-500 dark:hover:text-blue-300 transition-colors"
                       >
                         {store.phone}
                       </a>
@@ -682,7 +666,7 @@ export const NearbyMedicalStoresPage = memo(() => {
                   <div className="flex gap-2 pt-2">
                     <Button
                       onClick={() => getDirections(store.lat, store.lon)}
-                      className="flex-1 gap-2 bg-[#1B6CA8] hover:bg-[#4FC3F7] text-white"
+                      className="flex-1 gap-2 bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-white"
                       size="sm"
                     >
                       <Navigation className="h-4 w-4" />
@@ -697,7 +681,7 @@ export const NearbyMedicalStoresPage = memo(() => {
                       }
                       variant="outline"
                       size="sm"
-                      className="gap-2 border-[#4FC3F7]/30 text-[#1B6CA8] hover:bg-[#E8F4F8]"
+                      className="gap-2 border-blue-200 dark:border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
                     >
                       <ExternalLink className="h-4 w-4" />
                       View
@@ -711,15 +695,15 @@ export const NearbyMedicalStoresPage = memo(() => {
       </div>
 
       {!loading && filteredStores.length === 0 && stores.length === 0 && userLocation && (
-        <Card className="p-12 text-center bg-white border-[#4FC3F7]/20 shadow-lg">
-          <MapPin className="h-16 w-16 text-[#4FC3F7] mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-[#0A2342] mb-2">
+        <Card className="p-12 text-center bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 shadow-lg">
+          <MapPin className="h-16 w-16 text-blue-400 dark:text-blue-500 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
             No stores found
           </h3>
-          <p className="text-[#5A6A85] mb-6">
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
             Click "Find Stores" to search for medical stores near you
           </p>
-          <Button onClick={searchNearbyStores} className="gap-2 bg-[#1B6CA8] hover:bg-[#4FC3F7] text-white">
+          <Button onClick={searchNearbyStores} className="gap-2 bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 text-white">
             <Search className="h-4 w-4" />
             Search Now
           </Button>
@@ -727,15 +711,15 @@ export const NearbyMedicalStoresPage = memo(() => {
       )}
 
       {!loading && filteredStores.length === 0 && stores.length > 0 && (
-        <Card className="p-12 text-center bg-white border-[#4FC3F7]/20 shadow-lg">
-          <AlertCircle className="h-16 w-16 text-[#F39C12] mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-[#0A2342] mb-2">
+        <Card className="p-12 text-center bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 shadow-lg">
+          <AlertCircle className="h-16 w-16 text-yellow-500 dark:text-yellow-400 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
             No matching stores
           </h3>
-          <p className="text-[#5A6A85] mb-6">
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
             Try different search terms or clear the search filter
           </p>
-          <Button onClick={() => setSearchQuery("")} variant="outline" className="border-[#4FC3F7]/30 text-[#1B6CA8] hover:bg-[#E8F4F8]">
+          <Button onClick={() => setSearchQuery("")} variant="outline" className="border-blue-200 dark:border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30">
             Clear Search
           </Button>
         </Card>

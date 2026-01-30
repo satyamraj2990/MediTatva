@@ -10,7 +10,11 @@ const speechToTextApiKey = process.env.GOOGLE_SPEECH_API_KEY;
 const textToSpeechApiKey = process.env.GOOGLE_TTS_API_KEY;
 const geminiApiKey = process.env.GEMINI_API_KEY;
 
-const client = twilio(accountSid, authToken);
+// Initialize Twilio client only if credentials are properly configured
+let client = null;
+if (accountSid && accountSid.startsWith('AC') && authToken) {
+  client = twilio(accountSid, authToken);
+}
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
 // Store active call sessions
@@ -39,6 +43,10 @@ router.post('/initiate-call', async (req, res) => {
       });
     }
 
+    console.log(`📞 Initiating call to: ${phoneNumber}`);
+    console.log(`🌐 Using webhook URL: ${backendUrl}/api/voice-call/handle-call`);
+    console.log(`📱 From number: ${twilioPhoneNumber}`);
+
     const call = await client.calls.create({
       url: `${backendUrl}/api/voice-call/handle-call`,
       to: phoneNumber,
@@ -47,8 +55,9 @@ router.post('/initiate-call', async (req, res) => {
       statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed']
     });
 
-    console.log(`✅ Call initiated to ${phoneNumber}, CallSid: ${call.sid}`);
-    console.log(`📞 Webhook URL: ${backendUrl}/api/voice-call/handle-call`);
+    console.log(`✅ Call initiated successfully to ${phoneNumber}`);
+    console.log(`📋 Call SID: ${call.sid}`);
+    console.log(`📊 Call Status: ${call.status}`);
 
     callSessions.set(call.sid, {
       patientName: patientName || 'Patient',
@@ -59,11 +68,44 @@ router.post('/initiate-call', async (req, res) => {
     res.json({ 
       success: true, 
       callSid: call.sid,
-      message: 'Call initiated successfully'
+      status: call.status,
+      message: 'Call initiated successfully. You will receive a call shortly.'
     });
   } catch (error) {
-    console.error('Error initiating call:', error);
-    res.status(500).json({ error: 'Failed to initiate call', details: error.message });
+    console.error('❌ Error initiating call:', error.message);
+    console.error('📋 Error details:', error);
+    
+    // Check for specific Twilio errors
+    let errorMessage = 'Failed to initiate call';
+    let errorType = 'unknown';
+    
+    if (error.message && error.message.includes('unverified')) {
+      errorType = 'unverified_number';
+      errorMessage = 'Phone number not verified for Twilio trial account';
+    } else if (error.message && error.message.includes('not valid')) {
+      errorType = 'invalid_number';
+      errorMessage = 'Invalid phone number format';
+    } else if (error.code === 21201) {
+      errorType = 'invalid_number';
+      errorMessage = 'Invalid phone number';
+    } else if (error.code === 21212) {
+      errorType = 'invalid_country';
+      errorMessage = 'Invalid phone number format or country code';
+    } else if (error.code === 21608) {
+      errorType = 'unverified_number';
+      errorMessage = 'Unverified number - Twilio trial account limitation';
+    }
+    
+    res.status(400).json({ 
+      success: false,
+      error: errorMessage,
+      errorType: errorType,
+      details: error.message,
+      twilioCode: error.code || null,
+      help: errorType === 'unverified_number' 
+        ? 'Trial accounts can only call verified numbers. Verify your number at: https://www.twilio.com/console/phone-numbers/verified'
+        : null
+    });
   }
 });
 
@@ -83,25 +125,25 @@ router.post('/handle-call', async (req, res) => {
     method: 'POST',
     speechTimeout: 'auto',
     timeout: 10,
-    language: 'hi-IN',
+    language: 'en-IN',
     profanityFilter: false,
     speechModel: 'phone_call',
     enhanced: true,
-    hints: 'bukhar,fever,headache,dard,pain,medicine,doctor,symptoms,pet dard,sar dard,cough,cold,thanda,garam'
+    hints: 'fever,headache,pain,medicine,doctor,symptoms,cough,cold,bukhar,dard,thanda,garam'
   });
 
   gather.say(
     {
       voice: 'Polly.Aditi',
-      language: 'hi-IN'
+      language: 'en-IN'
     },
-    'Namaste. Main Medi Call Sarthi hoon. Mujhe apni samasya batayein. Jaise, mujhe bukhar hai, ya sar dard hai. Main aapki baat sun rahi hoon.'
+    'Hello, I am Medi Call Sarthi, your AI medical voice assistant. Please tell me your health concern.'
   );
 
   // Fallback - ask again instead of hanging up
   twiml.say(
-    { voice: 'Polly.Aditi', language: 'hi-IN' },
-    'Koi response nahi mila. Kripya ek baar phir se bolein.'
+    { voice: 'Polly.Aditi', language: 'en-IN' },
+    'No response received. Please speak again.'
   );
   twiml.redirect(`${backendUrl}/api/voice-call/handle-call`);
 
@@ -340,26 +382,40 @@ router.post('/conference-host', async (req, res) => {
   const twiml = new VoiceResponse();
   const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
 
+  // Greet the host
   twiml.say(
     { voice: 'Polly.Aditi', language: 'hi-IN' },
-    'Namaste. Aap Medi Conference Call mein hain. Aap koi bhi medical question pooch sakte hain. Jab aap ready hain, aap apne friends ya family ko is conference mein add kar sakte hain.'
+    'Namaste! Aap Medi Saarthi Conference Call mein hain. Main aapka medical assistant hoon. Aap aur aapke friends ya family ke members, sabhi log apne medical questions pooch sakte hain. Main sabka jawab dungi.'
   );
 
-  // Join conference with AI listening
+  twiml.pause({ length: 1 });
+
+  // Join conference with AI listening and continuous interaction
   const dial = twiml.dial();
-  dial.conference({
+  const conf = dial.conference({
     startConferenceOnEnter: true,
     endConferenceOnExit: true,
     waitUrl: '',
+    beep: false,
+    coach: callSid, // Allow this participant to hear everything
     statusCallback: `${backendUrl}/api/voice-call/conference-event`,
-    statusCallbackEvent: ['start', 'end', 'join', 'leave']
+    statusCallbackEvent: ['start', 'end', 'join', 'leave', 'speaker']
   }, conferenceName);
+
+  // After joining, immediately start listening for questions
+  twiml.say(
+    { voice: 'Polly.Aditi', language: 'hi-IN' },
+    'Aap apna question pooch sakte hain.'
+  );
+  
+  // Redirect to speech processing for continuous interaction
+  twiml.redirect(`${backendUrl}/api/voice-call/conference-listen?conferenceName=${encodeURIComponent(conferenceName)}&callSid=${callSid}`);
 
   res.type('text/xml');
   res.send(twiml.toString());
 });
 
-// Join conference call
+// Join conference call - for additional participants
 router.post('/join-conference', async (req, res) => {
   const conferenceName = req.query.conferenceName;
   const callSid = req.body.CallSid;
@@ -371,17 +427,17 @@ router.post('/join-conference', async (req, res) => {
 
   twiml.say(
     { voice: 'Polly.Aditi', language: 'hi-IN' },
-    'Namaste. Aap Medi Call Sarthi conference call mein shamil ho rahe hain. Kripya pratiksha karein.'
+    'Namaste! Aap Medi Saarthi conference call mein shamil ho rahe hain. Main sabhi participants ke questions ka jawab dungi.'
   );
 
-  // Join conference with AI assistant
+  // Join conference
   const dial = twiml.dial();
   dial.conference({
-    startConferenceOnEnter: true,
+    startConferenceOnEnter: false, // Don't start for participants
     endConferenceOnExit: false,
-    waitUrl: `${backendUrl}/api/voice-call/conference-wait`,
+    beep: 'false',
     statusCallback: `${backendUrl}/api/voice-call/conference-event`,
-    statusCallbackEvent: ['start', 'end', 'join', 'leave', 'mute', 'hold', 'speaker']
+    statusCallbackEvent: ['start', 'end', 'join', 'leave', 'speaker']
   }, conferenceName);
 
   res.type('text/xml');
@@ -391,11 +447,47 @@ router.post('/join-conference', async (req, res) => {
 // Conference wait music/message
 router.post('/conference-wait', (req, res) => {
   const twiml = new VoiceResponse();
-  
   twiml.say(
     { voice: 'Polly.Aditi', language: 'hi-IN', loop: 3 },
     'Kripya pratiksha karein. Baaki participants jald hi shamil honge.'
   );
+  
+  res.type('text/xml');
+  res.send(twiml.toString());
+});
+
+// Conference listen - continuous speech gathering for all participants
+router.post('/conference-listen', async (req, res) => {
+  const conferenceName = req.query.conferenceName;
+  const callSid = req.query.callSid || req.body.CallSid;
+  const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+  
+  console.log(`👂 Conference ${conferenceName} - Listening for speech from any participant`);
+  
+  const twiml = new VoiceResponse();
+  
+  // Gather speech from anyone in the conference
+  const gather = twiml.gather({
+    input: 'speech',
+    action: `${backendUrl}/api/voice-call/process-conference-speech?conferenceName=${encodeURIComponent(conferenceName)}`,
+    method: 'POST',
+    speechTimeout: 'auto',
+    timeout: 5,
+    language: 'hi-IN,en-IN',
+    profanityFilter: false,
+    speechModel: 'phone_call',
+    enhanced: true,
+    hints: 'bukhar,fever,headache,dard,pain,medicine,doctor,symptoms,pet dard,sar dard,cough,cold,diabetes,blood pressure'
+  });
+
+  gather.pause({ length: 2 });
+
+  // If no speech detected, loop back
+  twiml.say(
+    { voice: 'Polly.Aditi', language: 'hi-IN' },
+    'Koi aur question? Sabhi log pooch sakte hain.'
+  );
+  twiml.redirect(`${backendUrl}/api/voice-call/conference-listen?conferenceName=${encodeURIComponent(conferenceName)}&callSid=${callSid}`);
   
   res.type('text/xml');
   res.send(twiml.toString());
@@ -498,9 +590,9 @@ router.post('/ai-participant', async (req, res) => {
   res.send(twiml.toString());
 });
 
-// Process speech from conference
+// Process speech from conference - responds to all participants
 router.post('/process-conference-speech', async (req, res) => {
-  console.log('🗣️ CONFERENCE SPEECH received!');
+  console.log('🗣️ CONFERENCE SPEECH received from any participant!');
   console.log('📋 Request body:', JSON.stringify(req.body, null, 2));
   
   try {
@@ -510,15 +602,15 @@ router.post('/process-conference-speech', async (req, res) => {
     const confidence = parseFloat(req.body.Confidence || 0);
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
 
-    console.log(`🎯 Conference: ${conferenceName} | Speech: "${speechResult}" | Confidence: ${confidence}`);
+    console.log(`🎯 Conference: ${conferenceName} | Speaker: ${callSid} | Speech: "${speechResult}" | Confidence: ${confidence}`);
 
     if (!speechResult || confidence < 0.3) {
       const twiml = new VoiceResponse();
       twiml.say(
         { voice: 'Polly.Aditi', language: 'hi-IN' },
-        'Mujhe samajh nahi aaya. Kripya phir se thoda loud bolein.'
+        'Mujhe samajh nahi aaya. Jo bhi bola, kripya phir se thoda loud aur clear bolein.'
       );
-      twiml.redirect(`${backendUrl}/api/voice-call/ai-participant?conferenceName=${encodeURIComponent(conferenceName)}`);
+      twiml.redirect(`${backendUrl}/api/voice-call/conference-listen?conferenceName=${encodeURIComponent(conferenceName)}&callSid=${callSid}`);
       return res.type('text/xml').send(twiml.toString());
     }
 
@@ -529,8 +621,24 @@ router.post('/process-conference-speech', async (req, res) => {
       startTime: new Date()
     };
 
+    // Check for goodbye/end keywords
+    const endKeywords = ['bye', 'goodbye', 'thank you', 'dhanyavaad', 'alvida', 'shukriya', 'khatam', 'end'];
+    const wantsToEnd = endKeywords.some(keyword => 
+      speechResult.toLowerCase().includes(keyword)
+    );
+
+    if (wantsToEnd && speechResult.split(' ').length <= 3) {
+      const twiml = new VoiceResponse();
+      twiml.say(
+        { voice: 'Polly.Aditi', language: 'hi-IN' },
+        'Dhanyavaad sabhi ko! Apna aur apne family ka khayal rakhein. Agar zaroorat ho toh doctor se milein. Namaste!'
+      );
+      twiml.hangup();
+      return res.type('text/xml').send(twiml.toString());
+    }
+
     // Check for emergency
-    const emergencyKeywords = ['chest pain', 'breathing', 'suicide', 'bleeding', 'heart attack', 'stroke', 'emergency', 'ambulance'];
+    const emergencyKeywords = ['chest pain', 'breathing problem', 'sans nahi aa rahi', 'dil ka dard', 'bleeding', 'heart attack', 'stroke', 'emergency', 'ambulance', 'behosh', 'unconscious'];
     const isEmergency = emergencyKeywords.some(keyword => 
       speechResult.toLowerCase().includes(keyword)
     );
@@ -539,25 +647,28 @@ router.post('/process-conference-speech', async (req, res) => {
       const twiml = new VoiceResponse();
       twiml.say(
         { voice: 'Polly.Aditi', language: 'hi-IN' },
-        'Yeh emergency situation hai. Sabhi participants kripya turant 102 par ambulance call karein ya najdeeki hospital jaayein.'
+        'Yeh emergency situation lag raha hai! Sabhi participants kripya turant 102 par ambulance call karein ya najdeeki hospital jaayein. Deri mat karein!'
       );
       
-      // Continue conference, don't hang up
-      twiml.redirect(`${backendUrl}/api/voice-call/ai-participant?conferenceName=${encodeURIComponent(conferenceName)}`);
+      // Continue conference for other questions
+      twiml.pause({ length: 2 });
+      twiml.redirect(`${backendUrl}/api/voice-call/conference-listen?conferenceName=${encodeURIComponent(conferenceName)}&callSid=${callSid}`);
       return res.type('text/xml').send(twiml.toString());
     }
 
-    // Add to conversation history
+    // Add to conversation history with caller identification
     session.conversationHistory.push({
       role: 'user',
       content: speechResult,
       timestamp: new Date(),
-      callSid: callSid
+      callSid: callSid,
+      participantNumber: session.participants.findIndex(p => p.callSid === callSid) + 1
     });
 
-    // Get AI response
-    console.log('🤖 Getting Gemini response for conference...');
-    const aiResponse = await getGeminiResponse(speechResult, session.conversationHistory);
+    // Get AI response with conference context
+    console.log('🤖 Getting Gemini response for conference question...');
+    const contextMessage = `Conference call with ${session.participants.length} participants. Question: ${speechResult}`;
+    const aiResponse = await getGeminiResponse(contextMessage, session.conversationHistory);
     console.log('✅ AI Response:', aiResponse);
 
     // Add AI response to history
@@ -573,20 +684,21 @@ router.post('/process-conference-speech', async (req, res) => {
     // Respond to everyone in conference
     const twiml = new VoiceResponse();
     
+    // Acknowledge the speaker and answer
     twiml.say(
       { voice: 'Polly.Aditi', language: 'hi-IN' },
       aiResponse
     );
     
-    // Ask for more questions
+    // Pause and ask for more questions from anyone
     twiml.pause({ length: 1 });
     twiml.say(
       { voice: 'Polly.Aditi', language: 'hi-IN' },
-      'Koi aur question? Koi bhi bol sakta hai.'
+      'Koi aur question? Sabhi log pooch sakte hain.'
     );
     
-    // Continue listening
-    twiml.redirect(`${backendUrl}/api/voice-call/ai-participant?conferenceName=${encodeURIComponent(conferenceName)}`);
+    // Continue listening for more questions
+    twiml.redirect(`${backendUrl}/api/voice-call/conference-listen?conferenceName=${encodeURIComponent(conferenceName)}&callSid=${callSid}`);
 
     res.type('text/xml');
     res.send(twiml.toString());
@@ -596,9 +708,9 @@ router.post('/process-conference-speech', async (req, res) => {
     const twiml = new VoiceResponse();
     twiml.say(
       { voice: 'Polly.Aditi', language: 'hi-IN' },
-      'Maaf kijiye, technical problem hai. Phir se boliye.'
+      'Maaf kijiye, technical problem hai. Koi aur question? Phir se boliye.'
     );
-    twiml.redirect(`${backendUrl}/api/voice-call/ai-participant?conferenceName=${encodeURIComponent(req.query.conferenceName)}`);
+    twiml.redirect(`${backendUrl}/api/voice-call/conference-listen?conferenceName=${encodeURIComponent(req.query.conferenceName)}&callSid=${req.body.CallSid}`);
     res.type('text/xml').send(twiml.toString());
   }
 });
@@ -653,18 +765,102 @@ async function getGeminiResponse(userMessage, conversationHistory) {
   try {
     console.log('📞 Generating AI response for:', userMessage);
     
-    const systemPrompt = `You are Medi Call Sarthi, a Hindi-speaking medical assistant on a phone call.
+    const systemPrompt = `You are **Medi Call Sarthi**, an AI-powered medical voice assistant designed ONLY for phone call interactions with patients.
 
-Rules:
-- Answer in HINDI only
-- Keep response to 2-3 complete sentences
-- Be helpful and caring
-- Give practical advice
-- Suggest doctor if serious
+You DO NOT support text chat.
+You interact exclusively through spoken conversation during an outbound or inbound phone call.
 
+━━━━━━━━━━━━━━━━━━━━━━
+🎯 CORE PURPOSE
+━━━━━━━━━━━━━━━━━━━━━━
+- Assist patients who receive a phone call from the system.
+- Understand spoken health concerns.
+- Respond with safe, clear, and empathetic voice replies.
+- Provide general medical guidance — NOT diagnosis or prescriptions.
+
+━━━━━━━━━━━━━━━━━━━━━━
+🎙️ VOICE-FIRST BEHAVIOR
+━━━━━━━━━━━━━━━━━━━━━━
+- Responses must be **short, clear, and conversational** (2-3 sentences maximum).
+- Use simple language suitable for phone calls.
+- Avoid long explanations.
+- Speak naturally, as if talking to a real patient.
+- Always pause-friendly sentences.
+
+━━━━━━━━━━━━━━━━━━━━━━
+🌐 MULTI-LANGUAGE VOICE SUPPORT
+━━━━━━━━━━━━━━━━━━━━━━
+- Automatically detect the caller's spoken language.
+- Reply in the SAME language.
+- Support Indian languages including:
+  Hindi, English, Tamil, Telugu, Kannada, Malayalam,
+  Marathi, Gujarati, Bengali, Punjabi.
+- Default to Hindi if language is unclear.
+
+━━━━━━━━━━━━━━━━━━━━━━
+🧠 MEDICAL SAFETY RULES (STRICT)
+━━━━━━━━━━━━━━━━━━━━━━
+You MUST NEVER:
+❌ Diagnose a disease
+❌ Prescribe medicines or dosages
+❌ Claim to replace a doctor or hospital
+
+You MAY:
+✅ Explain symptoms at a general, educational level
+✅ Suggest basic self-care (rest, hydration, food habits)
+✅ Mention medicine substitutes ONLY by category
+✅ Encourage consulting a qualified doctor when needed
+
+━━━━━━━━━━━━━━━━━━━━━━
+🩺 SYMPTOM HANDLING FLOW (VOICE)
+━━━━━━━━━━━━━━━━━━━━━━
+When a patient explains symptoms:
+1. Acknowledge with empathy.
+2. Ask at most **ONE simple follow-up question**, only if needed.
+3. Explain common, non-serious possibilities.
+4. Suggest general care tips.
+5. Mention warning signs that need a doctor visit.
+
+━━━━━━━━━━━━━━━━━━━━━━
+💊 MEDICINE SUBSTITUTE (VOICE SAFE MODE)
+━━━━━━━━━━━━━━━━━━━━━━
+If asked about medicine alternatives:
+- Never say brand names.
+- Never give dosage.
+- Speak in categories only.
+
+Example:
+"You can ask a pharmacist for a medicine with the same basic composition."
+
+━━━━━━━━━━━━━━━━━━━━━━
+🚨 EMERGENCY HANDLING (MANDATORY)
+━━━━━━━━━━━━━━━━━━━━━━
+If the patient mentions:
+- Chest pain
+- Trouble breathing
+- Severe bleeding
+- Sudden weakness or fainting
+- Suicidal thoughts
+
+IMMEDIATELY:
+1. Respond calmly but firmly.
+2. Stop normal conversation.
+3. Advise visiting the nearest hospital or calling emergency services NOW.
+
+━━━━━━━━━━━━━━━━━━━━━━
+🧩 SYSTEM IDENTITY RULES
+━━━━━━━━━━━━━━━━━━━━━━
+- Never mention AI models, APIs, or backend services.
+- Never say 'according to the internet'.
+- Always prioritize patient safety.
+- Always stay calm, respectful, and reassuring.
+
+━━━━━━━━━━━━━━━━━━━━━━
+CURRENT CONVERSATION
+━━━━━━━━━━━━━━━━━━━━━━
 Patient says: ${userMessage}
 
-Give a complete helpful response in Hindi:`;
+Give a complete helpful response (2-3 sentences only):`;
 
     console.log('🔄 Sending request to Gemini...');
     const response = await axios.post(

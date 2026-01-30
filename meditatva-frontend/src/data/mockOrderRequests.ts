@@ -13,11 +13,13 @@ export interface OrderRequest {
   prescriptionUrl?: string;
   deliveryType: 'Home Delivery' | 'Pickup';
   deliveryAddress?: string;
+  location: string; // Short location for table display
   totalAmount: number;
   deliveryCharge: number;
   status: 'Pending' | 'Confirmed' | 'Delivered' | 'Cancelled';
   orderDate: string;
   orderTime: string;
+  createdAt: string; // ISO date for sorting
   isNew: boolean;
   notes?: string;
 }
@@ -36,11 +38,13 @@ export const mockOrderRequests: OrderRequest[] = [
     prescriptionUrl: '/assets/docs/mock_prescription_v1.pdf',
     deliveryType: 'Home Delivery',
     deliveryAddress: 'B-204, Green Valley Apartments, Sector 45, Chandigarh - 160047',
+    location: 'Sector 45, Chandigarh',
     totalAmount: 145,
     deliveryCharge: 30,
     status: 'Pending',
     orderDate: '2025-11-08',
     orderTime: '10:30 AM',
+    createdAt: '2025-11-08T10:30:00',
     isNew: true,
     notes: 'Please deliver before 6 PM'
   },
@@ -57,11 +61,13 @@ export const mockOrderRequests: OrderRequest[] = [
     prescriptionUrl: '/assets/docs/mock_prescription_v1.pdf',
     deliveryType: 'Home Delivery',
     deliveryAddress: 'House No. 15, Model Town Extension, Phase 2, Chandigarh - 160022',
+    location: 'Model Town, Chandigarh',
     totalAmount: 260,
     deliveryCharge: 30,
     status: 'Pending',
     orderDate: '2025-11-08',
     orderTime: '11:15 AM',
+    createdAt: '2025-11-08T11:15:00',
     isNew: true,
   },
   {
@@ -76,11 +82,13 @@ export const mockOrderRequests: OrderRequest[] = [
     ],
     prescriptionUrl: '/assets/docs/mock_prescription_v1.pdf',
     deliveryType: 'Pickup',
+    location: 'Store Pickup',
     totalAmount: 235,
     deliveryCharge: 0,
     status: 'Confirmed',
     orderDate: '2025-11-08',
     orderTime: '09:45 AM',
+    createdAt: '2025-11-08T09:45:00',
     isNew: false,
   },
   {
@@ -96,11 +104,13 @@ export const mockOrderRequests: OrderRequest[] = [
     prescriptionUrl: '/assets/docs/mock_prescription_v1.pdf',
     deliveryType: 'Home Delivery',
     deliveryAddress: 'Flat 3C, Shivalik Enclave, Sector 34, Chandigarh - 160034',
+    location: 'Sector 34, Chandigarh',
     totalAmount: 345,
     deliveryCharge: 30,
     status: 'Pending',
     orderDate: '2025-11-08',
     orderTime: '12:00 PM',
+    createdAt: '2025-11-08T12:00:00',
     isNew: true,
   },
   {
@@ -114,11 +124,13 @@ export const mockOrderRequests: OrderRequest[] = [
     ],
     prescriptionUrl: '/assets/docs/mock_prescription_v1.pdf',
     deliveryType: 'Pickup',
+    location: 'Store Pickup',
     totalAmount: 140,
     deliveryCharge: 0,
     status: 'Delivered',
     orderDate: '2025-11-07',
     orderTime: '03:30 PM',
+    createdAt: '2025-11-07T15:30:00',
     isNew: false,
   },
   {
@@ -134,11 +146,13 @@ export const mockOrderRequests: OrderRequest[] = [
     prescriptionUrl: '/assets/docs/mock_prescription_v1.pdf',
     deliveryType: 'Home Delivery',
     deliveryAddress: 'A-101, Sunrise Apartments, Sector 21, Chandigarh - 160021',
+    location: 'Sector 21, Chandigarh',
     totalAmount: 150,
     deliveryCharge: 30,
     status: 'Confirmed',
     orderDate: '2025-11-08',
     orderTime: '08:20 AM',
+    createdAt: '2025-11-08T08:20:00',
     isNew: false,
   },
   {
@@ -154,11 +168,13 @@ export const mockOrderRequests: OrderRequest[] = [
     prescriptionUrl: '/assets/docs/mock_prescription_v1.pdf',
     deliveryType: 'Home Delivery',
     deliveryAddress: 'Plot 23, Panchkula Heights, Panchkula - 134109',
+    location: 'Panchkula',
     totalAmount: 325,
     deliveryCharge: 40,
     status: 'Pending',
     orderDate: '2025-11-08',
     orderTime: '01:45 PM',
+    createdAt: '2025-11-08T13:45:00',
     isNew: true,
   },
   {
@@ -173,11 +189,13 @@ export const mockOrderRequests: OrderRequest[] = [
     ],
     prescriptionUrl: '/assets/docs/mock_prescription_v1.pdf',
     deliveryType: 'Pickup',
+    location: 'Store Pickup',
     totalAmount: 1300,
     deliveryCharge: 0,
     status: 'Cancelled',
     orderDate: '2025-11-07',
     orderTime: '02:15 PM',
+    createdAt: '2025-11-07T14:15:00',
     isNew: false,
     notes: 'Patient requested cancellation - out of stock'
   },

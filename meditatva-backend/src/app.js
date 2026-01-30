@@ -106,6 +106,7 @@ const medicineRoutes = require('./routes/medicine');
 const invoiceRoutes = require('./routes/invoice');
 const inventoryRoutes = require('./routes/inventory');
 const voiceCallRoutes = require('./routes/voiceCall');
+const reportAnalyzerRoutes = require('./routes/reportAnalyzer');
 
 // Realtime Service
 const realtimeService = require('./services/realtimeService');
@@ -115,6 +116,7 @@ app.use('/api/medicines', medicineRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/voice-call', voiceCallRoutes);
+app.use('/api/report-analyzer', reportAnalyzerRoutes);
 
 // SSE Endpoint for real-time inventory updates
 app.get('/api/realtime/inventory', (req, res) => {

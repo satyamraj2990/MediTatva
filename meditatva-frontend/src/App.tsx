@@ -7,8 +7,9 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import CinematicLanding from "./pages/CinematicLanding";
 import Login from "./pages/Login";
-import PremiumPatientDashboard from "./pages/PremiumPatientDashboard";
+import PremiumPatientDashboard from "./pages/PremiumPatientDashboardNew";
 import AIHealthAssistantPage from "./pages/AIHealthAssistantPage";
+import MedicalReportAnalyzer from "./pages/MedicalReportAnalyzer";
 import NotFound from "./pages/NotFound";
 
 // Import pharmacy dashboard components directly for faster loading
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/patient/premium" element={<PremiumPatientDashboard />} />
             <Route path="/ai-assistant" element={<AIHealthAssistantPage />} />
+            <Route path="/medical-report-analyzer" element={<MedicalReportAnalyzer />} />
             
             {/* Pharmacy Dashboard with Nested Routes */}
             <Route path="/pharmacy/dashboard" element={<PharmacyDashboardResponsive />}>

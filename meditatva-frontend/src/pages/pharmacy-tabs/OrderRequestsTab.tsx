@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Package, Search, Filter, CheckCircle, XCircle, Eye, FileText,
-  MapPin, Phone, Mail, Calendar, Clock, Truck, ShoppingBag,
-  AlertCircle, TrendingUp, Activity, DollarSign, Download, ChevronDown,
-  ArrowUpRight, ArrowDownRight, Sparkles, RefreshCw, MoreVertical
+  Package, Search, Filter, CheckCircle, XCircle, Eye,
+  MapPin, Phone, Calendar, Clock, Truck,
+  AlertCircle, TrendingUp, Activity, Download, ChevronDown,
+  ArrowUpRight, ArrowDownRight, Sparkles, RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -113,34 +113,35 @@ export const OrderRequestsTab = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Pending': return 'bg-yellow-100 text-yellow-700 border-yellow-300';
-      case 'Confirmed': return 'bg-blue-100 text-blue-700 border-blue-300';
-      case 'Delivered': return 'bg-green-100 text-green-700 border-green-300';
-      case 'Cancelled': return 'bg-red-100 text-red-700 border-red-300';
-      default: return 'bg-gray-100 text-gray-700 border-gray-300';
+      case 'Pending': return 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+      case 'Confirmed': return 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30';
+      case 'Delivered': return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+      case 'Cancelled': return 'bg-red-500/20 text-red-300 border-red-500/30';
+      default: return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
     }
   };
 
   return (
-    <div className="min-h-screen">
-      {/* Modern Header with Breadcrumb */}
-      <div className="mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-gray-950 dark:via-gray-900 dark:to-cyan-950/20 p-6">
+      {/* Modern Glassmorphic Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8"
+      >
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
-            <div
-              className="p-4 bg-gradient-to-br from-blue-500 via-blue-600 to-cyan-500 rounded-2xl shadow-xl"
+            <motion.div
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              className="p-4 bg-gradient-to-br from-emerald-500 via-cyan-500 to-blue-500 rounded-2xl shadow-2xl shadow-emerald-500/20"
             >
               <Package className="h-7 w-7 text-white" />
-            </div>
+            </motion.div>
             <div>
-              <h1
-                className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-700 bg-clip-text text-transparent"
-              >
+              <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
                 Order Requests
               </h1>
-              <p
-                className="text-sm text-muted-foreground mt-1"
-              >
+              <p className="text-sm text-gray-400 mt-1">
                 Manage and track all pharmacy orders
               </p>
             </div>
@@ -148,19 +149,26 @@ export const OrderRequestsTab = () => {
 
           {/* Quick Action Buttons */}
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2 bg-white/5 border-white/10 hover:bg-white/10 backdrop-blur-sm"
+            >
               <RefreshCw className="h-4 w-4" />
               Refresh
             </Button>
-            <Button size="sm" className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
+            <Button 
+              size="sm" 
+              className="gap-2 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-lg shadow-emerald-500/30"
+            >
               <Sparkles className="h-4 w-4" />
               New Order
             </Button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Premium KPI Dashboard */}
+      {/* Premium Glassmorphic KPI Dashboard */}
       <motion.div
         initial="hidden"
         animate="visible"
@@ -168,18 +176,58 @@ export const OrderRequestsTab = () => {
           hidden: { opacity: 0 },
           visible: {
             opacity: 1,
-            transition: { staggerChildren: 0.03 }
+            transition: { staggerChildren: 0.05 }
           }
         }}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8"
       >
         {[
-          { icon: Activity, label: "Total Orders", value: stats.total, change: "+12%", trend: "up" as const, color: "from-blue-500 to-cyan-500" },
-          { icon: Clock, label: "Pending", value: stats.pending, change: "Action needed", trend: "neutral" as const, color: "from-amber-400 to-orange-500" },
-          { icon: CheckCircle, label: "Confirmed", value: stats.confirmed, change: "+8%", trend: "up" as const, color: "from-blue-500 to-indigo-500" },
-          { icon: TrendingUp, label: "Delivered", value: stats.delivered, change: "+15%", trend: "up" as const, color: "from-emerald-500 to-green-500" },
-          { icon: XCircle, label: "Cancelled", value: stats.cancelled, change: "-5%", trend: "down" as const, color: "from-red-400 to-rose-500" },
-        ].map((stat, index) => {
+          { 
+            icon: Activity, 
+            label: "Total Orders", 
+            value: stats.total, 
+            change: "+12%", 
+            trend: "up" as const, 
+            gradient: "from-blue-500 via-cyan-500 to-emerald-500",
+            glow: "shadow-blue-500/20"
+          },
+          { 
+            icon: Clock, 
+            label: "Pending", 
+            value: stats.pending, 
+            change: "Action needed", 
+            trend: "neutral" as const, 
+            gradient: "from-amber-400 via-orange-500 to-red-500",
+            glow: "shadow-amber-500/20"
+          },
+          { 
+            icon: CheckCircle, 
+            label: "Confirmed", 
+            value: stats.confirmed, 
+            change: "+8%", 
+            trend: "up" as const, 
+            gradient: "from-cyan-400 via-blue-500 to-indigo-500",
+            glow: "shadow-cyan-500/20"
+          },
+          { 
+            icon: TrendingUp, 
+            label: "Delivered", 
+            value: stats.delivered, 
+            change: "+15%", 
+            trend: "up" as const, 
+            gradient: "from-emerald-400 via-green-500 to-teal-500",
+            glow: "shadow-emerald-500/20"
+          },
+          { 
+            icon: XCircle, 
+            label: "Cancelled", 
+            value: stats.cancelled, 
+            change: "-5%", 
+            trend: "down" as const, 
+            gradient: "from-red-400 via-rose-500 to-pink-500",
+            glow: "shadow-red-500/20"
+          },
+        ].map((stat) => {
           const Icon = stat.icon;
           return (
             <motion.div
@@ -193,73 +241,38 @@ export const OrderRequestsTab = () => {
                   transition: { type: "spring", stiffness: 100, damping: 15 }
                 }
               }}
-              whileHover={{ y: -4, scale: 1.02 }}
+              whileHover={{ y: -6, scale: 1.03 }}
               className="group relative"
             >
-              <Card className="relative overflow-hidden border-0 shadow-lg bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl p-6 hover:shadow-2xl transition-all duration-300">
-                {/* Gradient Background on Hover */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+              <Card className={`relative overflow-hidden border-0 shadow-2xl ${stat.glow} bg-white/5 backdrop-blur-xl border border-white/10 p-6 hover:bg-white/10 transition-all duration-300`}>
+                {/* Animated Gradient Background */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
                 
-                {/* Accent Border */}
-                <motion.div
-                  className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${stat.color}`}
-                  initial={{ scaleY: 0.3 }}
-                  whileHover={{ scaleY: 1 }}
-                  transition={{ duration: 0.15 }}
-                />
-
-                <div className="relative flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{stat.label}</p>
-                    <motion.p
-                      className="text-3xl font-bold text-gray-900 dark:text-white mb-1"
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {stat.value}
-                    </motion.p>
-                    <div className="flex items-center gap-1">
-                      {stat.trend === 'up' ? (
-                        <ArrowUpRight className="h-4 w-4 text-emerald-500" />
-                      ) : stat.trend === 'down' ? (
-                        <ArrowDownRight className="h-4 w-4 text-red-500" />
-                      ) : null}
-                      <span className={`text-sm font-semibold ${
-                        stat.trend === 'up' ? 'text-emerald-600' : 
-                        stat.trend === 'down' ? 'text-red-600' : 
-                        'text-gray-600 dark:text-gray-400'
-                      }`}>
-                        {stat.change}
-                      </span>
+                {/* Holographic Glow Effect */}
+                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/0 via-cyan-500/10 to-emerald-500/0 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                <div className="relative z-10">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.gradient} shadow-lg`}>
+                      <Icon className="h-6 w-6 text-white" />
                     </div>
+                    {stat.trend !== "neutral" && (
+                      <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                        stat.trend === "up" ? "bg-emerald-500/20 text-emerald-300" : "bg-red-500/20 text-red-300"
+                      }`}>
+                        {stat.trend === "up" ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                        {stat.change}
+                      </div>
+                    )}
                   </div>
-                  
-                  {/* Animated Icon */}
                   <motion.div
-                    className={`p-3 rounded-2xl bg-gradient-to-br ${stat.color} shadow-lg`}
-                    whileHover={{
-                      rotate: [0, -10, 10, 0],
-                      scale: 1.1
-                    }}
-                    transition={{ duration: 0.5 }}
+                    initial={{ scale: 1 }}
+                    whileHover={{ scale: 1.05 }}
+                    className="text-3xl font-bold text-white mb-1"
                   >
-                    <Icon className="h-6 w-6 text-white" />
+                    {stat.value}
                   </motion.div>
-                </div>
-
-                {/* Hidden Sparkline */}
-                <div className="mt-4 h-12 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="flex items-end justify-between h-full gap-1">
-                    {[...Array(12)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        className={`flex-1 rounded-t bg-gradient-to-t ${stat.color} opacity-30`}
-                        initial={{ height: 0 }}
-                        whileHover={{ height: `${Math.random() * 100}%` }}
-                        transition={{ duration: 0.15 }}
-                      />
-                    ))}
-                  </div>
+                  <div className="text-sm text-gray-400 font-medium">{stat.label}</div>
                 </div>
               </Card>
             </motion.div>
@@ -267,100 +280,69 @@ export const OrderRequestsTab = () => {
         })}
       </motion.div>
 
-      {/* Premium Search & Filter Bar */}
+      {/* Filters & Search Section - Glassmorphic */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="mb-6"
+        transition={{ delay: 0.2 }}
       >
-        <Card className="border-0 shadow-xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl p-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search Input */}
-            <div className="flex-1 relative group">
-              <div
-                className="absolute left-4 top-1/2 -translate-y-1/2 z-10"
-              >
-                <Search className="h-5 w-5 text-gray-400" />
-              </div>
+        <Card className="border-0 shadow-2xl bg-white/5 backdrop-blur-xl border border-white/10 p-6 mb-6">
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <Input
                 placeholder="Search by patient, order ID, or medicine..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 h-12 border-2 border-gray-200 dark:border-gray-600 focus:border-blue-400 dark:focus:border-blue-500 rounded-xl text-base bg-white dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-800 transition-all shadow-sm focus:shadow-md"
+                className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500/50 focus:ring-emerald-500/20"
               />
             </div>
-
-            {/* Filter Dropdown */}
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full lg:w-[240px] h-12 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+            <div className="flex gap-3 w-full md:w-auto">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-[180px] bg-white/5 border-white/10 text-white">
                   <SelectValue placeholder="Filter by status" />
-                </div>
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="all">All Orders</SelectItem>
-                <SelectItem value="pending">Pending Only</SelectItem>
-                <SelectItem value="confirmed">Confirmed Only</SelectItem>
-                <SelectItem value="delivered">Delivered Only</SelectItem>
-                <SelectItem value="cancelled">Cancelled Only</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Results Count */}
-          <div
-            className="mt-4 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400"
-          >
-            <span>Showing <strong className="text-gray-900 dark:text-white">{filteredOrders.length}</strong> of <strong className="text-gray-900 dark:text-white">{orders.length}</strong> orders</span>
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                </SelectTrigger>
+                <SelectContent className="bg-gray-900 border-white/10">
+                  <SelectItem value="all">All Orders</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                variant="outline" 
+                size="icon"
+                className="bg-white/5 border-white/10 hover:bg-white/10"
               >
-                Clear search
-              </button>
-            )}
+                <Download className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </Card>
       </motion.div>
 
-      {/* Orders Table */}
+      {/* Orders Table - Premium Glassmorphic Design */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <Card className="overflow-hidden border-2 border-blue-100 bg-white">
-          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)] custom-scrollbar">
+        <Card className="border-0 shadow-2xl bg-white/5 backdrop-blur-xl border border-white/10 overflow-hidden">
+          <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b-2 border-blue-100 sticky top-0 z-10">
+              <thead className="border-b border-white/10 bg-white/5">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Order Details
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Patient
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Medicines
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Delivery
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-gray-300">Order ID</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-gray-300">Patient</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-gray-300">Items</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-gray-300">Total</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-gray-300">Status</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-gray-300">Date</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-gray-300">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-white/5">
                 <AnimatePresence mode="popLayout">
                   {currentOrders.map((order, index) => (
                     <motion.tr
@@ -369,98 +351,62 @@ export const OrderRequestsTab = () => {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
                       transition={{ delay: index * 0.05 }}
-                      className="hover:bg-blue-50/50 transition-colors"
+                      className="group hover:bg-white/5 transition-colors cursor-pointer"
+                      onClick={() => viewOrderDetails(order)}
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-semibold text-gray-900">{order.orderId}</p>
-                              {order.isNew && (
-                                <Badge className="bg-red-500 text-white text-xs px-2 py-0.5">
-                                  NEW
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {order.orderDate}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {order.orderTime}
-                              </span>
-                            </div>
+                          <span className="font-mono text-sm text-cyan-400">{order.orderId}</span>
+                          {order.isNew && (
+                            <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">
+                              NEW
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div>
+                          <div className="font-medium text-white">{order.patientName}</div>
+                          <div className="text-sm text-gray-400 flex items-center gap-1 mt-1">
+                            <MapPin className="h-3 w-3" />
+                            {order.location}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div>
-                          <p className="font-medium text-gray-900">{order.patientName}</p>
-                          <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                            <Phone className="h-3 w-3" />
-                            {order.patientPhone}
-                          </p>
+                        <div className="text-sm text-gray-300">
+                          {order.medicines.length} item{order.medicines.length > 1 ? 's' : ''}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="space-y-1">
-                          {order.medicines.slice(0, 2).map((med, idx) => (
-                            <div key={idx} className="text-sm">
-                              <span className="font-medium text-gray-700">{med.name}</span>
-                              <span className="text-gray-500"> × {med.quantity}</span>
-                            </div>
-                          ))}
-                          {order.medicines.length > 2 && (
-                            <p className="text-xs text-blue-600">
-                              +{order.medicines.length - 2} more
-                            </p>
-                          )}
+                        <div className="font-semibold text-emerald-400">
+                          ₹{order.totalAmount.toLocaleString()}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          {order.deliveryType === 'Home Delivery' ? (
-                            <Truck className="h-4 w-4 text-blue-600" />
-                          ) : (
-                            <ShoppingBag className="h-4 w-4 text-green-600" />
-                          )}
-                          <span className="text-sm font-medium text-gray-700">
-                            {order.deliveryType}
-                          </span>
-                        </div>
-                        {order.deliveryAddress && (
-                          <p className="text-xs text-gray-500 mt-1 flex items-start gap-1">
-                            <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                            <span className="line-clamp-2">{order.deliveryAddress}</span>
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="font-bold text-gray-900">
-                            ₹{(order.totalAmount + order.deliveryCharge).toFixed(2)}
-                          </p>
-                          {order.deliveryCharge > 0 && (
-                            <p className="text-xs text-gray-500">
-                              +₹{order.deliveryCharge} delivery
-                            </p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <Badge className={`${getStatusColor(order.status)} border px-3 py-1`}>
+                        <Badge className={`${getStatusColor(order.status)} border backdrop-blur-sm`}>
                           {order.status}
                         </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-white/90 flex items-center gap-1 font-medium">
+                          <Calendar className="h-4 w-4 text-cyan-400" />
+                          {new Date(order.createdAt).toLocaleDateString('en-GB')}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-0.5">
+                          {new Date(order.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => viewOrderDetails(order)}
-                            className="hover:bg-blue-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              viewOrderDetails(order);
+                            }}
+                            className="hover:bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:text-cyan-300 transition-all"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -468,17 +414,26 @@ export const OrderRequestsTab = () => {
                             <>
                               <Button
                                 size="sm"
-                                onClick={() => handleConfirmOrder(order)}
-                                className="bg-green-600 hover:bg-green-700 text-white"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleConfirmOrder(order);
+                                }}
+                                className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-emerald-500/20"
                               >
-                                <CheckCircle className="h-4 w-4" />
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Confirm
                               </Button>
                               <Button
                                 size="sm"
-                                onClick={() => handleRejectOrder(order)}
-                                variant="destructive"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRejectOrder(order);
+                                }}
+                                className="border-red-500/30 text-red-400 hover:bg-red-500/10"
                               >
-                                <XCircle className="h-4 w-4" />
+                                <XCircle className="h-4 w-4 mr-1" />
+                                Reject
                               </Button>
                             </>
                           )}
@@ -493,37 +448,26 @@ export const OrderRequestsTab = () => {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-              <p className="text-sm text-gray-600">
+            <div className="flex items-center justify-between px-6 py-4 border-t border-white/10 bg-white/5">
+              <div className="text-sm text-gray-400">
                 Showing {indexOfFirstOrder + 1} to {Math.min(indexOfLastOrder, filteredOrders.length)} of {filteredOrders.length} orders
-              </p>
+              </div>
               <div className="flex gap-2">
                 <Button
-                  size="sm"
                   variant="outline"
+                  size="sm"
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
+                  className="bg-white/5 border-white/10 hover:bg-white/10"
                 >
                   Previous
                 </Button>
-                <div className="flex gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <Button
-                      key={page}
-                      size="sm"
-                      variant={currentPage === page ? "default" : "outline"}
-                      onClick={() => setCurrentPage(page)}
-                      className={currentPage === page ? "bg-blue-600" : ""}
-                    >
-                      {page}
-                    </Button>
-                  ))}
-                </div>
                 <Button
-                  size="sm"
                   variant="outline"
+                  size="sm"
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
+                  className="bg-white/5 border-white/10 hover:bg-white/10"
                 >
                   Next
                 </Button>
@@ -533,15 +477,18 @@ export const OrderRequestsTab = () => {
         </Card>
       </motion.div>
 
+      {/* Modals remain the same but with dark theme styling */}
+      {/* ... (keep existing modal implementations with updated styling) */}
+
       {/* Order Details Modal */}
       <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-gray-950 to-gray-900 border-emerald-500/30">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-blue-600" />
+            <DialogTitle className="flex items-center gap-2 text-2xl text-white">
+              <Package className="h-6 w-6 text-emerald-500" />
               Order Details - {selectedOrder?.orderId}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-gray-400">
               Complete information about this order
             </DialogDescription>
           </DialogHeader>
@@ -549,99 +496,127 @@ export const OrderRequestsTab = () => {
           {selectedOrder && (
             <div className="space-y-6">
               {/* Patient Info */}
-              <div className="space-y-2">
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <Phone className="h-4 w-4" />
+              <Card className="p-4 bg-white/5 border-emerald-500/20">
+                <h3 className="font-semibold text-white flex items-center gap-2 mb-3">
+                  <Phone className="h-4 w-4 text-cyan-400" />
                   Patient Information
                 </h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                  <p><span className="font-medium">Name:</span> {selectedOrder.patientName}</p>
-                  <p><span className="font-medium">Phone:</span> {selectedOrder.patientPhone}</p>
-                  <p><span className="font-medium">Email:</span> {selectedOrder.patientEmail}</p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Name:</span>
+                    <span className="font-medium text-white">{selectedOrder.patientName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Contact:</span>
+                    <span className="font-medium text-emerald-400">{selectedOrder.patientPhone}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Email:</span>
+                    <span className="font-medium text-cyan-400">{selectedOrder.patientEmail}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-gray-400">Delivery Address:</span>
+                    <span className="font-medium text-white">{selectedOrder.deliveryAddress || selectedOrder.location}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Order Date:</span>
+                    <span className="font-medium text-white">
+                      {new Date(selectedOrder.createdAt).toLocaleDateString('en-GB', { 
+                        day: '2-digit', 
+                        month: 'short', 
+                        year: 'numeric' 
+                      })} at {selectedOrder.orderTime}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Delivery Type:</span>
+                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                      {selectedOrder.deliveryType}
+                    </Badge>
+                  </div>
                 </div>
-              </div>
+              </Card>
 
-              {/* Medicine List */}
-              <div className="space-y-2">
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <Package className="h-4 w-4" />
+              {/* Medicines */}
+              <Card className="p-4 bg-white/5 border-cyan-500/20">
+                <h3 className="font-semibold text-white flex items-center gap-2 mb-3">
+                  <Package className="h-4 w-4 text-purple-400" />
                   Medicines Ordered
                 </h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                  {selectedOrder.medicines.map((med, idx) => (
-                    <div key={idx} className="flex justify-between items-center pb-2 border-b border-gray-200 last:border-0">
-                      <div>
-                        <p className="font-medium">{med.name}</p>
-                        <p className="text-sm text-gray-600">Quantity: {med.quantity}</p>
-                      </div>
-                      <p className="font-semibold">₹{med.price.toFixed(2)}</p>
+                <div className="space-y-2">
+                  {selectedOrder.medicines.map((med, index) => (
+                    <div key={index} className="flex justify-between items-center p-2 bg-white/5 rounded">
+                      <span className="text-white">{med.name} x {med.quantity}</span>
+                      <span className="font-semibold text-emerald-400">₹{med.price * med.quantity}</span>
                     </div>
                   ))}
                 </div>
-              </div>
+              </Card>
 
-              {/* Pricing */}
-              <div className="space-y-2">
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Pricing Breakdown
-                </h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                  <div className="flex justify-between">
-                    <span>Medicines Total:</span>
-                    <span className="font-medium">₹{selectedOrder.totalAmount.toFixed(2)}</span>
+              {/* Prescription with PDF Viewer */}
+              {selectedOrder.prescriptionUrl && (
+                <Card className="p-4 bg-gradient-to-br from-emerald-950/20 to-cyan-950/20 border-2 border-emerald-500/30">
+                  <h3 className="font-semibold text-white flex items-center gap-2 mb-3">
+                    <Download className="h-4 w-4 text-emerald-400" />
+                    Prescription Document
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="bg-gray-900 rounded-lg border-2 border-emerald-500/20 overflow-hidden">
+                      <iframe
+                        src={selectedOrder.prescriptionUrl}
+                        className="w-full h-[400px]"
+                        title="Prescription Document"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        className="flex-1 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white"
+                        onClick={() => window.open(selectedOrder.prescriptionUrl, '_blank')}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Full Screen
+                      </Button>
+                      <Button 
+                        className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = selectedOrder.prescriptionUrl;
+                          link.download = `prescription-${selectedOrder.orderId}.pdf`;
+                          link.click();
+                        }}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download PDF
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Delivery Charge:</span>
-                    <span className="font-medium">₹{selectedOrder.deliveryCharge.toFixed(2)}</span>
+                </Card>
+              )}
+
+              {/* Total Amount */}
+              <Card className="p-4 bg-white/5 border-blue-500/20">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Subtotal:</span>
+                    <span className="text-white">₹{selectedOrder.totalAmount.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-300">
-                    <span>Total Amount:</span>
-                    <span className="text-blue-600">
-                      ₹{(selectedOrder.totalAmount + selectedOrder.deliveryCharge).toFixed(2)}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Delivery:</span>
+                    <span className="text-white">₹{selectedOrder.deliveryCharge}</span>
+                  </div>
+                  <div className="border-t border-white/10 pt-2 flex justify-between">
+                    <span className="font-bold text-white">Total Amount:</span>
+                    <span className="font-bold text-xl bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                      ₹{(selectedOrder.totalAmount + selectedOrder.deliveryCharge).toLocaleString()}
                     </span>
                   </div>
                 </div>
-              </div>
-
-              {/* Delivery Details */}
-              <div className="space-y-2">
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <Truck className="h-4 w-4" />
-                  Delivery Information
-                </h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                  <p><span className="font-medium">Type:</span> {selectedOrder.deliveryType}</p>
-                  {selectedOrder.deliveryAddress && (
-                    <p><span className="font-medium">Address:</span> {selectedOrder.deliveryAddress}</p>
-                  )}
-                  {selectedOrder.notes && (
-                    <p><span className="font-medium">Notes:</span> {selectedOrder.notes}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Prescription */}
-              {selectedOrder.prescriptionUrl && (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Prescription
-                  </h3>
-                  <Button 
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    onClick={() => window.open(selectedOrder.prescriptionUrl, '_blank')}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download Prescription
-                  </Button>
-                </div>
-              )}
+              </Card>
             </div>
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDetailsModal(false)}>
+            <Button variant="outline" onClick={() => setShowDetailsModal(false)} className="border-white/20 text-white hover:bg-white/10">
               Close
             </Button>
           </DialogFooter>
@@ -650,32 +625,32 @@ export const OrderRequestsTab = () => {
 
       {/* Confirm Order Modal */}
       <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
-        <DialogContent className="max-w-[95vw] sm:max-w-md">
+        <DialogContent className="bg-gradient-to-br from-gray-950 to-gray-900 border-emerald-500/30">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+            <DialogTitle className="flex items-center gap-2 text-emerald-400">
+              <CheckCircle className="h-5 w-5" />
               Confirm Order
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-gray-400">
               Are you sure you want to confirm this order?
             </DialogDescription>
           </DialogHeader>
 
           {selectedOrder && (
-            <div className="bg-green-50 p-4 rounded-lg">
-              <p className="font-semibold mb-2">{selectedOrder.orderId}</p>
-              <p className="text-sm text-gray-700">Patient: {selectedOrder.patientName}</p>
-              <p className="text-sm text-gray-700">
+            <Card className="p-4 bg-emerald-500/10 border-emerald-500/30">
+              <p className="font-semibold text-white mb-2">{selectedOrder.orderId}</p>
+              <p className="text-sm text-gray-300">Patient: {selectedOrder.patientName}</p>
+              <p className="text-sm text-emerald-400 font-semibold">
                 Total Amount: ₹{(selectedOrder.totalAmount + selectedOrder.deliveryCharge).toFixed(2)}
               </p>
-            </div>
+            </Card>
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirmModal(false)}>
+            <Button variant="outline" onClick={() => setShowConfirmModal(false)} className="border-white/20 text-white hover:bg-white/10">
               Cancel
             </Button>
-            <Button className="bg-green-600 hover:bg-green-700" onClick={confirmOrder}>
+            <Button className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600" onClick={confirmOrder}>
               <CheckCircle className="h-4 w-4 mr-2" />
               Confirm Order
             </Button>
@@ -685,29 +660,30 @@ export const OrderRequestsTab = () => {
 
       {/* Reject Order Modal */}
       <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
-        <DialogContent>
+        <DialogContent className="bg-gradient-to-br from-gray-950 to-gray-900 border-red-500/30">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-red-600" />
+            <DialogTitle className="flex items-center gap-2 text-red-400">
+              <XCircle className="h-5 w-5" />
               Reject Order
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-gray-400">
               Please provide a reason for rejecting this order (optional)
             </DialogDescription>
           </DialogHeader>
 
           {selectedOrder && (
             <div className="space-y-4">
-              <div className="bg-red-50 p-4 rounded-lg">
-                <p className="font-semibold mb-2">{selectedOrder.orderId}</p>
-                <p className="text-sm text-gray-700">Patient: {selectedOrder.patientName}</p>
-              </div>
+              <Card className="p-4 bg-red-500/10 border-red-500/30">
+                <p className="font-semibold text-white mb-2">{selectedOrder.orderId}</p>
+                <p className="text-sm text-gray-300">Patient: {selectedOrder.patientName}</p>
+              </Card>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Reason for Rejection
                 </label>
                 <Input
+                  className="bg-white/5 border-red-500/30 text-white placeholder:text-gray-500 focus:border-red-500"
                   placeholder="e.g., Out of stock, incorrect prescription, etc."
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
@@ -720,10 +696,10 @@ export const OrderRequestsTab = () => {
             <Button variant="outline" onClick={() => {
               setShowRejectModal(false);
               setRejectionReason("");
-            }}>
+            }} className="border-white/20 text-white hover:bg-white/10">
               Cancel
             </Button>
-            <Button variant="destructive" onClick={rejectOrder}>
+            <Button variant="destructive" onClick={rejectOrder} className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700">
               <XCircle className="h-4 w-4 mr-2" />
               Reject Order
             </Button>

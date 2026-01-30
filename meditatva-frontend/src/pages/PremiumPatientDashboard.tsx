@@ -20,17 +20,18 @@ import MediConferenceCall from "@/components/MediConferenceCall";
 import { NearbyMedicalStoresPage } from "@/pages/NearbyMedicalStoresPage";
 import { FindMedicineEnhanced } from "@/pages/FindMedicineEnhanced";
 import { MyMedicineCabinetPage } from "@/pages/MyMedicineCabinetPage";
+import MedicalReportAnalyzer from "@/pages/MedicalReportAnalyzer";
 import { PrescriptionScanner } from "@/components/PrescriptionScanner";
 import { MedicineAvailabilitySudoku } from "@/components/MedicineAvailabilitySudoku";
 import {
   Home, Calendar, ShoppingCart, Bell, FolderOpen,
   MapPin, MessageCircle, LogOut, Menu, X,
   Pill, Camera, Search, Activity, Heart, ChevronRight,
-  Scan, Zap, TrendingUp, Sparkles, Settings, MessageSquare, Mic, Bot, Phone
+  Scan, Zap, TrendingUp, Sparkles, Settings, MessageSquare, Mic, Bot, Phone, FileBarChart
 } from "lucide-react";
 import { toast } from "sonner";
 
-type Section = "home" | "nearby" | "find-medicine" | "orders" | "cabinet" | "appointments" | "chat" | "settings";
+type Section = "home" | "nearby" | "find-medicine" | "orders" | "cabinet" | "appointments" | "chat" | "report-analyzer" | "settings";
 
 const PremiumPatientDashboardInner = () => {
   const navigate = useNavigate();
@@ -100,6 +101,13 @@ const PremiumPatientDashboardInner = () => {
       label: "Medical Cabinet",
       gradient: "from-violet-500 via-purple-500 to-indigo-500",
       description: "Prescriptions & family",
+    },
+    {
+      id: "report-analyzer" as Section,
+      icon: FileBarChart,
+      label: "Report Analyzer",
+      gradient: "from-emerald-500 via-teal-500 to-cyan-500",
+      description: "AI-powered health reports",
     },
     {
       id: "appointments" as Section,
@@ -247,13 +255,15 @@ const PremiumPatientDashboardInner = () => {
               >
                 <div className="flex items-center gap-4">
                   <motion.div
-                    className="relative h-14 w-14 rounded-2xl flex items-center justify-center overflow-hidden"
+                    className="relative h-14 w-14 flex items-center justify-center"
                     whileHover={{ rotate: 360 }}
                     transition={{ duration: 0.8 }}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600" />
-                    <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-white/20 to-transparent" />
-                    <Pill className="h-7 w-7 text-white relative z-10" />
+                    <img 
+                      src="/meditatva-logo.png?v=3" 
+                      alt="MediTatva Logo" 
+                      className="h-14 w-14 object-contain"
+                    />
                   </motion.div>
                   {!sidebarCollapsed && (
                     <motion.div
@@ -785,6 +795,18 @@ const PremiumPatientDashboardInner = () => {
                   transition={{ duration: 0.2, ease: "easeOut" }}
                 >
                   <MyMedicineCabinetPage />
+                </motion.div>
+              )}
+
+              {activeSection === 'report-analyzer' && (
+                <motion.div
+                  key="report-analyzer"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                >
+                  <MedicalReportAnalyzer />
                 </motion.div>
               )}
 

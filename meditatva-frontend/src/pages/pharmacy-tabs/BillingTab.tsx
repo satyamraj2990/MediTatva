@@ -16,8 +16,13 @@ import { api, API_BASE_URL } from "@/lib/apiClient";
 
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.5, staggerChildren: 0.05 } },
   exit: { opacity: 0, y: -20, transition: { duration: 0.2 } }
+};
+
+const cardVariants = {
+  initial: { opacity: 0, scale: 0.95, y: 20 },
+  animate: { opacity: 1, scale: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
 };
 
 interface Medicine {
@@ -42,81 +47,92 @@ interface CartItem {
 interface InvoiceHistory {
   _id: string;
   invoiceNumber: string;
-  patientName: string;
-  createdAt: string;
-  total: number;
+  customerName?: string;
+  patientName?: string;
+  customerPhone?: string;
+  items?: Array<{
+    medicine: { name: string; price: number };
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+  }>;
+  totalAmount?: number;
+  total?: number;
   paymentMethod: string;
+  createdAt: string;
+  status?: string;
 }
 
 // Demo medicines for when backend is unavailable
+// Demo medicines - synced with InventoryTab
 const demoAvailableMedicines: Medicine[] = [
   {
     _id: "1",
     name: "Paracetamol 500mg",
-    genericName: "Acetaminophen",
-    brand: "Crocin",
-    price: 2.50,
+    genericName: "Paracetamol",
+    brand: "PharmaCorp Ltd",
+    price: 85,
     current_stock: 150,
     inStock: true,
     requiresPrescription: false
   },
   {
     _id: "2",
-    name: "Cetirizine 10mg",
-    genericName: "Cetirizine Hydrochloride",
-    brand: "Cetrizet",
-    price: 4.75,
-    current_stock: 28,
-    inStock: true,
-    requiresPrescription: false
-  },
-  {
-    _id: "3",
-    name: "Ibuprofen 400mg",
-    genericName: "Ibuprofen",
-    brand: "Brufen",
-    price: 3.20,
-    current_stock: 185,
-    inStock: true,
-    requiresPrescription: false
-  },
-  {
-    _id: "4",
     name: "Amoxicillin 250mg",
     genericName: "Amoxicillin",
-    brand: "Amoxil",
-    price: 8.90,
+    brand: "BioMed Inc",
+    price: 95,
     current_stock: 8,
     inStock: true,
     requiresPrescription: true
   },
   {
+    _id: "3",
+    name: "Cetirizine 10mg",
+    genericName: "Cetirizine",
+    brand: "AllergyFree Labs",
+    price: 82,
+    current_stock: 280,
+    inStock: true,
+    requiresPrescription: false
+  },
+  {
+    _id: "4",
+    name: "Metformin 500mg",
+    genericName: "Metformin",
+    brand: "DiabCare Pharma",
+    price: 88,
+    current_stock: 185,
+    inStock: true,
+    requiresPrescription: false
+  },
+  {
     _id: "5",
     name: "Omeprazole 20mg",
     genericName: "Omeprazole",
-    brand: "Omez",
-    price: 5.60,
+    brand: "GastroMed Inc",
+    price: 92,
+    current_stock: 42,
+    inStock: true,
+    requiresPrescription: false
+  },
+  {
+    _id: "7",
+    name: "Ibuprofen 400mg",
+    genericName: "Ibuprofen",
+    brand: "PainRelief Corp",
+    price: 80,
     current_stock: 320,
     inStock: true,
     requiresPrescription: false
   },
   {
-    _id: "6",
+    _id: "8",
     name: "Azithromycin 500mg",
     genericName: "Azithromycin",
-    brand: "Azithral",
-    price: 12.50,
-    current_stock: 45,
-    inStock: true,
-    requiresPrescription: true
-  },
-  {
-    _id: "8",
-    name: "Atorvastatin 10mg",
-    genericName: "Atorvastatin",
-    brand: "Lipitor",
-    price: 9.80,
-    current_stock: 210,
+    brand: "AntiMicrob Labs",
+    price: 100,
+    current_stock: 15,
     inStock: true,
     requiresPrescription: true
   }
@@ -145,11 +161,21 @@ export const BillingTab = memo(() => {
       
       if (update.type === 'inventory-update' || update.type === 'initial-inventory') {
         // Refresh available medicines when inventory changes
+        console.log('🔄 Refreshing medicines due to real-time update');
         fetchAvailableMedicines();
       }
     },
     autoConnect: true
   });
+  
+  // Log real-time connection status
+  useEffect(() => {
+    if (isRealtimeConnected) {
+      console.log('✅ BillingTab: Real-time inventory connected');
+    } else if (realtimeError) {
+      console.warn('⚠️ BillingTab: Real-time error:', realtimeError);
+    }
+  }, [isRealtimeConnected, realtimeError]);
 
   // Wait for backend to be ready
   const waitForBackend = async (maxRetries = 10, delayMs = 1000): Promise<boolean> => {
@@ -182,13 +208,13 @@ export const BillingTab = memo(() => {
 
   // Fetch available medicines from backend (in-stock, non-expired)
   const fetchAvailableMedicines = async () => {
-    console.log('📦 Fetching available medicines...');
+    console.log('📦 Fetching available medicines from backend...');
     setIsLoadingAvailable(true);
     
     try {
       const response = await api.invoices.getAvailableMedicines();
       
-      if (response.success && response.data && response.data.length > 0) {
+      if (response.success && response.data) {
         // Transform backend format to frontend format
         const transformedMedicines = (response.data || []).map((med: any) => ({
           _id: med.medicineId || med._id,
@@ -204,11 +230,11 @@ export const BillingTab = memo(() => {
         setAvailableMedicines(transformedMedicines);
         console.log('✅ Loaded', transformedMedicines.length, 'medicines from backend');
       } else {
-        console.log('📦 Backend returned no data, using demo medicines');
+        console.log('📦 Backend returned no data, using demo data as fallback');
         setAvailableMedicines(demoAvailableMedicines);
       }
     } catch (error: any) {
-      console.log('📦 Backend unavailable, using demo medicines');
+      console.log('⚠️ Backend unavailable, using demo data:', error.message);
       setAvailableMedicines(demoAvailableMedicines);
     } finally {
       setIsLoadingAvailable(false);
@@ -431,8 +457,17 @@ export const BillingTab = memo(() => {
       // Generate invoice number
       const invoiceNumber = `INV-${Date.now()}`;
       const currentDate = new Date();
+      
+      // Save cart and patient info for PDF generation
+      const cartSnapshot = [...cart];
+      const patientSnapshot = {
+        name: patientName,
+        phone: contactNumber,
+        email: email,
+        paymentType: paymentType
+      };
 
-      // Try to save to backend (if available)
+      // Try to save invoice to backend
       let backendSaved = false;
       let savedInvoiceNumber = invoiceNumber;
       
@@ -449,27 +484,133 @@ export const BillingTab = memo(() => {
           notes: email ? `Customer email: ${email}` : undefined
         };
 
-        console.log('Sending invoice data:', invoiceData);
-
+        console.log('📤 Attempting to save invoice to backend...');
         const result = await api.invoices.finalize(invoiceData);
         
         if (result.success) {
           backendSaved = true;
           savedInvoiceNumber = result.data.invoiceNumber;
           toast.success("✅ Invoice saved to database!");
-          console.log('Invoice saved successfully:', result.data);
-        } else {
-          console.error('Backend save failed:', result);
-          throw new Error(result.message || 'Failed to save invoice');
+          console.log('✅ Backend saved invoice and reduced stock');
         }
       } catch (error: any) {
-        console.error("Backend save error:", error);
-        toast.error(`Invoice creation failed: ${error.message}`);
-        setIsProcessing(false);
-        return; // Don't generate PDF if backend fails
+        console.log('⚠️ Backend unavailable, processing locally');
+        backendSaved = false;
+        
+        // Reduce stock locally
+        const updatedMedicines = availableMedicines.map(med => {
+          const cartItem = cart.find(item => item._id === med._id);
+          if (cartItem) {
+            const newStock = Math.max(0, med.current_stock - cartItem.quantity);
+            return { ...med, current_stock: newStock, inStock: newStock > 0 };
+          }
+          return med;
+        });
+        setAvailableMedicines(updatedMedicines);
+        
+        // Dispatch stock reduction event to InventoryTab
+        window.dispatchEvent(new CustomEvent('stock-reduced', {
+          detail: cart.map(item => ({ id: item._id, quantity: item.quantity }))
+        }));
+        
+        // Add to local invoice history
+        const newInvoice: InvoiceHistory = {
+          _id: `local-${Date.now()}`,
+          invoiceNumber: savedInvoiceNumber,
+          customerName: patientName,
+          customerPhone: contactNumber,
+          items: cart.map(item => ({
+            medicine: { name: item.name, price: item.price },
+            quantity: item.quantity,
+            unitPrice: item.price,
+            totalPrice: item.price * item.quantity
+          })),
+          totalAmount: calculateTotal(),
+          paymentMethod: paymentType,
+          createdAt: currentDate.toISOString(),
+          status: 'completed'
+        };
+        setInvoiceHistory(prev => [newInvoice, ...prev]);
+        
+        toast.success("💾 Invoice created locally!");
       }
 
-      // ==================== PROFESSIONAL INVOICE GENERATION ====================
+      // Reset UI immediately
+      setShowBillingModal(false);
+      setIsProcessing(false);
+      setCart([]);
+      setPatientName("");
+      setContactNumber("");
+      setEmail("");
+      setPaymentType("cash");
+      
+      toast.success(`✅ Order completed successfully!`);
+      
+      // Refresh from backend if available
+      if (backendSaved) {
+        fetchInvoiceHistory();
+        fetchAvailableMedicines();
+      }
+
+      // Defer PDF generation to next tick to allow UI to update
+      console.log('✅ [DEBUG] Invoice saved, UI reset complete, scheduling PDF generation...');
+      setTimeout(() => {
+        console.log('✅ [DEBUG] Starting PDF generation now...');
+        generateInvoicePDF(
+          savedInvoiceNumber,
+          patientSnapshot,
+          cartSnapshot,
+          currentDate,
+          backendSaved
+        );
+      }, 100);
+
+    } catch (error: any) {
+      console.error("Invoice generation error:", error);
+      toast.error(`Failed to generate invoice: ${error.message || 'Unknown error'}`);
+      setIsProcessing(false);
+    }
+  };
+
+  // ==================== PDF GENERATION ====================
+  // CRITICAL: This function generates PDFs using client-side jsPDF
+  // and downloads via blob URLs to PREVENT navigation/blank screens
+  // 
+  // Why blob-based download:
+  // - pdf.save() can cause navigation in some browsers
+  // - Blob approach keeps React component mounted
+  // - Object URL is created, used, and immediately revoked
+  // - No window.open, window.location, or navigation calls
+  // - Component state is fully preserved
+  //
+  // Flow: Generate PDF → Create blob → Create object URL → 
+  //       Download via hidden <a> → Clean up → Done
+  // =========================================================
+  const generateInvoicePDF = (
+    invoiceNumber: string,
+    patient: { name: string; phone: string; email: string; paymentType: string },
+    cartItems: typeof cart,
+    invoiceDate: Date,
+    wasSavedToBackend: boolean
+  ) => {
+    let loadingToast: string | null = null;
+    let blobUrl: string | null = null;
+
+    try {
+      console.log('📄 [DEBUG] Starting PDF generation...');
+      console.log('📄 [DEBUG] React component still mounted:', document.querySelector('[data-component="billing-tab"]') !== null);
+      
+      // Show loading notification
+      loadingToast = toast.loading('Generating invoice PDF...');
+      
+      // Calculate total for this cart
+      const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const subtotal = cartTotal;
+      const cgst = subtotal * 0.025;
+      const sgst = subtotal * 0.025;
+      const serviceFee = 10;
+      const grandTotal = subtotal + cgst + sgst + serviceFee;
+      
       // A4 Page setup with proper margins
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -479,7 +620,7 @@ export const BillingTab = memo(() => {
       
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 15; // Consistent margins
+      const margin = 15;
       const contentWidth = pageWidth - (2 * margin);
       
       // ==================== PREMIUM HEADER SECTION ====================
@@ -565,12 +706,12 @@ export const BillingTab = memo(() => {
       pdf.setFont('helvetica', 'bold');
       pdf.text("Invoice No:", margin + boxPadding, yPos + 12);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(savedInvoiceNumber, margin + 26, yPos + 12);
+      pdf.text(invoiceNumber, margin + 26, yPos + 12);
       
       pdf.setFont('helvetica', 'bold');
       pdf.text("Date:", margin + boxPadding, yPos + 17);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(currentDate.toLocaleDateString('en-IN', { 
+      pdf.text(invoiceDate.toLocaleDateString('en-IN', { 
         day: '2-digit',
         month: 'short', 
         year: 'numeric' 
@@ -579,7 +720,7 @@ export const BillingTab = memo(() => {
       pdf.setFont('helvetica', 'bold');
       pdf.text("Time:", margin + boxPadding, yPos + 22);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(currentDate.toLocaleTimeString('en-IN', {
+      pdf.text(invoiceDate.toLocaleTimeString('en-IN', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true
@@ -588,7 +729,7 @@ export const BillingTab = memo(() => {
       pdf.setFont('helvetica', 'bold');
       pdf.text("Payment:", margin + boxPadding, yPos + 27);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(paymentType.toUpperCase(), margin + 26, yPos + 27);
+      pdf.text(patient.paymentType.toUpperCase(), margin + 26, yPos + 27);
       
       // Right box - Patient details (same height and padding)
       pdf.setDrawColor(200, 200, 200);
@@ -607,20 +748,20 @@ export const BillingTab = memo(() => {
       pdf.text("Name:", margin + boxWidth + 8 + boxPadding, yPos + 12);
       pdf.setFont('helvetica', 'normal');
       const maxNameWidth = boxWidth - 22;
-      const truncatedName = patientName.length > 25 ? patientName.substring(0, 25) + '...' : patientName;
+      const truncatedName = patient.name.length > 25 ? patient.name.substring(0, 25) + '...' : patient.name;
       pdf.text(truncatedName, margin + boxWidth + 8 + 22, yPos + 12);
       
       pdf.setFont('helvetica', 'bold');
       pdf.text("Phone:", margin + boxWidth + 8 + boxPadding, yPos + 17);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(contactNumber, margin + boxWidth + 8 + 22, yPos + 17);
+      pdf.text(patient.phone, margin + boxWidth + 8 + 22, yPos + 17);
       
-      if (email) {
+      if (patient.email) {
         pdf.setFont('helvetica', 'bold');
         pdf.text("Email:", margin + boxWidth + 8 + boxPadding, yPos + 22);
         pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(7.5);
-        const truncatedEmail = email.length > 30 ? email.substring(0, 30) + '...' : email;
+        const truncatedEmail = patient.email.length > 30 ? patient.email.substring(0, 30) + '...' : patient.email;
         pdf.text(truncatedEmail, margin + boxWidth + 8 + 22, yPos + 22);
       }
       
@@ -656,7 +797,7 @@ export const BillingTab = memo(() => {
       pdf.setTextColor(40, 40, 40);
       pdf.setFont('helvetica', 'normal');
       
-      cart.forEach((item, index) => {
+      cartItems.forEach((item, index) => {
         // Check for page break
         if (yPos > pageHeight - 85) {
           pdf.addPage();
@@ -742,7 +883,7 @@ export const BillingTab = memo(() => {
       pdf.text("Subtotal:", summaryBoxX + 2, yPos);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(40, 40, 40);
-      pdf.text(formatCurrency(calculateSubtotal()), margin + contentWidth - 2, yPos, { align: 'right' });
+      pdf.text(`₹${subtotal.toFixed(2)}`, margin + contentWidth - 2, yPos, { align: 'right' });
       
       yPos += 6;
       
@@ -752,7 +893,7 @@ export const BillingTab = memo(() => {
       pdf.text("CGST @ 2.5%:", summaryBoxX + 2, yPos);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(40, 40, 40);
-      pdf.text(formatCurrency(calculateCGST()), margin + contentWidth - 2, yPos, { align: 'right' });
+      pdf.text(`₹${cgst.toFixed(2)}`, margin + contentWidth - 2, yPos, { align: 'right' });
       
       yPos += 6;
       
@@ -762,7 +903,7 @@ export const BillingTab = memo(() => {
       pdf.text("SGST @ 2.5%:", summaryBoxX + 2, yPos);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(40, 40, 40);
-      pdf.text(formatCurrency(calculateSGST()), margin + contentWidth - 2, yPos, { align: 'right' });
+      pdf.text(`₹${sgst.toFixed(2)}`, margin + contentWidth - 2, yPos, { align: 'right' });
       
       yPos += 6;
       
@@ -772,7 +913,7 @@ export const BillingTab = memo(() => {
       pdf.text("Service Charge:", summaryBoxX + 2, yPos);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(40, 40, 40);
-      pdf.text(formatCurrency(calculatePlatformFee()), margin + contentWidth - 2, yPos, { align: 'right' });
+      pdf.text(`₹${serviceFee.toFixed(2)}`, margin + contentWidth - 2, yPos, { align: 'right' });
       
       yPos += 4;
       
@@ -794,7 +935,7 @@ export const BillingTab = memo(() => {
       pdf.text("GRAND TOTAL:", summaryBoxX + 2, yPos);
       
       // Calculate proper position for amount to prevent overflow
-      const grandTotalText = formatCurrency(calculateTotal());
+      const grandTotalText = `₹${grandTotal.toFixed(2)}`;
       pdf.setFontSize(11.5);
       pdf.text(grandTotalText, margin + contentWidth - 4, yPos, { align: 'right' });
       
@@ -812,9 +953,8 @@ export const BillingTab = memo(() => {
       pdf.text("Amount in Words:", margin + 3, yPos + 7);
       
       // Convert to words with proper capitalization and paise handling
-      const totalAmount = calculateTotal();
-      const rupees = Math.floor(totalAmount);
-      const paise = Math.round((totalAmount - rupees) * 100);
+      const rupees = Math.floor(grandTotal);
+      const paise = Math.round((grandTotal - rupees) * 100);
       
       pdf.setFont('helvetica', 'normal');
       let amountText = numberToWords(rupees);
@@ -850,9 +990,9 @@ export const BillingTab = memo(() => {
       pdf.text("• This is a computer-generated invoice. No signature required. Valid for GST compliance.", margin + 2, yPos);
       yPos += 4;
       
-      if (backendSaved) {
+      if (wasSavedToBackend) {
         pdf.setTextColor(34, 197, 94);
-        pdf.text("✓ Invoice successfully saved to database. Reference ID: " + savedInvoiceNumber, margin + 2, yPos);
+        pdf.text("✓ Invoice successfully saved to database. Reference ID: " + invoiceNumber, margin + 2, yPos);
       } else {
         pdf.setTextColor(234, 88, 12);
         pdf.text("⚠ Generated in offline mode. Please ensure proper record maintenance.", margin + 2, yPos);
@@ -894,36 +1034,50 @@ export const BillingTab = memo(() => {
       
       pdf.setFontSize(7);
       pdf.setTextColor(120, 120, 120);
-      pdf.text(`Generated on ${currentDate.toLocaleString('en-IN')}  |  Page 1 of 1`, pageWidth / 2, yPos + 19, { align: 'center' });
+      pdf.text(`Generated on ${invoiceDate.toLocaleString('en-IN')}  |  Page 1 of 1`, pageWidth / 2, yPos + 19, { align: 'center' });
 
       
-      // ==================== SAVE PDF ====================
-      const fileName = `MediTatva_Invoice_${savedInvoiceNumber}_${patientName.replace(/\s+/g, '_')}.pdf`;
-      pdf.save(fileName);
+      // ==================== SAVE PDF VIA BLOB DOWNLOAD ====================
+      console.log('📄 [DEBUG] PDF object created, generating blob...');
+      const fileName = `MediTatva_Invoice_${invoiceNumber}_${patient.name.replace(/\s+/g, '_')}.pdf`;
+      const pdfBlob = pdf.output('blob');
+      console.log('📄 [DEBUG] Blob created:', pdfBlob.size, 'bytes');
       
-      toast.success(`✅ Invoice ${savedInvoiceNumber} downloaded successfully!`);
+      blobUrl = URL.createObjectURL(pdfBlob);
+      console.log('📄 [DEBUG] Object URL created:', blobUrl);
+
+      const downloadLink = document.createElement('a');
+      downloadLink.href = blobUrl;
+      downloadLink.download = fileName;
+      downloadLink.style.display = 'none';
+      document.body.appendChild(downloadLink);
+      console.log('📄 [DEBUG] Triggering download...');
+      downloadLink.click();
+      console.log('📄 [DEBUG] Download triggered, cleaning up DOM...');
+      document.body.removeChild(downloadLink);
       
-      // Reset form
-      setShowBillingModal(false);
-      setCart([]);
-      setPatientName("");
-      setContactNumber("");
-      setEmail("");
-      setPaymentType("cash");
+      console.log('✅ [DEBUG] PDF generated and downloaded:', fileName);
+      console.log('✅ [DEBUG] React component still visible:', document.querySelector('[data-component="billing-tab"]') !== null);
+      console.log('✅ [DEBUG] No navigation triggered - URL unchanged');
+      toast.success('📄 Invoice PDF downloaded successfully!');
       
-      // Refresh data from backend
-      await fetchInvoiceHistory();
-      await fetchAvailableMedicines(); // Refresh medicine list with updated stock
-      
-      toast.success("🔄 Inventory updated successfully!");
     } catch (error: any) {
-      console.error("Invoice generation error:", error);
-      toast.error(`Failed to generate invoice: ${error.message || 'Unknown error'}`);
+      console.error('❌ [DEBUG] PDF generation failed:', error);
+      console.error('❌ [DEBUG] Error stack:', error.stack);
+      toast.error('Failed to generate PDF');
     } finally {
-      setIsProcessing(false);
+      console.log('🧹 [DEBUG] Cleaning up resources...');
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+      }
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+        console.log('🧹 [DEBUG] Blob URL revoked');
+      }
+      console.log('✅ [DEBUG] PDF generation complete, component state preserved');
     }
   };
-
+  
   // Helper function to convert number to words (lowercase for flexibility)
   const numberToWords = (num: number): string => {
     const ones = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
@@ -952,11 +1106,12 @@ export const BillingTab = memo(() => {
   return (
     <>
       <motion.div
+        data-component="billing-tab"
         variants={pageVariants}
         initial="initial"
         animate="animate"
         exit="exit"
-        className="w-full min-h-screen bg-gradient-to-br from-[#F8FAFC] to-[#EBF5FB]"
+        className="w-full min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-gray-950 dark:via-gray-900 dark:to-cyan-950/20"
         style={{ filter: 'none', WebkitFilter: 'none' }}
       >
         {/* Full-Width Professional POS Dashboard - 2fr + 1fr Grid */}
@@ -967,22 +1122,18 @@ export const BillingTab = memo(() => {
             
             {/* Medicine Search Card */}
             <Card
-              className="p-4 lg:p-6"
+              className="p-4 lg:p-6 bg-white/95 dark:bg-white/5 backdrop-blur-xl border-gray-200/50 dark:border-white/10 shadow-xl dark:shadow-2xl"
               style={{
-                background: 'rgba(255, 255, 255, 0.98)',
-                backdropFilter: 'blur(20px)',
-                border: '1px solid rgba(27, 108, 168, 0.12)',
-                boxShadow: '0 2px 12px rgba(27, 108, 168, 0.06)',
                 borderRadius: '12px',
               }}
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-[#0A2342] flex items-center gap-2">
-                  <Package className="h-6 w-6 text-[#1B6CA8]" />
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Package className="h-6 w-6 text-emerald-500 dark:text-emerald-400" />
                   Add Medicines to Bill
                 </h3>
                 {cart.length > 0 && (
-                  <Badge className="bg-[#1B6CA8]/10 text-[#1B6CA8] border-[#1B6CA8]/30 px-3 py-1 text-sm">
+                  <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 px-3 py-1 text-sm">
                     {cart.length} items in cart
                   </Badge>
                 )}
@@ -993,7 +1144,7 @@ export const BillingTab = memo(() => {
                 <Button
                   variant="default"
                   size="default"
-                  className="bg-gradient-to-r from-[#1B6CA8] to-[#4FC3F7] text-white shadow-md"
+                  className="bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 text-white shadow-lg hover:shadow-emerald-500/50"
                 >
                   <Package className="h-4 w-4 mr-2" />
                   Inventory Medicines
@@ -1003,12 +1154,12 @@ export const BillingTab = memo(() => {
               {/* Search Input */}
               <div className="flex gap-4 mb-4">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[#5A6A85]" />
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
                   <Input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search inventory by name or brand..."
-                    className="pl-12 h-12 text-base bg-white border-[#4FC3F7]/30 text-[#0A2342] placeholder:text-[#5A6A85] focus:border-[#1B6CA8] focus:ring-2 focus:ring-[#1B6CA8]/20"
+                    className="pl-12 h-12 text-base bg-white dark:bg-white/5 backdrop-blur-md border-emerald-500/30 dark:border-emerald-500/20 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 shadow-lg shadow-emerald-500/10"
                   />
                 </div>
               </div>
@@ -1018,8 +1169,8 @@ export const BillingTab = memo(() => {
               {/* Show inventory medicines from backend */}
                 {isLoadingAvailable && (
                   <div className="text-center py-12">
-                    <div className="animate-spin h-8 w-8 border-4 border-[#1B6CA8] border-t-transparent rounded-full mx-auto mb-3"></div>
-                    <p className="text-[#5A6A85]">Loading medicines...</p>
+                    <div className="animate-spin h-8 w-8 border-4 border-emerald-500 border-t-transparent rounded-full mx-auto mb-3"></div>
+                    <p className="text-gray-400">Loading medicines...</p>
                   </div>
                 )}
                 
@@ -1033,36 +1184,38 @@ export const BillingTab = memo(() => {
                   .map((medicine) => (
                     <motion.div
                       key={medicine._id}
-                      className="flex items-center justify-between p-4 rounded-lg border transition-all hover:shadow-md"
+                      className="flex items-center justify-between p-5 rounded-xl border-2 transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] bg-white/95 dark:bg-white/5 backdrop-blur-xl"
                       style={{
-                        borderColor: medicine.inStock ? 'rgba(79, 195, 247, 0.3)' : 'rgba(231, 76, 60, 0.3)',
-                        backgroundColor: medicine.inStock ? 'rgba(255, 255, 255, 1)' : 'rgba(231, 76, 60, 0.05)',
+                        borderColor: medicine.inStock ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)',
+                        boxShadow: medicine.inStock 
+                          ? '0 0 20px rgba(34,197,94,0.2)' 
+                          : '0 0 20px rgba(239,68,68,0.2)',
                       }}
-                      whileHover={{ scale: 1.01, y: -2 }}
+                      whileHover={{ scale: 1.02, y: -4 }}
                       transition={{ duration: 0.2 }}
                     >
                       <div className="flex-1">
-                        <p className="font-bold text-[#0A2342] text-base mb-1">{medicine.name}</p>
-                        <p className="text-sm text-[#5A6A85] mb-2">
+                        <p className="font-bold text-gray-900 dark:text-white text-lg mb-1">{medicine.name}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                           {medicine.brand || medicine.genericName}
                         </p>
                         <div className="flex items-center gap-3">
-                          <span className="text-lg font-bold text-[#1B6CA8]">
+                          <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">
                             ₹{medicine.price}
                           </span>
                           <Badge
                             className={
                               medicine.current_stock === 0
-                                ? "bg-[#E74C3C]/10 text-[#E74C3C] border-[#E74C3C]/30"
+                                ? "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/40 font-semibold shadow-lg shadow-red-500/30"
                                 : medicine.current_stock < 50
-                                ? "bg-[#F39C12]/10 text-[#F39C12] border-[#F39C12]/30"
-                                : "bg-[#2ECC71]/10 text-[#2ECC71] border-[#2ECC71]/30"
+                                ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/40 font-semibold shadow-lg shadow-amber-500/30"
+                                : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 font-semibold shadow-lg shadow-emerald-500/30"
                             }
                           >
                             Stock: {medicine.current_stock}
                           </Badge>
                           {medicine.requiresPrescription && (
-                            <Badge className="bg-[#9B59B6]/10 text-[#9B59B6] border-[#9B59B6]/30">
+                            <Badge className="bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/40 font-semibold shadow-lg shadow-purple-500/30">
                               Rx Required
                             </Badge>
                           )}
@@ -1074,8 +1227,8 @@ export const BillingTab = memo(() => {
                         size="lg"
                         className={
                           medicine.current_stock > 0
-                            ? "bg-gradient-to-r from-[#1B6CA8] to-[#4FC3F7] hover:from-[#4FC3F7] hover:to-[#1B6CA8] text-white font-semibold shadow-md hover:shadow-lg transition-all px-6"
-                            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            ? "bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] text-white font-semibold shadow-lg transition-all px-6"
+                            : "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
                         }
                       >
                         <Plus className="h-5 w-5 mr-2" />
@@ -1104,28 +1257,24 @@ export const BillingTab = memo(() => {
               
               {/* Cart Card */}
               <Card
-                className="p-4 lg:p-6"
+                className="p-4 lg:p-6 bg-white/95 dark:bg-white/5 backdrop-blur-xl border-emerald-500/30 dark:border-emerald-500/20 shadow-[0_0_40px_rgba(34,197,94,0.3)]"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.98)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(27, 108, 168, 0.12)',
-                  boxShadow: '0 2px 12px rgba(27, 108, 168, 0.06)',
                   borderRadius: '12px',
                 }}
               >
-                <h3 className="text-xl font-bold text-[#0A2342] mb-4 flex items-center gap-2">
-                  <ShoppingCart className="h-6 w-6 text-[#1B6CA8]" />
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <ShoppingCart className="h-6 w-6 text-emerald-500" />
                   Invoice Items
                   {cart.length > 0 && (
-                    <Badge className="bg-[#1B6CA8] text-white ml-auto">{cart.length}</Badge>
+                    <Badge className="bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 text-white ml-auto border-0 shadow-lg shadow-emerald-500/50">{cart.length}</Badge>
                   )}
                 </h3>
                 
                 {cart.length === 0 ? (
                   <div className="text-center py-12">
-                    <ShoppingCart className="h-16 w-16 text-[#5A6A85]/50 mx-auto mb-3" />
-                    <p className="text-[#5A6A85] font-medium">Cart is empty</p>
-                    <p className="text-[#5A6A85] text-sm mt-1">Add medicines to create invoice</p>
+                    <ShoppingCart className="h-16 w-16 text-gray-400 dark:text-gray-400/50 mx-auto mb-3" />
+                    <p className="text-gray-700 dark:text-gray-300 font-medium">Cart is empty</p>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Add medicines to create invoice</p>
                   </div>
                 ) : (
                   <>
@@ -1134,25 +1283,25 @@ export const BillingTab = memo(() => {
                       {cart.map((item) => (
                         <motion.div
                           key={item._id}
-                          className="p-3 rounded-lg bg-gradient-to-r from-[#F7F9FC] to-[#EBF5FB] border border-[#4FC3F7]/20"
+                          className="p-3 rounded-lg bg-gradient-to-br from-white/90 to-gray-50/90 dark:from-white/10 dark:to-white/5 backdrop-blur-md border-2 border-emerald-500/20 dark:border-emerald-500/30 shadow-lg"
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: 20 }}
                         >
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex-1">
-                              <p className="font-bold text-[#0A2342] text-sm">{item.name}</p>
-                              <p className="text-xs text-[#5A6A85]">
+                              <p className="font-bold text-gray-900 dark:text-white text-sm">{item.name}</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-300">
                                 {formatCurrency(item.price)} × {item.quantity}
                                 {item.current_stock <= 10 && (
-                                  <span className="ml-2 text-orange-600 font-medium">• Low: {item.current_stock}</span>
+                                  <span className="ml-2 text-amber-600 dark:text-amber-400 font-semibold">• Low: {item.current_stock}</span>
                                 )}
                               </p>
                             </div>
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="text-[#E74C3C] hover:text-[#C0392B] hover:bg-[#E74C3C]/10 h-8 w-8 p-0"
+                              className="text-red-500 hover:text-red-400 hover:bg-red-500/20 h-8 w-8 p-0"
                               onClick={() => removeFromCart(item._id)}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1163,23 +1312,23 @@ export const BillingTab = memo(() => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 w-8 p-0 border-[#4FC3F7]/30 hover:bg-[#E8F4F8]"
+                                className="h-8 w-8 p-0 border-emerald-500/40 hover:bg-emerald-500/10 text-gray-900 dark:text-white font-bold"
                                 onClick={() => updateQuantity(item._id, item.quantity - 1)}
                               >
                                 -
                               </Button>
-                              <span className="text-[#0A2342] w-10 text-center font-bold text-sm">{item.quantity}</span>
+                              <span className="text-gray-900 dark:text-white w-10 text-center font-bold text-sm">{item.quantity}</span>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 w-8 p-0 border-[#4FC3F7]/30 hover:bg-[#E8F4F8]"
+                                className="h-8 w-8 p-0 border-emerald-500/40 hover:bg-emerald-500/10 text-gray-900 dark:text-white font-bold"
                                 onClick={() => updateQuantity(item._id, item.quantity + 1)}
                                 disabled={item.quantity >= item.current_stock}
                               >
                                 +
                               </Button>
                             </div>
-                            <p className="text-[#012A4A] font-bold text-base">
+                            <p className="text-emerald-600 dark:text-emerald-400 font-bold text-base">
                               {formatCurrency(item.price * item.quantity)}
                             </p>
                           </div>
@@ -1188,27 +1337,27 @@ export const BillingTab = memo(() => {
                     </div>
 
                     {/* Summary Section */}
-                    <div className="border-t-2 border-[#4FC3F7]/20 pt-4 space-y-3">
-                      <div className="flex justify-between text-[#5A6A85]">
+                    <div className="border-t-2 border-emerald-500/30 pt-4 space-y-3">
+                      <div className="flex justify-between text-gray-700 dark:text-gray-300">
                         <span className="font-medium">Subtotal:</span>
                         <span className="font-bold">{formatCurrency(calculateSubtotal())}</span>
                       </div>
-                      <div className="flex justify-between text-[#5A6A85] text-sm">
+                      <div className="flex justify-between text-gray-600 dark:text-gray-400 text-sm">
                         <span>CGST (2.5%):</span>
                         <span className="font-medium">{formatCurrency(calculateCGST())}</span>
                       </div>
-                      <div className="flex justify-between text-[#5A6A85] text-sm">
+                      <div className="flex justify-between text-gray-600 dark:text-gray-400 text-sm">
                         <span>SGST (2.5%):</span>
                         <span className="font-medium">{formatCurrency(calculateSGST())}</span>
                       </div>
-                      <div className="flex justify-between text-[#5A6A85]">
+                      <div className="flex justify-between text-gray-600 dark:text-gray-400">
                         <span className="font-medium">Platform Fee (2%):</span>
                         <span className="font-medium">{formatCurrency(calculatePlatformFee())}</span>
                       </div>
-                      <div className="border-t-2 border-[#4FC3F7]/30 pt-3 mt-3"></div>
-                      <div className="flex justify-between items-center bg-gradient-to-r from-[#1B6CA8]/10 to-[#4FC3F7]/10 p-3 rounded-lg">
-                        <span className="text-lg font-bold text-[#0A2342]">Final Total:</span>
-                        <span className="text-2xl font-bold text-[#1B6CA8]">{formatCurrency(calculateTotal())}</span>
+                      <div className="border-t-2 border-emerald-500/40 pt-3 mt-3"></div>
+                      <div className="flex justify-between items-center bg-gradient-to-r from-emerald-500/20 via-cyan-500/20 to-blue-500/20 p-4 rounded-xl border-2 border-emerald-500/40 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+                        <span className="text-lg font-bold text-gray-900 dark:text-white">Final Total:</span>
+                        <span className="text-3xl font-bold bg-gradient-to-r from-emerald-600 via-cyan-600 to-blue-600 bg-clip-text text-transparent">{formatCurrency(calculateTotal())}</span>
                       </div>
                     </div>
 
@@ -1216,7 +1365,7 @@ export const BillingTab = memo(() => {
                     <motion.div className="mt-6" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                       <Button
                         onClick={handleGenerateInvoice}
-                        className="w-full bg-gradient-to-r from-[#1B6CA8] to-[#4FC3F7] hover:from-[#4FC3F7] hover:to-[#1B6CA8] text-white font-bold text-lg py-6 shadow-lg hover:shadow-xl transition-all"
+                        className="w-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 hover:shadow-[0_0_40px_rgba(34,197,94,0.6)] text-white font-bold text-lg py-6 shadow-lg shadow-emerald-500/40 transition-all"
                       >
                         <FileText className="h-6 w-6 mr-2" />
                         Generate Invoice
@@ -1232,52 +1381,48 @@ export const BillingTab = memo(() => {
         {/* Billing History - Full Width Below */}
         <div className="w-full px-4 lg:px-6 pb-6">
           <Card
-            className="p-4 lg:p-6"
+            className="p-4 lg:p-6 bg-white/95 dark:bg-white/5 backdrop-blur-xl border-emerald-500/30 dark:border-emerald-500/20 shadow-[0_0_40px_rgba(34,197,94,0.2)]"
             style={{
-              background: 'rgba(255, 255, 255, 0.98)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(27, 108, 168, 0.12)',
-              boxShadow: '0 2px 12px rgba(27, 108, 168, 0.06)',
               borderRadius: '12px',
             }}
           >
-            <h3 className="text-xl font-bold text-[#0A2342] mb-4 flex items-center gap-2">
-              <Clock className="h-6 w-6 text-[#1B6CA8]" />
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Clock className="h-6 w-6 text-emerald-500" />
               Billing History
             </h3>
             <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#4FC3F7]/20">
-                  <th className="text-left py-2 text-[#0A2342] font-semibold">Invoice ID</th>
-                  <th className="text-left py-2 text-[#0A2342] font-semibold">Patient</th>
-                  <th className="text-left py-2 text-[#0A2342] font-semibold">Date</th>
-                  <th className="text-left py-2 text-[#0A2342] font-semibold">Total</th>
-                  <th className="text-left py-2 text-[#0A2342] font-semibold">Status</th>
-                  <th className="text-left py-2 text-[#0A2342] font-semibold">Action</th>
+                <tr className="border-b border-gray-300 dark:border-white/10">
+                  <th className="text-left py-2 text-gray-900 dark:text-white font-semibold">Invoice ID</th>
+                  <th className="text-left py-2 text-gray-900 dark:text-white font-semibold">Patient</th>
+                  <th className="text-left py-2 text-gray-900 dark:text-white font-semibold">Date</th>
+                  <th className="text-left py-2 text-gray-900 dark:text-white font-semibold">Total</th>
+                  <th className="text-left py-2 text-gray-900 dark:text-white font-semibold">Status</th>
+                  <th className="text-left py-2 text-gray-900 dark:text-white font-semibold">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {invoiceHistory.map((invoice) => (
                   <motion.tr
                     key={invoice._id}
-                    className="border-b border-[#4FC3F7]/10 hover:bg-[#E8F4F8]"
+                    className="border-b border-gray-200 dark:border-white/5 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                   >
-                    <td className="py-3 text-[#0A2342] font-medium">{invoice.invoiceNumber}</td>
-                    <td className="py-3 text-[#0A2342]">{invoice.patientName}</td>
-                    <td className="py-3 text-[#5A6A85]">{new Date(invoice.createdAt).toLocaleDateString()}</td>
-                    <td className="py-3 text-[#0A2342] font-semibold">₹{invoice.total.toFixed(2)}</td>
+                    <td className="py-3 text-gray-900 dark:text-white font-medium">{invoice.invoiceNumber}</td>
+                    <td className="py-3 text-gray-900 dark:text-white">{invoice.patientName}</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">{new Date(invoice.createdAt).toLocaleDateString()}</td>
+                    <td className="py-3 text-gray-900 dark:text-white font-semibold">₹{invoice.total.toFixed(2)}</td>
                     <td className="py-3">
                       <Badge
-                        className="bg-[#2ECC71]/10 text-[#2ECC71] border-[#2ECC71]/30 font-semibold"
+                        className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 font-semibold"
                       >
                         Paid
                       </Badge>
                     </td>
                     <td className="py-3">
-                      <Button size="sm" variant="ghost" className="text-[#1B6CA8] hover:text-[#4FC3F7] hover:bg-[#E8F4F8]">
+                      <Button size="sm" variant="ghost" className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-white/10">
                         <Download className="h-4 w-4" />
                       </Button>
                     </td>
@@ -1309,19 +1454,15 @@ export const BillingTab = memo(() => {
               className="w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto"
             >
               <Card
-                className="overflow-hidden"
+                className="overflow-hidden border-0"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.98)',
+                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(17, 24, 39, 0.95) 100%)',
                   backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(27, 108, 168, 0.2)',
+                  boxShadow: '0 0 60px rgba(16, 185, 129, 0.3)',
                 }}
               >
                 <div
-                  className="p-6 border-b relative"
-                  style={{
-                    background: 'linear-gradient(135deg, #1B6CA8 0%, #4FC3F7 100%)',
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
-                  }}
+                  className="p-6 border-b relative bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-600"
                 >
                   <div className="flex items-center justify-between">
                     <h3 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -1341,8 +1482,8 @@ export const BillingTab = memo(() => {
 
                 <div className="p-6 space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="patientName" className="text-[#0A2342] font-semibold flex items-center gap-2">
-                      <User className="h-4 w-4 text-[#1B6CA8]" />
+                    <Label htmlFor="patientName" className="text-white font-semibold flex items-center gap-2">
+                      <User className="h-4 w-4 text-emerald-400" />
                       Patient Name *
                     </Label>
                     <Input
@@ -1350,13 +1491,13 @@ export const BillingTab = memo(() => {
                       value={patientName}
                       onChange={(e) => setPatientName(e.target.value)}
                       placeholder="Enter patient name"
-                      className="border-[#4FC3F7]/30 focus:border-[#1B6CA8]"
+                      className="bg-white/5 border-emerald-500/30 text-white placeholder:text-gray-400 focus:border-emerald-500 focus:ring-emerald-500/20"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="contactNumber" className="text-[#0A2342] font-semibold flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-[#1B6CA8]" />
+                    <Label htmlFor="contactNumber" className="text-white font-semibold flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-cyan-400" />
                       Contact Number *
                     </Label>
                     <Input
@@ -1364,13 +1505,13 @@ export const BillingTab = memo(() => {
                       value={contactNumber}
                       onChange={(e) => setContactNumber(e.target.value)}
                       placeholder="Enter contact number"
-                      className="border-[#4FC3F7]/30 focus:border-[#1B6CA8]"
+                      className="bg-white/5 border-cyan-500/30 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500/20"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-[#0A2342] font-semibold flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-[#1B6CA8]" />
+                    <Label htmlFor="email" className="text-white font-semibold flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-blue-400" />
                       Email (Optional)
                     </Label>
                     <Input
@@ -1379,50 +1520,50 @@ export const BillingTab = memo(() => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter email address"
-                      className="border-[#4FC3F7]/30 focus:border-[#1B6CA8]"
+                      className="bg-white/5 border-blue-500/30 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500/20"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="paymentType" className="text-[#0A2342] font-semibold flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-[#1B6CA8]" />
+                    <Label htmlFor="paymentType" className="text-white font-semibold flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-purple-400" />
                       Payment Method
                     </Label>
                     <select
                       id="paymentType"
                       value={paymentType}
                       onChange={(e) => setPaymentType(e.target.value)}
-                      className="w-full p-2 border border-[#4FC3F7]/30 rounded-md focus:border-[#1B6CA8] focus:outline-none focus:ring-1 focus:ring-[#1B6CA8]"
+                      className="w-full p-2 bg-white/5 border border-purple-500/30 text-white rounded-md focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500/20"
                     >
-                      <option value="Cash">Cash</option>
-                      <option value="Card">Card</option>
-                      <option value="UPI">UPI</option>
-                      <option value="Insurance">Insurance</option>
+                      <option value="Cash" className="bg-gray-900">Cash</option>
+                      <option value="Card" className="bg-gray-900">Card</option>
+                      <option value="UPI" className="bg-gray-900">UPI</option>
+                      <option value="Insurance" className="bg-gray-900">Insurance</option>
                     </select>
                   </div>
 
-                  <div className="border-t border-[#4FC3F7]/20 pt-4 mt-6">
-                    <h4 className="font-bold text-[#0A2342] mb-3">Invoice Summary</h4>
+                  <div className="border-t border-emerald-500/20 pt-4 mt-6">
+                    <h4 className="font-bold text-white mb-3">Invoice Summary</h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-[#5A6A85]">Subtotal:</span>
-                        <span className="font-semibold text-[#0A2342]">{formatCurrency(calculateSubtotal())}</span>
+                        <span className="text-gray-300">Subtotal:</span>
+                        <span className="font-semibold text-white">{formatCurrency(calculateSubtotal())}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#5A6A85]">CGST (2.5%):</span>
-                        <span className="font-semibold text-[#0A2342]">{formatCurrency(calculateCGST())}</span>
+                        <span className="text-gray-300">CGST (2.5%):</span>
+                        <span className="font-semibold text-white">{formatCurrency(calculateCGST())}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#5A6A85]">SGST (2.5%):</span>
-                        <span className="font-semibold text-[#0A2342]">{formatCurrency(calculateSGST())}</span>
+                        <span className="text-gray-300">SGST (2.5%):</span>
+                        <span className="font-semibold text-white">{formatCurrency(calculateSGST())}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#5A6A85]">Platform Fee (2%):</span>
-                        <span className="font-semibold text-[#0A2342]">{formatCurrency(calculatePlatformFee())}</span>
+                        <span className="text-gray-300">Platform Fee (2%):</span>
+                        <span className="font-semibold text-white">{formatCurrency(calculatePlatformFee())}</span>
                       </div>
-                      <div className="border-t border-[#4FC3F7]/20 pt-2 mt-2 flex justify-between">
-                        <span className="text-lg font-bold text-[#0A2342]">Total Amount:</span>
-                        <span className="text-lg font-bold text-[#1B6CA8]">{formatCurrency(calculateTotal())}</span>
+                      <div className="border-t border-emerald-500/20 pt-2 mt-2 flex justify-between">
+                        <span className="text-lg font-bold text-white">Total Amount:</span>
+                        <span className="text-lg font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">{formatCurrency(calculateTotal())}</span>
                       </div>
                     </div>
                   </div>
@@ -1431,13 +1572,13 @@ export const BillingTab = memo(() => {
                     <Button
                       onClick={() => setShowBillingModal(false)}
                       variant="outline"
-                      className="flex-1 border-[#4FC3F7]/30 text-[#1B6CA8] hover:bg-[#E8F4F8]"
+                      className="flex-1 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50"
                     >
                       Cancel
                     </Button>
                     <Button
                       onClick={handleConfirmInvoice}
-                      className="flex-1 bg-gradient-to-r from-[#1B6CA8] to-[#4FC3F7] hover:from-[#4FC3F7] hover:to-[#1B6CA8] text-white font-semibold"
+                      className="flex-1 bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-600 hover:from-emerald-600 hover:via-cyan-600 hover:to-blue-700 text-white font-semibold shadow-lg shadow-emerald-500/50"
                     >
                       Confirm & Generate PDF
                     </Button>

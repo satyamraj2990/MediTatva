@@ -94,9 +94,11 @@ const Sidebar: React.FC<{ isOpen: boolean; onClose: () => void; userType: 'patie
         <div className="p-6 border-b" style={{ borderColor: theme.border }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                <Pill className="w-6 h-6 text-white" />
-              </div>
+              <img 
+                src="/meditatva-logo.png?v=3" 
+                alt="MediTatva Logo" 
+                className="h-10 w-10 object-contain"
+              />
               <span style={{ color: theme.text }} className="font-semibold">
                 MediTatva
               </span>

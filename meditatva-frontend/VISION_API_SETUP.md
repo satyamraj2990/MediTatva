@@ -4,7 +4,7 @@
 Your Prescription Scanner is configured with fallback **Demo Mode**. When the Vision API isn't properly set up, it will show sample prescription data so you can test the UI functionality.
 
 ## API Key
-✅ **Already configured**: `AIzaSyCI6cUhvB6l7oI1zp1uh7D7FF_bQjzopCo`
+✅ **Already configured**: `your_vision_api_key_here`
 
 ## To Enable Full Vision API Functionality
 
@@ -26,7 +26,7 @@ Your Prescription Scanner is configured with fallback **Demo Mode**. When the Vi
 
 ### Step 3: Verify API Key Settings
 1. Go to **APIs & Services** → **Credentials**
-2. Find your API key: `AIzaSyCI6cUhvB6l7oI1zp1uh7D7FF_bQjzopCo`
+2. Find your API key in Google Cloud Console
 3. Click **Edit API key** (pencil icon)
 4. Check **API restrictions**:
    - If restricted, ensure "Cloud Vision API" is in the allowed list

@@ -14,7 +14,7 @@ import { toast } from "sonner";
 
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.5 } },
   exit: { opacity: 0, y: -20, transition: { duration: 0.2 } }
 };
 
@@ -346,19 +346,19 @@ export const ChatTab = memo(() => {
       exit="exit"
       className="h-[calc(100vh-120px)]"
     >
-      <Card className="h-full overflow-hidden border-[#4FC3F7]/20 flex flex-col lg:flex-row">
+      <Card className="h-full overflow-hidden border-gray-200/50 dark:border-white/10 flex flex-col lg:flex-row bg-white/95 dark:bg-white/5 backdrop-blur-xl">
         {/* Left Panel - Patient List */}
-        <div className="w-full lg:w-[380px] border-b lg:border-b-0 lg:border-r border-[#E0E0E0] flex flex-col bg-white max-h-[40vh] lg:max-h-none">
+        <div className="w-full lg:w-[380px] border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-white/10 flex flex-col bg-white/95 dark:bg-white/5 backdrop-blur-xl max-h-[40vh] lg:max-h-none">
           {/* Header */}
-          <div className="p-4 border-b border-[#E0E0E0]">
+          <div className="p-4 border-b border-gray-200 dark:border-white/10">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#1B6CA8] to-[#4FC3F7] flex items-center justify-center">
                   <MessageCircle className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-[#0A2342]">Patient Chats</h2>
-                  <p className="text-xs text-[#5A6A85]">{patients.length} conversations</p>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">Patient Chats</h2>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{patients.length} conversations</p>
                 </div>
               </div>
               <Button
@@ -372,12 +372,12 @@ export const ChatTab = memo(() => {
 
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#5A6A85]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 dark:text-gray-400" />
               <Input
                 placeholder="Search patients..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 border-[#4FC3F7]/30 focus:border-[#1B6CA8] bg-[#F7F9FC]"
+                className="pl-10 border-gray-300 dark:border-white/10 focus:border-[#1B6CA8] bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
             </div>
           </div>
@@ -392,8 +392,8 @@ export const ChatTab = memo(() => {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   onClick={() => handleSelectPatient(patient)}
-                  className={`p-4 border-b border-[#E0E0E0] cursor-pointer transition-all hover:bg-[#F7F9FC] ${
-                    selectedPatient?.id === patient.id ? 'bg-[#E8F4F8] border-l-4 border-l-[#1B6CA8]' : ''
+                  className={`p-4 border-b border-gray-200 dark:border-white/5 cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-white/5 ${
+                    selectedPatient?.id === patient.id ? 'bg-blue-50 dark:bg-cyan-500/10 border-l-4 border-l-[#1B6CA8]' : ''
                   }`}
                   whileHover={{ x: 4 }}
                 >
@@ -412,11 +412,11 @@ export const ChatTab = memo(() => {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <p className="font-semibold text-[#0A2342] truncate">{patient.name}</p>
-                        <span className="text-xs text-[#5A6A85]">{patient.lastMessageTime}</span>
+                        <p className="font-semibold text-gray-900 dark:text-white truncate">{patient.name}</p>
+                        <span className="text-xs text-gray-600 dark:text-gray-400">{patient.lastMessageTime}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <p className="text-sm text-[#5A6A85] truncate">{patient.lastMessage}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{patient.lastMessage}</p>
                         {patient.unreadCount > 0 && (
                           <Badge className="bg-[#1B6CA8] text-white ml-2 h-5 min-w-[20px] rounded-full px-1.5 text-xs">
                             {patient.unreadCount}
@@ -431,19 +431,19 @@ export const ChatTab = memo(() => {
 
             {filteredPatients.length === 0 && (
               <div className="p-8 text-center">
-                <User className="h-12 w-12 text-[#4FC3F7] mx-auto mb-3 opacity-50" />
-                <p className="text-[#5A6A85]">No patients found</p>
+                <User className="h-12 w-12 text-cyan-500 dark:text-cyan-400 mx-auto mb-3 opacity-50" />
+                <p className="text-gray-600 dark:text-gray-400">No patients found</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Right Panel - Chat Window */}
-        <div className="flex-1 flex flex-col bg-[#F7F9FC]">
+        <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900/50">
           {selectedPatient ? (
             <>
               {/* Chat Header */}
-              <div className="p-4 bg-white border-b border-[#E0E0E0] flex items-center justify-between">
+              <div className="p-4 bg-white/95 dark:bg-white/5 backdrop-blur-xl border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <Avatar className="h-11 w-11">
@@ -457,8 +457,8 @@ export const ChatTab = memo(() => {
                     )}
                   </div>
                   <div>
-                    <p className="font-bold text-[#0A2342]">{selectedPatient.name}</p>
-                    <p className="text-xs text-[#5A6A85] flex items-center gap-1">
+                    <p className="font-bold text-gray-900 dark:text-white">{selectedPatient.name}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
                       {selectedPatient.isOnline ? (
                         <>
                           <Circle className="h-2 w-2 fill-[#2ECC71] text-[#2ECC71]" />
@@ -466,7 +466,7 @@ export const ChatTab = memo(() => {
                         </>
                       ) : (
                         <>
-                          <Circle className="h-2 w-2 fill-[#95A5A6] text-[#95A5A6]" />
+                          <Circle className="h-2 w-2 fill-gray-400 dark:fill-gray-500 text-gray-400 dark:text-gray-500" />
                           Offline
                         </>
                       )}
@@ -478,25 +478,25 @@ export const ChatTab = memo(() => {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="hover:bg-[#E8F4F8]"
+                    className="hover:bg-gray-100 dark:hover:bg-white/10"
                     onClick={() => toast.info("Voice call feature coming soon!")}
                   >
-                    <Phone className="h-5 w-5 text-[#1B6CA8]" />
+                    <Phone className="h-5 w-5 text-[#1B6CA8] dark:text-cyan-400" />
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="hover:bg-[#E8F4F8]"
+                    className="hover:bg-gray-100 dark:hover:bg-white/10"
                     onClick={() => toast.info("Video call feature coming soon!")}
                   >
-                    <Video className="h-5 w-5 text-[#1B6CA8]" />
+                    <Video className="h-5 w-5 text-[#1B6CA8] dark:text-cyan-400" />
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="hover:bg-[#E8F4F8]"
+                    className="hover:bg-gray-100 dark:hover:bg-white/10"
                   >
-                    <MoreVertical className="h-5 w-5 text-[#1B6CA8]" />
+                    <MoreVertical className="h-5 w-5 text-[#1B6CA8] dark:text-cyan-400" />
                   </Button>
                 </div>
               </div>
@@ -515,10 +515,10 @@ export const ChatTab = memo(() => {
                     >
                       <div className={`max-w-[70%] ${message.sender === 'pharmacy' ? 'order-2' : 'order-1'}`}>
                         <div
-                          className={`rounded-2xl px-4 py-2 shadow-sm ${
+                          className={`rounded-2xl px-4 py-2 shadow-sm backdrop-blur-md ${
                             message.sender === 'pharmacy'
                               ? 'bg-gradient-to-r from-[#1B6CA8] to-[#4FC3F7] text-white rounded-br-none'
-                              : 'bg-white text-[#0A2342] border border-[#E0E0E0] rounded-bl-none'
+                              : 'bg-white/95 dark:bg-white/10 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 rounded-bl-none'
                           }`}
                         >
                           <p className="text-[15px] leading-relaxed">{message.text}</p>
@@ -526,17 +526,17 @@ export const ChatTab = memo(() => {
                         <div className={`flex items-center gap-1 mt-1 px-2 ${
                           message.sender === 'pharmacy' ? 'justify-end' : 'justify-start'
                         }`}>
-                          <span className="text-xs text-[#5A6A85]">
+                          <span className="text-xs text-gray-600 dark:text-gray-400">
                             {formatMessageTime(message.timestamp)}
                           </span>
                           {message.sender === 'pharmacy' && (
                             <span>
                               {message.status === 'read' ? (
-                                <CheckCheck className="h-3.5 w-3.5 text-[#4FC3F7]" />
+                                <CheckCheck className="h-3.5 w-3.5 text-cyan-500 dark:text-cyan-400" />
                               ) : message.status === 'delivered' ? (
-                                <CheckCheck className="h-3.5 w-3.5 text-[#5A6A85]" />
+                                <CheckCheck className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400" />
                               ) : (
-                                <Check className="h-3.5 w-3.5 text-[#5A6A85]" />
+                                <Check className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400" />
                               )}
                             </span>
                           )}
@@ -549,15 +549,15 @@ export const ChatTab = memo(() => {
               </div>
 
               {/* Message Input */}
-              <div className="p-4 bg-white border-t border-[#E0E0E0]">
+              <div className="p-4 bg-white/95 dark:bg-white/5 backdrop-blur-xl border-t border-gray-200 dark:border-white/10">
                 <div className="flex items-center gap-3">
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="hover:bg-[#E8F4F8]"
+                    className="hover:bg-gray-100 dark:hover:bg-white/10"
                     onClick={() => toast.info("Attachment feature coming soon!")}
                   >
-                    <Paperclip className="h-5 w-5 text-[#5A6A85]" />
+                    <Paperclip className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                   </Button>
 
                   <div className="flex-1 relative">
@@ -566,7 +566,7 @@ export const ChatTab = memo(() => {
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                      className="pr-12 border-[#4FC3F7]/30 focus:border-[#1B6CA8] bg-[#F7F9FC]"
+                      className="pr-12 border-gray-300 dark:border-white/10 focus:border-[#1B6CA8] bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
                     />
                     <Button
                       size="sm"
@@ -574,7 +574,7 @@ export const ChatTab = memo(() => {
                       className="absolute right-1 top-1/2 -translate-y-1/2 hover:bg-transparent"
                       onClick={() => toast.info("Emoji picker coming soon!")}
                     >
-                      <Smile className="h-5 w-5 text-[#5A6A85]" />
+                      <Smile className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     </Button>
                   </div>
 
@@ -591,9 +591,9 @@ export const ChatTab = memo(() => {
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <MessageCircle className="h-20 w-20 text-[#4FC3F7] mx-auto mb-4 opacity-50" />
-                <h3 className="text-xl font-bold text-[#0A2342] mb-2">Select a chat</h3>
-                <p className="text-[#5A6A85]">Choose a conversation from the left to start messaging</p>
+                <MessageCircle className="h-20 w-20 text-cyan-500 dark:text-cyan-400 mx-auto mb-4 opacity-50" />
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Select a chat</h3>
+                <p className="text-gray-600 dark:text-gray-400">Choose a conversation from the left to start messaging</p>
               </div>
             </div>
           )}

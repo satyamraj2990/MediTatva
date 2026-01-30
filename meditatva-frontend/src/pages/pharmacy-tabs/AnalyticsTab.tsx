@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import {
   Package, Users, TrendingUp, MessageCircle, ArrowUp, Pill,
-  AlertCircle, Sparkles
+  AlertCircle, Sparkles, AlertTriangle
 } from "lucide-react";
 
 // Mock Data
@@ -44,13 +44,13 @@ const topMedicines = [
 
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.3, staggerChildren: 0.1 } },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.5, staggerChildren: 0.05 } },
   exit: { opacity: 0, y: -20, transition: { duration: 0.2 } }
 };
 
 const cardVariants = {
-  initial: { opacity: 0, scale: 0.95 },
-  animate: { opacity: 1, scale: 1 }
+  initial: { opacity: 0, scale: 0.95, y: 20 },
+  animate: { opacity: 1, scale: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
 };
 
 export const AnalyticsTab = memo(() => {
@@ -67,105 +67,85 @@ export const AnalyticsTab = memo(() => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
         <motion.div variants={cardVariants}>
           <Card
-            className="p-3 sm:p-4 lg:p-5 relative overflow-hidden group cursor-pointer border-[#4FC3F7]/20 hover:border-[#4FC3F7]/40 transition-all duration-300"
-            style={{
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(20px)',
-              boxShadow: '0 4px 20px rgba(27, 108, 168, 0.08)',
-            }}
+            className="p-3 sm:p-4 lg:p-5 relative overflow-hidden group cursor-pointer bg-white/95 dark:bg-white/5 backdrop-blur-xl border-gray-200/50 dark:border-white/10 hover:border-cyan-500/30 hover:shadow-xl dark:hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-300"
           >
-            <div className="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-[#4FC3F7]/20 to-transparent rounded-bl-full transform translate-x-8 -translate-y-8 group-hover:scale-110 transition-transform" />
+            <div className="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-cyan-500/20 to-transparent rounded-bl-full transform translate-x-8 -translate-y-8 group-hover:scale-110 transition-transform" />
             <div className="relative">
               <div className="flex items-center justify-between mb-3">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#1B6CA8] to-[#4FC3F7] flex items-center justify-center shadow-lg shadow-[#1B6CA8]/40">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 via-cyan-500 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/40">
                   <Package className="h-6 w-6 text-white" />
                 </div>
-                <Badge className="bg-[#2ECC71]/10 text-[#2ECC71] border-[#2ECC71]/30 font-semibold">
+                <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/30 font-semibold">
                   <ArrowUp className="h-3 w-3 mr-1" />
                   {statsData.totalMedicines.change}%
                 </Badge>
               </div>
-              <h3 className="text-2xl font-bold text-[#0A2342] mb-1">{statsData.totalMedicines.value}</h3>
-              <p className="text-sm text-[#5A6A85] font-medium">Total Medicines</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{statsData.totalMedicines.value}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Total Medicines</p>
             </div>
           </Card>
         </motion.div>
 
         <motion.div variants={cardVariants}>
           <Card
-            className="p-5 relative overflow-hidden group cursor-pointer border-[#4FC3F7]/20 hover:border-[#4FC3F7]/40 transition-all duration-300"
-            style={{
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(20px)',
-              boxShadow: '0 4px 20px rgba(27, 108, 168, 0.08)',
-            }}
+            className="p-5 relative overflow-hidden group cursor-pointer bg-white/95 dark:bg-white/5 backdrop-blur-xl border-gray-200/50 dark:border-white/10 hover:border-emerald-500/30 hover:shadow-xl dark:hover:shadow-[0_0_40px_rgba(34,197,94,0.3)] transition-all duration-300"
           >
-            <div className="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-[#2ECC71]/20 to-transparent rounded-bl-full transform translate-x-8 -translate-y-8 group-hover:scale-110 transition-transform" />
+            <div className="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-emerald-500/20 to-transparent rounded-bl-full transform translate-x-8 -translate-y-8 group-hover:scale-110 transition-transform" />
             <div className="relative">
               <div className="flex items-center justify-between mb-3">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#2ECC71] to-[#27AE60] flex items-center justify-center shadow-lg shadow-[#2ECC71]/40">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/40">
                   <Users className="h-6 w-6 text-white" />
                 </div>
-                <Badge className="bg-[#2ECC71]/10 text-[#2ECC71] border-[#2ECC71]/30 font-semibold">
+                <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/30 font-semibold">
                   <ArrowUp className="h-3 w-3 mr-1" />
                   {statsData.activePatients.change}%
                 </Badge>
               </div>
-              <h3 className="text-2xl font-bold text-[#0A2342] mb-1">{statsData.activePatients.value}</h3>
-              <p className="text-sm text-[#5A6A85] font-medium">Active Patients</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{statsData.activePatients.value}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Active Patients</p>
             </div>
           </Card>
         </motion.div>
 
         <motion.div variants={cardVariants}>
           <Card
-            className="p-5 relative overflow-hidden group cursor-pointer border-[#4FC3F7]/20 hover:border-[#4FC3F7]/40 transition-all duration-300"
-            style={{
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(20px)',
-              boxShadow: '0 4px 20px rgba(27, 108, 168, 0.08)',
-            }}
+            className="p-5 relative overflow-hidden group cursor-pointer bg-white/95 dark:bg-white/5 backdrop-blur-xl border-gray-200/50 dark:border-white/10 hover:border-amber-500/30 hover:shadow-xl dark:hover:shadow-[0_0_40px_rgba(245,158,11,0.3)] transition-all duration-300"
           >
-            <div className="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-[#F39C12]/20 to-transparent rounded-bl-full transform translate-x-8 -translate-y-8 group-hover:scale-110 transition-transform" />
+            <div className="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-amber-500/20 to-transparent rounded-bl-full transform translate-x-8 -translate-y-8 group-hover:scale-110 transition-transform" />
             <div className="relative">
               <div className="flex items-center justify-between mb-3">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#F39C12] to-[#E67E22] flex items-center justify-center shadow-lg shadow-[#F39C12]/40">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/40">
                   <TrendingUp className="h-6 w-6 text-white" />
                 </div>
-                <Badge className="bg-[#2ECC71]/10 text-[#2ECC71] border-[#2ECC71]/30 font-semibold">
+                <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/30 font-semibold">
                   <ArrowUp className="h-3 w-3 mr-1" />
                   {statsData.monthlyRevenue.change}%
                 </Badge>
               </div>
-              <h3 className="text-2xl font-bold text-[#0A2342] mb-1">₹{statsData.monthlyRevenue.value}K</h3>
-              <p className="text-sm text-[#5A6A85] font-medium">Monthly Revenue</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">₹{statsData.monthlyRevenue.value}K</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Monthly Revenue</p>
             </div>
           </Card>
         </motion.div>
 
         <motion.div variants={cardVariants}>
           <Card
-            className="p-5 relative overflow-hidden group cursor-pointer border-[#4FC3F7]/20 hover:border-[#4FC3F7]/40 transition-all duration-300"
-            style={{
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(20px)',
-              boxShadow: '0 4px 20px rgba(27, 108, 168, 0.08)',
-            }}
+            className="p-5 relative overflow-hidden group cursor-pointer bg-white/95 dark:bg-white/5 backdrop-blur-xl border-gray-200/50 dark:border-white/10 hover:border-cyan-500/30 hover:shadow-xl dark:hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-300"
           >
-            <div className="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-[#4FC3F7]/20 to-transparent rounded-bl-full transform translate-x-8 -translate-y-8 group-hover:scale-110 transition-transform" />
+            <div className="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-cyan-500/20 to-transparent rounded-bl-full transform translate-x-8 -translate-y-8 group-hover:scale-110 transition-transform" />
             <div className="relative">
               <div className="flex items-center justify-between mb-3">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[#4FC3F7] to-[#1B6CA8] flex items-center justify-center shadow-lg shadow-[#4FC3F7]/40">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/40">
                   <MessageCircle className="h-6 w-6 text-white" />
                 </div>
                 {statsData.chatRequests.new > 0 && (
-                  <Badge className="bg-[#E74C3C]/10 text-[#E74C3C] border-[#E74C3C]/30 font-semibold">
+                  <Badge className="bg-red-500/20 text-red-600 dark:text-red-300 border-red-500/30 font-semibold">
                     {statsData.chatRequests.new} New
                   </Badge>
                 )}
               </div>
-              <h3 className="text-2xl font-bold text-[#0A2342] mb-1">{statsData.chatRequests.value}</h3>
-              <p className="text-sm text-[#5A6A85] font-medium">Chat Requests</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{statsData.chatRequests.value}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Chat Requests</p>
             </div>
           </Card>
         </motion.div>
@@ -175,16 +155,10 @@ export const AnalyticsTab = memo(() => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <motion.div variants={cardVariants}>
           <Card
-            className="p-6"
-            style={{
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(27, 108, 168, 0.15)',
-              boxShadow: '0 4px 20px rgba(27, 108, 168, 0.08)',
-            }}
+            className="p-6 bg-white/95 dark:bg-white/5 backdrop-blur-xl border-gray-200/50 dark:border-white/10 shadow-xl dark:shadow-2xl"
           >
-            <h3 className="text-lg font-bold text-[#0A2342] mb-4 flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-[#1B6CA8]" />
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
               Revenue Trend
             </h3>
             <ResponsiveContainer width="100%" height={250}>
@@ -220,16 +194,10 @@ export const AnalyticsTab = memo(() => {
 
         <motion.div variants={cardVariants}>
           <Card
-            className="p-6"
-            style={{
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(27, 108, 168, 0.15)',
-              boxShadow: '0 4px 20px rgba(27, 108, 168, 0.08)',
-            }}
+            className="p-6 bg-white/95 dark:bg-white/5 backdrop-blur-xl border-gray-200/50 dark:border-white/10 shadow-xl dark:shadow-2xl"
           >
-            <h3 className="text-lg font-bold text-[#0A2342] mb-4 flex items-center gap-2">
-              <Package className="h-5 w-5 text-[#1B6CA8]" />
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Package className="h-5 w-5 text-cyan-500 dark:text-cyan-400" />
               Top Selling Medicines
             </h3>
             <ResponsiveContainer width="100%" height={250}>
@@ -256,62 +224,67 @@ export const AnalyticsTab = memo(() => {
         </motion.div>
       </div>
 
-      {/* Inventory Alerts */}
+      {/* Inventory Alerts - Enhanced with AI Insights Theme */}
       <motion.div variants={cardVariants}>
         <Card
-          className="p-6"
-          style={{
-            background: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(27, 108, 168, 0.15)',
-            boxShadow: '0 4px 20px rgba(27, 108, 168, 0.08)',
-          }}
+          className="p-6 bg-white/95 dark:bg-white/5 backdrop-blur-xl border-amber-500/30 dark:border-amber-500/20 shadow-[0_0_60px_rgba(245,158,11,0.4)]"
         >
-          <h3 className="text-lg font-bold text-[#0A2342] mb-4 flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-[#F39C12]" />
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-amber-500" />
             Low Stock Alerts
           </h3>
           <div className="space-y-3">
             {inventoryAlerts.map((alert) => (
               <motion.div
                 key={alert.id}
-                className="flex items-center justify-between p-4 rounded-lg border"
-                style={{
-                  background: alert.status === "CRITICAL" 
-                    ? 'rgba(231, 76, 60, 0.05)' 
-                    : 'rgba(243, 156, 18, 0.05)',
-                  borderColor: alert.status === "CRITICAL"
-                    ? 'rgba(231, 76, 60, 0.2)'
-                    : 'rgba(243, 156, 18, 0.2)',
+                className={`flex items-center justify-between p-4 rounded-xl border-2 ${
+                  alert.status === "CRITICAL"
+                    ? "bg-gradient-to-br from-red-500/20 via-orange-500/20 to-amber-500/20 border-red-500/40 shadow-[0_0_30px_rgba(239,68,68,0.3)]"
+                    : "bg-gradient-to-br from-amber-500/20 via-yellow-500/20 to-orange-500/20 border-amber-500/40 shadow-[0_0_25px_rgba(245,158,11,0.3)]"
+                } backdrop-blur-md`}
+                whileHover={{ scale: 1.02 }}
+                animate={{
+                  boxShadow: alert.status === "CRITICAL" 
+                    ? [
+                        "0 0 30px rgba(239,68,68,0.3)",
+                        "0 0 40px rgba(239,68,68,0.5)",
+                        "0 0 30px rgba(239,68,68,0.3)",
+                      ]
+                    : undefined
                 }}
-                whileHover={{ scale: 1.01 }}
+                transition={{
+                  boxShadow: {
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }
+                }}
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className="h-10 w-10 rounded-lg flex items-center justify-center"
-                    style={{
-                      background: alert.status === "CRITICAL"
-                        ? 'rgba(231, 76, 60, 0.1)'
-                        : 'rgba(243, 156, 18, 0.1)',
-                    }}
+                    className={`h-12 w-12 rounded-xl flex items-center justify-center ${
+                      alert.status === "CRITICAL"
+                        ? "bg-gradient-to-br from-red-500 to-orange-600 shadow-lg shadow-red-500/50"
+                        : "bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/50"
+                    }`}
                   >
-                    <Pill className={`h-5 w-5 ${alert.status === "CRITICAL" ? "text-[#E74C3C]" : "text-[#F39C12]"}`} />
+                    <AlertTriangle className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <p className="font-semibold text-[#0A2342]">{alert.name}</p>
-                    <p className="text-sm text-[#5A6A85]">
-                      Current: {alert.current} | Threshold: {alert.threshold}
+                    <p className="font-bold text-lg text-white">{alert.name}</p>
+                    <p className="text-sm text-white/90 font-medium">
+                      <span className="text-white font-bold">{alert.current}</span> units | Threshold: {alert.threshold}
                     </p>
                   </div>
                 </div>
                 <Badge
                   className={
                     alert.status === "CRITICAL"
-                      ? "bg-[#E74C3C]/10 text-[#E74C3C] border-[#E74C3C]/30 font-semibold"
-                      : "bg-[#F39C12]/10 text-[#F39C12] border-[#F39C12]/30 font-semibold"
+                      ? "bg-red-500/30 text-white border-red-400/50 font-bold text-sm px-3 py-1 shadow-lg"
+                      : "bg-amber-500/30 text-white border-amber-400/50 font-bold text-sm px-3 py-1 shadow-lg"
                   }
                 >
-                  {alert.status}
+                  ⚠️ {alert.status}
                 </Badge>
               </motion.div>
             ))}

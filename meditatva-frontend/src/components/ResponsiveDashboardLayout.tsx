@@ -97,25 +97,25 @@ export const ResponsiveDashboardLayout = memo(({
   const themeColors = {
     pharmacy: {
       bg: 'from-slate-50 via-blue-50/30 to-indigo-50/20',
-      sidebarBg: theme === 'dark' ? '#1e293b' : '#ffffff',
-      cardBg: theme === 'dark' ? '#334155' : '#f1f5f9',
-      activeBg: '#3b82f6',
-      textPrimary: theme === 'dark' ? '#ffffff' : '#1e293b',
-      textSecondary: theme === 'dark' ? '#94a3b8' : '#64748b',
-      border: theme === 'dark' ? '#475569' : '#e2e8f0',
-      accent: '#3b82f6',
-      logo: 'from-blue-600 to-cyan-500',
+      sidebarBg: theme === 'dark' ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+      cardBg: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(241, 245, 249, 0.8)',
+      activeBg: 'linear-gradient(135deg, #22c55e, #06b6d4, #3b82f6)',
+      textPrimary: theme === 'dark' ? '#ffffff' : '#0f172a',
+      textSecondary: theme === 'dark' ? '#cbd5e1' : '#64748b',
+      border: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(226, 232, 240, 0.8)',
+      accent: '#22c55e',
+      logo: 'from-emerald-500 via-cyan-500 to-blue-600',
     },
     patient: {
       bg: 'from-[#0B1220] via-[#111827] to-[#0B1220]',
-      sidebarBg: theme === 'dark' ? '#1e293b' : '#ffffff',
-      cardBg: theme === 'dark' ? '#334155' : '#f1f5f9',
-      activeBg: '#14b8a6',
-      textPrimary: theme === 'dark' ? '#ffffff' : '#1e293b',
-      textSecondary: theme === 'dark' ? '#94a3b8' : '#64748b',
-      border: theme === 'dark' ? '#475569' : '#e2e8f0',
-      accent: '#14b8a6',
-      logo: 'from-teal-600 to-cyan-500',
+      sidebarBg: theme === 'dark' ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+      cardBg: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(241, 245, 249, 0.8)',
+      activeBg: 'linear-gradient(135deg, #22c55e, #06b6d4, #3b82f6)',
+      textPrimary: theme === 'dark' ? '#ffffff' : '#0f172a',
+      textSecondary: theme === 'dark' ? '#cbd5e1' : '#64748b',
+      border: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(226, 232, 240, 0.8)',
+      accent: '#22c55e',
+      logo: 'from-emerald-500 via-cyan-500 to-blue-600',
     }
   };
 
@@ -139,10 +139,10 @@ export const ResponsiveDashboardLayout = memo(({
       {/* Top Header Bar - Fixed */}
       <motion.header
         className={cn(
-          "fixed top-0 left-0 right-0 z-30 border-b transition-colors duration-300",
+          "fixed top-0 left-0 right-0 z-30 border-b transition-colors duration-300 backdrop-blur-xl",
           theme === 'dark'
-            ? "bg-gray-900 border-gray-700"
-            : "bg-white border-gray-200"
+            ? "bg-gray-900/80 border-white/10"
+            : "bg-white/80 border-gray-200/50"
         )}
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -152,12 +152,7 @@ export const ResponsiveDashboardLayout = memo(({
           {/* Left: Sidebar Toggle */}
           <motion.button
             onClick={toggleSidebar}
-            className={cn(
-              "h-10 w-10 rounded-xl flex items-center justify-center transition-all duration-300 flex-shrink-0",
-              dashboardTheme === 'pharmacy'
-                ? "bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
-                : "bg-teal-500 hover:bg-teal-600"
-            )}
+            className="h-10 w-10 rounded-xl flex items-center justify-center transition-all duration-300 flex-shrink-0 bg-gradient-to-br from-emerald-500 via-cyan-500 to-blue-600 hover:shadow-lg hover:shadow-emerald-500/50"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             aria-label="Toggle sidebar"
@@ -183,31 +178,8 @@ export const ResponsiveDashboardLayout = memo(({
             </h1>
           </motion.div>
 
-          {/* Right: Theme Toggle */}
-          <motion.button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className={cn(
-              "h-10 w-10 rounded-xl flex items-center justify-center transition-all duration-300 flex-shrink-0",
-              dashboardTheme === 'pharmacy'
-                ? "bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
-                : "bg-gray-800 hover:bg-gray-700"
-            )}
-            whileHover={{ scale: 1.05, rotate: 180 }}
-            whileTap={{ scale: 0.95 }}
-            aria-label="Toggle theme"
-          >
-            {theme === 'dark' ? (
-              <Sun className={cn(
-                "h-5 w-5",
-                dashboardTheme === 'pharmacy' ? "text-gray-700 dark:text-yellow-400" : "text-yellow-400"
-              )} />
-            ) : (
-              <Moon className={cn(
-                "h-5 w-5",
-                dashboardTheme === 'pharmacy' ? "text-gray-700" : "text-gray-400"
-              )} />
-            )}
-          </motion.button>
+          {/* Theme locked to dark mode - toggle removed */}
+          <div className="h-10 w-10" />
         </div>
       </motion.header>
 
@@ -232,14 +204,14 @@ export const ResponsiveDashboardLayout = memo(({
         {/* Sidebar - Fixed width on Desktop, Overlay on Mobile */}
         <aside
           className={cn(
-            "flex flex-col border-r overflow-hidden transition-all duration-300",
+            "flex flex-col border-r overflow-hidden transition-all duration-300 backdrop-blur-xl",
             isMobile ? "fixed left-0 z-50" : "relative flex-shrink-0",
             isMobile && !sidebarOpen && "border-transparent"
           )}
           style={{
             backgroundColor: currentTheme.sidebarBg,
             borderColor: currentTheme.border,
-            boxShadow: isMobile && sidebarOpen ? '2px 0 8px rgba(0,0,0,0.1)' : 'none',
+            boxShadow: isMobile && sidebarOpen ? '2px 0 12px rgba(0,0,0,0.2)' : theme === 'dark' ? '2px 0 20px rgba(34,197,94,0.1)' : 'none',
             height: 'calc(100vh - 80px)',
             top: isMobile ? '80px' : '0',
             width: isMobile ? (sidebarOpen ? '320px' : '0px') : '320px',
@@ -257,14 +229,11 @@ export const ResponsiveDashboardLayout = memo(({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <div 
-              className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: currentTheme.accent }}
-            >
-              <svg className="h-7 w-7 sm:h-8 sm:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-              </svg>
-            </div>
+            <img 
+              src="/meditatva-logo.png?v=3"
+              alt="MediTatva Logo"
+              className="h-12 w-12 sm:h-14 sm:w-14 object-contain flex-shrink-0"
+            />
             <div className="flex-1 min-w-0">
               <h1 className="text-xl sm:text-2xl font-bold truncate" style={{ color: currentTheme.textPrimary }}>{logoText}</h1>
               <p className="text-xs sm:text-sm truncate" style={{ color: currentTheme.textSecondary }}>
@@ -275,18 +244,21 @@ export const ResponsiveDashboardLayout = memo(({
 
           {/* User Profile Card - Responsive */}
           <motion.div
-            className="rounded-2xl p-3 sm:p-4"
-            style={{ backgroundColor: currentTheme.cardBg }}
+            className="rounded-2xl p-3 sm:p-4 backdrop-blur-md border"
+            style={{ 
+              backgroundColor: currentTheme.cardBg,
+              borderColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(226,232,240,0.5)'
+            }}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
           >
             <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
               <div className="relative flex-shrink-0">
-                <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white font-bold text-base sm:text-lg ring-2 ring-green-500">
+                <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-emerald-500 via-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-base sm:text-lg ring-2 ring-emerald-500/50 shadow-lg shadow-emerald-500/30">
                   {userName.substring(0, 2).toUpperCase()}
                 </div>
-                <div className="absolute bottom-0 right-0 h-3.5 w-3.5 sm:h-4 sm:w-4 bg-green-500 rounded-full border-2 border-white"></div>
+                <div className="absolute bottom-0 right-0 h-3.5 w-3.5 sm:h-4 sm:w-4 bg-emerald-500 rounded-full border-2" style={{ borderColor: currentTheme.sidebarBg }}></div>
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-base sm:text-lg truncate" style={{ color: currentTheme.textPrimary }}>{userName}</h3>
@@ -304,15 +276,15 @@ export const ResponsiveDashboardLayout = memo(({
                     Health Score
                   </span>
                   <div className="flex items-center gap-1">
-                    <svg className="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="h-5 w-5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-lg font-bold text-green-500">{healthScore}%</span>
+                    <span className="text-lg font-bold text-emerald-500">{healthScore}%</span>
                   </div>
                 </div>
-                <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
                   <motion.div
-                    className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full"
+                    className="h-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-600 rounded-full shadow-lg shadow-emerald-500/50"
                     initial={{ width: 0 }}
                     animate={{ width: `${healthScore}%` }}
                     transition={{ delay: 0.1, duration: 0.3 }}
@@ -334,11 +306,12 @@ export const ResponsiveDashboardLayout = memo(({
                 key={item.id}
                 onClick={() => handleItemClick(item.id, item.onClick)}
                 className={cn(
-                  "w-full flex items-center gap-3 sm:gap-4 px-3 sm:px-4 py-3 sm:py-4 rounded-xl sm:rounded-2xl transition-all duration-300 group relative overflow-hidden min-h-[48px] touch-manipulation",
-                  isActive && "shadow-lg"
+                  "w-full flex items-center gap-3 sm:gap-4 px-3 sm:px-4 py-3 sm:py-4 rounded-xl sm:rounded-2xl transition-all duration-300 group relative overflow-hidden min-h-[48px] touch-manipulation backdrop-blur-md border",
+                  isActive && "shadow-lg shadow-emerald-500/20"
                 )}
                 style={{
-                  backgroundColor: isActive ? currentTheme.activeBg : currentTheme.cardBg,
+                  background: isActive ? currentTheme.activeBg : currentTheme.cardBg,
+                  borderColor: isActive ? 'rgba(34,197,94,0.3)' : 'transparent',
                 }}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -347,11 +320,11 @@ export const ResponsiveDashboardLayout = memo(({
                 whileTap={{ scale: 0.98 }}
               >
                 <div
-                  className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110"
+                  className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110 backdrop-blur-sm"
                   style={{
                     backgroundColor: isActive 
                       ? 'rgba(255, 255, 255, 0.2)' 
-                      : (item.iconBg || currentTheme.accent + '40'),
+                      : theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
                   }}
                 >
                   <Icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: isActive ? '#ffffff' : currentTheme.textPrimary }} />
@@ -389,11 +362,7 @@ export const ResponsiveDashboardLayout = memo(({
         {/* Footer - Logout Button - Responsive */}
         <div className="p-3 sm:p-4 border-t" style={{ borderColor: currentTheme.border }}>
           <motion.button
-            className="w-full flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all duration-300 hover:shadow-lg min-h-[48px] touch-manipulation"
-            style={{
-              backgroundColor: '#ef4444',
-              color: '#ffffff',
-            }}
+            className="w-full flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-red-500/30 min-h-[48px] touch-manipulation bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={onLogout}

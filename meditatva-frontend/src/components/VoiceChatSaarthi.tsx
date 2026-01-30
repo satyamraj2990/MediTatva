@@ -9,39 +9,68 @@ import { toast } from "sonner";
 
 // Initialize Gemini AI
 let genAI: GoogleGenerativeAI | null = null;
+let apiKeyStatus = { present: false, error: "" };
+
 try {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (apiKey) {
+  console.log("🔑 Checking Gemini API key...");
+  console.log("🔑 API Key present:", !!apiKey);
+  console.log("🔑 API Key length:", apiKey?.length || 0);
+  
+  if (!apiKey) {
+    apiKeyStatus.error = "API key not found in environment variables";
+    console.error("❌ VITE_GEMINI_API_KEY not found in .env file");
+    console.error("📝 To fix: Create .env file with: VITE_GEMINI_API_KEY=your_api_key");
+  } else if (apiKey === "your_gemini_api_key_here" || apiKey === "your_api_key_here") {
+    apiKeyStatus.error = "API key not configured (using placeholder)";
+    console.error("❌ VITE_GEMINI_API_KEY is still using placeholder value");
+    console.error("📝 To fix: Replace with actual API key from https://makersuite.google.com/app/apikey");
+  } else {
     genAI = new GoogleGenerativeAI(apiKey);
+    apiKeyStatus.present = true;
+    console.log("✅ Gemini AI initialized successfully");
+    console.log("✅ Using API key:", apiKey.substring(0, 10) + "..." + apiKey.substring(apiKey.length - 4));
   }
 } catch (error) {
-  console.warn("Gemini API not configured:", error);
+  apiKeyStatus.error = error instanceof Error ? error.message : "Unknown error";
+  console.error("❌ Gemini API initialization error:", error);
 }
 
 // AI Saarthi Voice System Prompt - Medical Guidance
-const VOICE_SAARTHI_PROMPT = `You are AI Saarthi — a caring medical wellness assistant for MediTatva.
+const VOICE_SAARTHI_PROMPT = `You are AI Saarthi, a caring medical wellness assistant for MediTatva healthcare platform.
+
+IMPORTANT: You MUST respond to EVERY medical query with helpful advice.
 
 Your role:
-- Provide helpful medical guidance for common health issues
-- Speak in a calm, reassuring tone
-- Be empathetic and supportive
-- Use simple, clear language
+- Answer ALL health-related questions
+- Provide practical medical guidance for common symptoms
+- Suggest appropriate medicines with dosages
+- Give home remedies and precautions
+- Be empathetic, calm, and supportive
 
 Response rules:
-1. Auto-detect user's language (Hindi/English) and respond in the SAME language
-2. For health symptoms (fever, headache, cold, etc.):
-   - Acknowledge their concern with empathy
-   - Suggest 2-3 common OTC medicines with dosage
-   - Give 2-3 home remedies or precautions
-   - Mention when to see a doctor
-3. Keep responses conversational but informative (4-6 sentences)
-4. Use natural speaking style, not bullet points
-5. Include medicine substitutes when possible
+1. ALWAYS respond in the SAME language as the user (Hindi or English)
+2. For ANY health symptom or medical question:
+   - First acknowledge with empathy ("I understand", "मैं समझता हूं")
+   - Suggest 2-3 suitable OTC medicines with proper dosage
+   - Provide 2-3 home remedies or lifestyle tips
+   - Mention when to consult a doctor
+3. Keep responses conversational and natural (4-7 sentences)
+4. NO bullet points - speak naturally
+5. Include medicine alternatives when possible
 
-Example for "मुझे बुखार है":
-"मुझे सुनकर दुख हुआ। बुखार के लिए आप Dolo 650 या Crocin ले सकते हैं, हर 6 घंटे में। खूब पानी पिएं और आराम करें। अगर बुखार 3 दिन से ज्यादा रहे या 102 से ऊपर हो, तो डॉक्टर से मिलें। आप कब से बुखार है?"
+Example responses:
 
-Remember: Provide practical medical advice in a caring voice tone.`;
+For "मुझे सिरदर्द है":
+"मुझे सुनकर दुख हुआ। सिरदर्द के लिए आप Combiflam या Saridon ले सकते हैं। एक गोली लें और 6 घंटे बाद दोबारा ले सकते हैं। पानी खूब पिएं, आराम करें और माथे पर ठंडा पानी लगाएं। अगर दर्द बढ़े या 2 दिन से ज्यादा रहे तो डॉक्टर को दिखाएं।"
+
+For "I have cold and cough":
+"I'm sorry to hear that. For cold and cough, you can take Cheston Cold or Benadryl syrup twice daily. Steam inhalation helps a lot, and drink warm water with honey and ginger. Take rest and avoid cold food. If symptoms persist beyond 5 days or you get high fever, please see a doctor."
+
+For "बुखार है 101 degree":
+"101 बुखार है तो चिंता न करें। Dolo 650 या Crocin 500 लें, हर 6 घंटे में। ठंडे पानी की पट्टी माथे पर रखें। खूब पानी और नींबू पानी पिएं। हल्का खाना खाएं। अगर बुखार 102 से ज्यादा हो या 3 दिन में ठीक न हो तो डॉक्टर से मिलें।"
+
+NEVER say "I cannot help" or refuse to answer medical questions. ALWAYS provide helpful guidance.`;
 
 type VoiceState = "idle" | "listening" | "speaking" | "processing";
 
@@ -82,22 +111,39 @@ export const VoiceChatSaarthi = ({ onClose }: VoiceChatSaarthiProps) => {
   const initializeChatSession = async () => {
     try {
       if (!genAI) {
-        console.error("Gemini AI not initialized - API key missing");
-        toast.error("AI service is not configured. Please contact support.");
+        console.error("❌ Gemini AI not initialized - API key issue:", apiKeyStatus.error);
+        
+        const errorMsg = currentLanguage === "hi-IN" 
+          ? "AI सेवा कॉन्फ़िगर नहीं है। कृपया सपोर्ट टीम से संपर्क करें।"
+          : "AI service is not configured. Please contact support team.";
+        
+        const detailedError = apiKeyStatus.error.includes("not found")
+          ? "Missing API Key: Create a .env file in meditatva-frontend/ with VITE_GEMINI_API_KEY=your_key"
+          : apiKeyStatus.error.includes("placeholder")
+          ? "Invalid API Key: Get a real API key from https://makersuite.google.com/app/apikey"
+          : apiKeyStatus.error;
+        
+        toast.error(detailedError, { duration: 8000 });
+        setLastResponse(errorMsg);
+        await speakText(errorMsg);
+        setIsCallActive(false);
         return;
       }
 
       console.log("🔧 Initializing AI chat session for voice...");
+      
+      // Initialize model with gemini-2.5-flash (has available quota)
+      // Note: gemini-1.5-flash and gemini-2.0-flash may have quota issues
       const model = genAI.getGenerativeModel({
         model: "gemini-2.5-flash"
       });
 
       const chat = model.startChat({
         generationConfig: {
-          temperature: 0.9,
+          temperature: 0.8,
           topP: 0.95,
-          topK: 64,
-          maxOutputTokens: 4096,
+          topK: 40,
+          maxOutputTokens: 2048,
         },
         history: [
           {
@@ -113,16 +159,26 @@ export const VoiceChatSaarthi = ({ onClose }: VoiceChatSaarthiProps) => {
 
       setChatSession(chat);
       console.log("✅ Chat session initialized successfully");
+      console.log("✅ AI Saarthi is ready to answer medical queries");
 
       // Start call automatically with greeting
       setIsCallActive(true);
       const greeting = "नमस्ते। मैं सार्थी हूं। आज आप कैसा महसूस कर रहे हैं?";
       setLastResponse(greeting);
       await speakText(greeting);
-    } catch (error) {
+        
+    } catch (error: any) {
       console.error("❌ Error initializing chat:", error);
       console.error("Error details:", error instanceof Error ? error.message : String(error));
-      toast.error("Failed to initialize AI Saarthi: " + (error instanceof Error ? error.message : 'Unknown error'));
+      
+      const errorMsg = currentLanguage === "hi-IN"
+        ? "कॉल शुरू करने में विफल। कृपया पुनः प्रयास करें।"
+        : "Failed to start call. Please try again.";
+      
+      toast.error("Unable to initialize: " + (error instanceof Error ? error.message : 'Unknown error'));
+      setLastResponse(errorMsg);
+      await speakText(errorMsg);
+      setIsCallActive(false);
     }
   };
 
@@ -251,18 +307,65 @@ export const VoiceChatSaarthi = ({ onClose }: VoiceChatSaarthiProps) => {
         throw new Error("Chat session not initialized");
       }
 
-      // Add language context to help AI respond appropriately
+      // Add language context to help AI respond appropriately  
       const messageWithContext = currentLanguage === "hi-IN" && !userMessage.match(/[a-zA-Z]/) 
-        ? `[हिंदी में जवाब दें] ${userMessage}`
-        : userMessage;
+        ? `${userMessage} (कृपया हिंदी में जवाब दें)`
+        : `${userMessage} (please respond in English)`;
 
-      // Send message with timeout
-      const result = await Promise.race([
-        chatSession.sendMessage(messageWithContext),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("AI response timeout")), 15000)
-        )
-      ]) as any;
+      console.log("📤 Sending with context:", messageWithContext);
+
+      // Send message with timeout and better error handling
+      let result: any;
+      try {
+        console.log("📡 Attempting to send message to Gemini API...");
+        console.log("📡 Chat session exists:", !!chatSession);
+        console.log("📡 Message to send:", messageWithContext.substring(0, 50) + "...");
+        
+        result = await Promise.race([
+          chatSession.sendMessage(messageWithContext),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("AI response timeout after 15s")), 15000)
+          )
+        ]);
+        
+        console.log("✅ Message sent successfully, received result");
+      } catch (sendError: any) {
+        console.error("❌ Error sending message to Gemini:", sendError);
+        console.error("❌ Error name:", sendError?.name);
+        console.error("❌ Error message:", sendError?.message);
+        console.error("❌ Error stack:", sendError?.stack);
+        console.error("❌ Full error object:", JSON.stringify(sendError, Object.getOwnPropertyNames(sendError)));
+        
+        // Check for network errors
+        if (sendError.message?.includes("fetch") || 
+            sendError.message?.includes("network") ||
+            sendError.message?.includes("Failed to fetch") ||
+            sendError.message?.includes("quota") ||
+            sendError.message?.includes("429") ||
+            sendError.name === "TypeError") {
+          console.error("📊 Detected network/quota error");
+          console.error("📊 Error details:", {
+            name: sendError.name,
+            message: sendError.message,
+            status: sendError.status
+          });
+          
+          // Check if it's a quota error specifically
+          if (sendError.message?.includes("quota") || sendError.message?.includes("429")) {
+            throw new Error("QUOTA_EXCEEDED: API rate limit reached. Please wait 1-2 minutes and try again.");
+          }
+          
+          throw new Error("Cannot reach Gemini API. Check if https://generativelanguage.googleapis.com is accessible.");
+        }
+        
+        // Check for CORS errors
+        if (sendError.message?.includes("CORS") || 
+            sendError.message?.includes("blocked")) {
+          throw new Error("API access blocked by browser CORS policy.");
+        }
+        
+        throw sendError;
+      }
 
       // Validate response
       if (!result || !result.response) {
@@ -272,9 +375,13 @@ export const VoiceChatSaarthi = ({ onClose }: VoiceChatSaarthiProps) => {
       const responseText = result.response.text();
       console.log("📥 AI RAW RESPONSE:", responseText);
 
-      // Check if response is empty
+      // Check if response is empty or too short
       if (!responseText || responseText.trim().length === 0) {
         throw new Error("Empty AI response");
+      }
+
+      if (responseText.trim().length < 3) {
+        throw new Error("Response too short");
       }
       
       // Clean up markdown formatting for voice
@@ -296,34 +403,79 @@ export const VoiceChatSaarthi = ({ onClose }: VoiceChatSaarthiProps) => {
       console.error("❌ AI Response Error:", error);
       console.error("Error type:", error?.constructor?.name);
       console.error("Error message:", error?.message);
-      console.error("Full error object:", JSON.stringify(error, null, 2));
+      
+      // Convert error to string safely
+      const errorString = String(error?.message || error || 'unknown error').toLowerCase();
+      console.error("Error string:", errorString);
       
       // Provide meaningful, calm fallback based on language and error type
       let fallbackMsg: string;
       
-      // Check for quota exceeded error
-      if (error?.message?.includes("quota") || error?.message?.includes("429") || error?.message?.includes("RESOURCE_EXHAUSTED")) {
+      // Check for specific error types
+      const isQuotaError = errorString.includes("quota") || 
+                           errorString.includes("429") || 
+                           errorString.includes("resource_exhausted") ||
+                           errorString.includes("resource exhausted");
+      
+      const isTimeoutError = errorString.includes("timeout");
+      const isSessionError = errorString.includes("session") || errorString.includes("not initialized");
+      const isNetworkError = errorString.includes("network") || 
+                             errorString.includes("fetch") ||
+                             errorString.includes("connection") ||
+                             errorString.includes("cors") ||
+                             errorString.includes("blocked");
+      const isAPIKeyError = errorString.includes("api") && errorString.includes("key");
+      
+      // Handle different error types with appropriate responses
+      if (isAPIKeyError) {
+        if (currentLanguage === "hi-IN") {
+          fallbackMsg = "मुझे खेद है, सेवा उपलब्ध नहीं है। कृपया बाद में पुनः प्रयास करें।";
+        } else {
+          fallbackMsg = "Sorry, service is unavailable. Please try again later.";
+        }
+        toast.error("AI service configuration error. Check API key in .env file.");
+      } else if (isNetworkError) {
+        if (currentLanguage === "hi-IN") {
+          fallbackMsg = "नेटवर्क में समस्या है। कृपया अपना कनेक्शन जांचें और पुनः प्रयास करें।";
+        } else {
+          fallbackMsg = "Network issue detected. Please check your connection and try again.";
+        }
+        toast.error("Cannot connect to Gemini API. Check network/firewall settings.", { duration: 6000 });
+        console.error("💡 TIP: If using VPN or proxy, try disabling it temporarily");
+      } else if (isQuotaError) {
         if (currentLanguage === "hi-IN") {
           fallbackMsg = "मुझे खेद है, अभी बहुत सारे लोग मुझसे बात कर रहे हैं। कृपया एक मिनट में फिर से कोशिश करें।";
         } else {
           fallbackMsg = "Sorry, I'm talking to many people right now. Please try again in a minute.";
         }
         toast.error("API quota exceeded. Please wait 1 minute.", { duration: 5000 });
-      } else if (currentLanguage === "hi-IN") {
-        if (error?.message?.includes("timeout")) {
+      } else if (isTimeoutError) {
+        if (currentLanguage === "hi-IN") {
           fallbackMsg = "मुझे थोड़ा समय लग रहा है। कृपया फिर से बताएं।";
-        } else if (error?.message?.includes("session")) {
+        } else {
+          fallbackMsg = "I'm taking a moment. Please try again.";
+        }
+      } else if (isSessionError) {
+        if (currentLanguage === "hi-IN") {
           fallbackMsg = "मैं यहाँ हूं। आप कैसा महसूस कर रहे हैं?";
         } else {
-          fallbackMsg = "क्या आप फिर से बता सकते हैं?";
-        }
-      } else {
-        if (error?.message?.includes("timeout")) {
-          fallbackMsg = "I'm taking a moment. Please try again.";
-        } else if (error?.message?.includes("session")) {
           fallbackMsg = "I'm here. How are you feeling?";
+        }
+        // Try to reinitialize session
+        setTimeout(() => initializeChatSession(), 1000);
+      } else if (isNetworkError) {
+        if (currentLanguage === "hi-IN") {
+          fallbackMsg = "कनेक्शन में समस्या है। कृपया अपना इंटरनेट जांचें।";
         } else {
-          fallbackMsg = "Could you share that again?";
+          fallbackMsg = "Connection issue. Please check your internet.";
+        }
+        toast.error("Network error. Check your connection.");
+      } else {
+        // Generic fallback for unknown errors
+        if (currentLanguage === "hi-IN") {
+          fallbackMsg = "क्षमा करें, मुझे समझने में कठिनाई हुई। क्या आप फिर से बता सकते हैं?";
+        } else {
+          fallbackMsg = "Sorry, I had trouble understanding. Could you repeat that?";
         }
       }
       
@@ -658,12 +810,12 @@ export const VoiceChatSaarthi = ({ onClose }: VoiceChatSaarthiProps) => {
             </AnimatePresence>
 
             {/* Controls */}
-            <div className="flex gap-4 justify-center items-center">
+            <div className="flex gap-4 justify-center items-center flex-wrap">
               {/* Main Mic Button */}
               <motion.div whileTap={{ scale: 0.95 }}>
                 <Button
                   onClick={voiceState === "listening" ? stopListening : startListening}
-                  disabled={voiceState === "speaking" || voiceState === "processing" || !isSupported}
+                  disabled={voiceState === "speaking" || voiceState === "processing" || !isSupported || !isCallActive}
                   size="lg"
                   className={`w-20 h-20 rounded-full shadow-2xl ${
                     voiceState === "listening"
@@ -679,6 +831,36 @@ export const VoiceChatSaarthi = ({ onClose }: VoiceChatSaarthiProps) => {
                 </Button>
               </motion.div>
 
+              {/* Retry Button - shown when call is not active */}
+              {!isCallActive && (
+                <motion.div whileTap={{ scale: 0.95 }}>
+                  <Button
+                    onClick={initializeChatSession}
+                    variant="outline"
+                    className="rounded-full px-6 py-3 text-sm border-2 border-indigo-500 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950"
+                  >
+                    🔄 Retry Connection
+                  </Button>
+                </motion.div>
+              )}
+
+              {/* Test API Button - for debugging */}
+              {isCallActive && voiceState === "idle" && (
+                <motion.div whileTap={{ scale: 0.95 }}>
+                  <Button
+                    onClick={async () => {
+                      console.log("🧪 Testing API with simple message...");
+                      await getAIResponse("Hello");
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full px-4 py-2 text-xs border border-gray-300"
+                  >
+                    🧪 Test API
+                  </Button>
+                </motion.div>
+              )}
+
               {/* Language Toggle */}
               <Button
                 onClick={toggleLanguage}
@@ -693,10 +875,15 @@ export const VoiceChatSaarthi = ({ onClose }: VoiceChatSaarthiProps) => {
             {/* Help Text */}
             <div className="mt-6 text-center">
               <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-                {voiceState === "idle" && "Tap the microphone to start talking with Saarthi"}
-                {voiceState === "listening" && "Speak naturally... Saarthi is listening"}
-                {voiceState === "speaking" && "Listen to Saarthi's response..."}
-                {voiceState === "processing" && "Saarthi is thinking..."}
+                {!isCallActive 
+                  ? "⚠️ Connection failed. Click 'Retry Connection' to try again."
+                  : voiceState === "idle" 
+                  ? "Tap the microphone to start talking with Saarthi"
+                  : voiceState === "listening"
+                  ? "Speak naturally... Saarthi is listening"
+                  : voiceState === "speaking"
+                  ? "Listen to Saarthi's response..."
+                  : "Saarthi is thinking..."}
               </p>
             </div>
           </div>

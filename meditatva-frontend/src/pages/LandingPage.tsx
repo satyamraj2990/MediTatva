@@ -72,9 +72,11 @@ const Header: React.FC = () => {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <motion.div className="flex items-center gap-2">
-            <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colors.light.accent} flex items-center justify-center`}>
-              <Pill className="w-6 h-6 text-white" />
-            </div>
+            <img 
+              src="/meditatva-logo.png?v=3" 
+              alt="MediTatva Logo" 
+              className="h-10 w-10 object-contain"
+            />
             <span style={{ color: theme.text }} className="font-semibold text-xl">
               MediTatva
             </span>

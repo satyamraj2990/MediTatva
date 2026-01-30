@@ -50,7 +50,21 @@ export const MediCallSarthi = ({ onClose }: MediCallSarthiProps) => {
       
       // Show specific error message
       const errorData = error.response?.data;
-      if (errorData?.error === 'Public URL required') {
+      
+      if (errorData?.errorType === 'unverified_number') {
+        toast.error('Twilio Trial Account Limitation', {
+          description: 'Your phone number needs to be verified in Twilio console first.',
+          duration: 8000
+        });
+        console.log('\n⚠️ TWILIO TRIAL ACCOUNT LIMITATION:\n');
+        console.log(errorData.error);
+        console.log('\n💡 Solution:', errorData.help);
+      } else if (errorData?.errorType === 'invalid_number') {
+        toast.error('Invalid Phone Number', {
+          description: 'Please check the phone number format (e.g., +919876543210)',
+          duration: 5000
+        });
+      } else if (errorData?.error === 'Public URL required') {
         toast.error('Development Setup Required', {
           description: 'Ngrok tunnel needed. Check console for instructions.',
           duration: 6000
@@ -60,9 +74,20 @@ export const MediCallSarthi = ({ onClose }: MediCallSarthiProps) => {
         console.log('\n📋 Instructions:\n');
         console.log(errorData.instructions);
         console.log('\n📖 See: VOICE_CALL_FIX_SUMMARY.md for detailed setup\n');
+      } else if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+        toast.error('Network Connection Failed', {
+          description: 'Cannot connect to backend server. Please check if backend is running.',
+          duration: 6000
+        });
+        console.error('\n🔴 NETWORK ERROR: Cannot reach backend API');
+        console.error('Backend URL should be: http://localhost:5000');
+        console.error('Check if backend is running: ps aux | grep "node.*app.js"');
       } else {
         const errorMessage = errorData?.error || errorData?.message || error.message || 'Failed to initiate call';
-        toast.error(errorMessage);
+        toast.error(errorMessage, {
+          description: errorData?.details || '',
+          duration: 5000
+        });
       }
       
       setCallStatus('idle');

@@ -105,7 +105,7 @@ Medicine 2: Ibuprofen
 
 ### Environment Variables (Already Set):
 ```bash
-VITE_GEMINI_API_KEY=AIzaSyD_XHd1xi20Y-IgccbT8SpdxxYfFf2CaUc ✅
+VITE_GEMINI_API_KEY=your_api_key_here ✅
 ```
 
 Your Gemini API key is already configured and working!

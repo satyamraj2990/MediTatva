@@ -11,7 +11,7 @@ Your MediTatva AI Health Assistant is now **fully functional** with the Google G
 **API Key Status:** ✅ **ACTIVE**
 
 ```bash
-VITE_GEMINI_API_KEY="AIzaSyD_XHd1xi20Y-IgccbT8SpdxxYfFf2CaUc"
+VITE_GEMINI_API_KEY="your_gemini_api_key_here"
 ```
 
 **Model:** Gemini 1.5 Flash (Fast & Efficient)
