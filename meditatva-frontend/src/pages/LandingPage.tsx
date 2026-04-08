@@ -789,7 +789,7 @@ export const LandingPage: React.FC = () => {
   const { theme } = useTheme();
 
   return (
-    <div className={`relative ${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}>
+    <div className={`relative overflow-x-hidden ${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}>
       {/* Background gradient effect matching theme */}
       <div
         className={`fixed inset-0 pointer-events-none ${

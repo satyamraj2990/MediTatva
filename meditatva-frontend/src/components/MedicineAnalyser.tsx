@@ -68,60 +68,60 @@ interface RawComparisonRow {
 // Use a stable API root that always points to /api and avoids /api/api duplication.
 const API_ROOT = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 
-// Unified Theme Colors - Dark Theme for MediTatva App
+// Unified Theme Colors - Light-first with dark mode support
 const THEME_COLORS = {
-  // Background colors - DARK THEME
+  // Background colors
   bg: {
-    primary: 'bg-slate-950',
-    secondary: 'bg-slate-900',
-    tertiary: 'bg-slate-900/80',
-    accent: 'bg-slate-900/60',
+    primary: 'bg-white dark:bg-slate-950',
+    secondary: 'bg-slate-50 dark:bg-slate-900',
+    tertiary: 'bg-slate-100 dark:bg-slate-900/80',
+    accent: 'bg-slate-100/70 dark:bg-slate-900/60',
   },
-  // Text colors - LIGHT TEXT ON DARK
+  // Text colors
   text: {
-    primary: 'text-white',
-    secondary: 'text-slate-300',
-    tertiary: 'text-slate-200',
-    muted: 'text-slate-400',
+    primary: 'text-slate-900 dark:text-white',
+    secondary: 'text-slate-600 dark:text-slate-300',
+    tertiary: 'text-slate-700 dark:text-slate-200',
+    muted: 'text-slate-500 dark:text-slate-400',
   },
-  // Border colors - DARK BORDERS
+  // Border colors
   border: {
-    primary: 'border-slate-700',
-    secondary: 'border-slate-800',
-    accent: 'border-teal-500/50',
+    primary: 'border-slate-200 dark:border-slate-700',
+    secondary: 'border-slate-200 dark:border-slate-800',
+    accent: 'border-teal-500/50 dark:border-teal-400/50',
   },
   // Input colors
   input: {
-    bg: 'bg-slate-900',
-    border: 'border-slate-700',
+    bg: 'bg-white dark:bg-slate-900',
+    border: 'border-slate-300 dark:border-slate-700',
     borderHover: 'hover:border-teal-500',
     borderFocus: 'focus:border-teal-400',
     ring: 'focus:ring-2 focus:ring-teal-500/30',
   },
-  // Feature gradients - TEAL FOR LIGHT THEME
+  // Feature gradients
   gradient: {
     primary: 'from-teal-500 to-teal-600',
     primaryHover: 'hover:from-teal-600 hover:to-teal-700',
     success: 'from-emerald-500 to-green-600',
     info: 'from-cyan-500 to-teal-600',
   },
-  // Shadow & glow colors - LIGHT SHADOWS
+  // Shadow colors
   shadow: {
-    primary: 'shadow-sm shadow-slate-200',
-    hover: 'hover:shadow-md hover:shadow-slate-300',
+    primary: 'shadow-sm shadow-slate-200 dark:shadow-none',
+    hover: 'hover:shadow-md hover:shadow-slate-300 dark:hover:shadow-none',
   },
   // Cost tag colors
   costTag: {
-    budget: 'bg-emerald-900/40 text-emerald-300 dark:bg-emerald-900/60 dark:text-emerald-200 border border-emerald-700/40',
-    balanced: 'bg-slate-900/40 text-slate-400 dark:bg-slate-900/60 dark:text-slate-300 border border-slate-700/40',
-    premium: 'bg-purple-900/40 text-purple-300 dark:bg-purple-900/60 dark:text-purple-200 border border-purple-700/40',
+    budget: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-700/40',
+    balanced: 'bg-slate-100 text-slate-700 dark:bg-slate-900/60 dark:text-slate-300 border border-slate-200 dark:border-slate-700/40',
+    premium: 'bg-purple-50 text-purple-700 dark:bg-purple-900/60 dark:text-purple-200 border border-purple-200 dark:border-purple-700/40',
   },
   // Status badge colors
   badge: {
-    success: 'bg-emerald-900/50 text-emerald-300 dark:bg-emerald-900/70 dark:text-emerald-200 border border-emerald-700/50',
-    warning: 'bg-amber-900/50 text-amber-300 dark:bg-amber-900/70 dark:text-amber-200 border border-amber-700/50',
-    danger: 'bg-red-900/50 text-red-300 dark:bg-red-900/70 dark:text-red-200 border border-red-700/50',
-    info: 'bg-teal-900/50 text-teal-300 dark:bg-teal-900/70 dark:text-teal-200 border border-teal-700/50',
+    success: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/70 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-700/50',
+    warning: 'bg-amber-50 text-amber-700 dark:bg-amber-900/70 dark:text-amber-200 border border-amber-200 dark:border-amber-700/50',
+    danger: 'bg-red-50 text-red-700 dark:bg-red-900/70 dark:text-red-200 border border-red-200 dark:border-red-700/50',
+    info: 'bg-teal-50 text-teal-700 dark:bg-teal-900/70 dark:text-teal-200 border border-teal-200 dark:border-teal-700/50',
   },
 };
 
