@@ -1,0 +1,67 @@
+{
+  "screening_responses": {
+    "q1": 2,
+    "q2": 1,
+    "q3": 1,
+    "q4": 0,
+    "q5": 2,
+    "q6": 1,
+    "q7": 2
+  },
+  "emotional_profile": {
+    "primary_emotion": "anxious",
+    "primary_confidence": 0.15,
+    "emotional_diversity": 8,
+    "concentration": 0.15,
+    "emotional_volatility": 0.08,
+    "top_5_emotions": [
+      {
+        "emotion": "anxious",
+        "probability": 0.15
+      },
+      {
+        "emotion": "stressed",
+        "probability": 0.12
+      },
+      {
+        "emotion": "sad",
+        "probability": 0.08
+      },
+      {
+        "emotion": "overwhelmed",
+        "probability": 0.07
+      },
+      {
+        "emotion": "afraid",
+        "probability": 0.06
+      }
+    ]
+  },
+  "concern_profile": {
+    "anxiety_disorder": {
+      "intensity": 0.12,
+      "confidence": 0.15,
+      "is_risk_factor": true
+    },
+    "stress_management": {
+      "intensity": 0.10,
+      "confidence": 0.12,
+      "is_risk_factor": true
+    },
+    "depression_risk": {
+      "intensity": 0.08,
+      "confidence": 0.08,
+      "is_risk_factor": true
+    },
+    "resilience_factor": {
+      "intensity": 0.04,
+      "confidence": 0.05,
+      "is_risk_factor": false
+    }
+  },
+  "risk_assessment": {
+    "overall_risk_score": 0.35,
+    "mental_health_status": "MODERATE_RISK"
+  },
+  "user_score": 0.65
+}

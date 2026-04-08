@@ -1,0 +1,29 @@
+{
+  "screeningResponses": {
+    "q1": 3,
+    "q2": 4,
+    "q3": 3,
+    "q4": 4,
+    "q5": 3,
+    "q6": 2,
+    "q7": 4
+  },
+  "emotionalProfile": {
+    "primary_emotion": "anxious",
+    "top_5_emotions": [
+      {"emotion": "anxious", "score": 0.15},
+      {"emotion": "stressed", "score": 0.12},
+      {"emotion": "sad", "score": 0.1},
+      {"emotion": "overwhelmed", "score": 0.08},
+      {"emotion": "tense", "score": 0.07}
+    ]
+  },
+  "concernProfile": {
+    "work_pressure": {"intensity": "high"},
+    "sleep_issues": {"intensity": "moderate"}
+  },
+  "riskAssessment": {
+    "overall_risk_score": 0.62
+  },
+  "userScore": 62
+}
